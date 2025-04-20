@@ -1,20 +1,60 @@
 #include "server.hpp"
 
 int main(){
-	int serverFd, newSocket;
-	struct sockaddr_in address;
+	int listenFd;
+	sockaddr_in address;
+
+	int epollFd = -1;
+	epoll_event events[MAX_EVENTS];
+	int eventCount;
+
+	// Create a listening socket
+	listenFd = makeListenSocket(address);
+
+	cout << "Server is listening" << endl;
+
+	// Create our epoll instance
+	epollFd = epoll_create1(0);
+
+	if (epollFd == -1){
+		perror("Epoll creation failure");
+		exit(1);
+	}
+
+	// Add listening fd to the socket
+	addFdToEpoll(epollFd, listenFd);
+
+	while (1){
+		// Get # of events captured instantaneously
+		eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
+		for (int i = 0; i < eventCount; i++){
+
+			// If event is listenFd
+			if (events[i].data.fd == listenFd){
+				
+				// Accept connection
+				handleAccept(epollFd, listenFd);
+			} else {
+
+				// Handle connection
+				handleReadOrWrite(events[i].data.fd);
+			}
+		}
+	}
+
+	// Close socket
+	close(listenFd);
+	return 0;
+}
+
+
+int makeListenSocket(sockaddr_in address){
+	int sockFd = -1;
 	int opt = 1;
-	int addrlen = sizeof(address);
-	char buffer[1024] = {0};
-	
+
 	// Open socket
-		// domain: ipv4, 
-		// type: sequenced, reliable 
-		// protocol: whatever the OS decides (TCP)
-	serverFd = socket(AF_INET, SOCK_STREAM, 0);
-
-
-	if (serverFd == 0){
+	sockFd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockFd == 0){
 		perror("socket failed");
 		exit(1);
 	}
@@ -22,59 +62,79 @@ int main(){
 	cout << "Socket created" << endl;
 
 	// Set Options
-		// SOL_SOCKET: set generic socket-level option
-		// SO_REUSEADDR: lets you bind to an addr even if its in TIME_WAIT from a recent close
-		// Pass in an opt integer to turn it on
-	setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-	address.sin_family = AF_INET;
+	setsockopt(sockFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+	address.sin_family = AF_INET; // ipv4
 	address.sin_addr.s_addr = INADDR_ANY;
-		// Convert port number to network byte order
+		// Convert port number to network byte order (big endian)
 	address.sin_port = htons(PORT);
 
 	cout << "Options set" << endl;
 
-	// Bind
-		// Associates a socket to an address & port num
-	if (bind(serverFd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+	// Bind socket fd to address
+	if (bind(sockFd, (sockaddr *)&address, sizeof(address)) < 0) {
 		perror("bind failed");
-		exit(EXIT_FAILURE);
+		exit(1);
 	}
 
 	cout << "Address bound to socket" << endl;
 
 	// Listen
-		// Specifies the max amount of amount of connections 
-		// that can be queued while server is busy
-	if (listen(serverFd, BACKLOG_MAX) < 0) {
+	if (listen(sockFd, BACKLOG_MAX) < 0) {
 		perror("listen");
 		exit(1);
 	}
 
+	return sockFd;
+}
+	
+void addFdToEpoll(int epollFd, int fd){
+	
+	// Set the file descriptor to nonblocking
+	fcntl(fd, F_SETFL, O_NONBLOCK);
 
-	cout << "Server is listening" << endl;
+	// Set event to check input and set as edge triggered
+	epoll_event event;
+	event.events = EPOLLIN | EPOLLET;
+	event.data.fd = fd;
+ 	
 
-	// Accept a connection
-		// Accepts the first pending connection of the current socket
-		// Creates a new socket not in a listening state for the client
-		// Makes a new strut that holds address info
-		// Holds length of the struct
-		// Original socket is unaffected
-	newSocket = accept(serverFd, (struct sockaddr *)&address, (socklen_t *)&addrlen);
-
-	if (newSocket < 0) {
-		perror("accept");
+	// Add fd to epoll
+	if (epoll_ctl(epollFd, EPOLL_CTL_ADD, fd, &event)){
+		perror("Failed to add fd to epoll");
+		close(epollFd);
 		exit(1);
 	}
 
-	cout << "Connection accepted" << endl;
+	cout << "Adding " << fd << " to epoll fd" << endl;
 
+}
+
+void handleAccept(int epollFd, int listenFd){
+	int clientFd;
+	sockaddr_in clientAddress;
+	socklen_t clientLen = sizeof(clientAddress);
+
+	// While there are still connections to accept
+	while((clientFd = accept(listenFd, (sockaddr *)&clientAddress, (socklen_t *)&clientLen))>0){
+
+		cout << "Connection accepted" << endl;
+		
+		// Add connection fd to epoll marking list
+		addFdToEpoll(epollFd, clientFd);
+	}
+
+	if (clientFd == -1 && errno != EAGAIN && errno != EWOULDBLOCK){
+		perror("Accept handling");
+		close(epollFd);
+		exit(1);
+	}
+}
+
+void handleReadOrWrite(int fd){
+	char buffer[1024] = {0};
 	// Read data
-	read(newSocket, buffer, 1024);
-	std::cout << "Message from client: " << buffer << std::endl;
 
-	// Close socket
-	close(newSocket);
-	close(serverFd);
-	return 0;
+	read(fd, buffer, 1024);
+	std::cout << "Message from client: " << buffer << std::endl;
 }
 
