@@ -21,24 +21,17 @@ int main(){
 		exit(1);
 	}
 
-	// Add listening fd to the socket
-	addFdToEpoll(epollFd, listenFd);
+	// Create a thread to constantly accept new conns
+	thread listenT(acceptLoop, listenFd, epollFd);
+	listenT.detach();
 
 	while (1){
 		// Get # of events captured instantaneously
 		eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
+
 		for (int i = 0; i < eventCount; i++){
-
-			// If event is listenFd
-			if (events[i].data.fd == listenFd){
-				
-				// Accept connection
-				handleAccept(epollFd, listenFd);
-			} else {
-
-				// Handle connection
-				handleReadOrWrite(events[i].data.fd);
-			}
+			// Handle read/write
+			handleReadOrWrite(events[i].data.fd);
 		}
 	}
 
@@ -96,7 +89,6 @@ void addFdToEpoll(int epollFd, int fd){
 	epoll_event event;
 	event.events = EPOLLIN | EPOLLET;
 	event.data.fd = fd;
- 	
 
 	// Add fd to epoll
 	if (epoll_ctl(epollFd, EPOLL_CTL_ADD, fd, &event)){
@@ -109,32 +101,36 @@ void addFdToEpoll(int epollFd, int fd){
 
 }
 
-void handleAccept(int epollFd, int listenFd){
-	int clientFd;
-	sockaddr_in clientAddress;
-	socklen_t clientLen = sizeof(clientAddress);
-
-	// While there are still connections to accept
-	while((clientFd = accept(listenFd, (sockaddr *)&clientAddress, (socklen_t *)&clientLen))>0){
-
-		cout << "Connection accepted" << endl;
-		
-		// Add connection fd to epoll marking list
-		addFdToEpoll(epollFd, clientFd);
-	}
-
-	if (clientFd == -1 && errno != EAGAIN && errno != EWOULDBLOCK){
-		perror("Accept handling");
-		close(epollFd);
-		exit(1);
-	}
-}
-
 void handleReadOrWrite(int fd){
 	char buffer[1024] = {0};
 	// Read data
 
 	read(fd, buffer, 1024);
-	std::cout << "Message from client: " << buffer << std::endl;
+	cout << "Message from client: " << buffer << endl;
 }
 
+void acceptLoop(int listenFd, int epollFd){
+	int clientFd;
+	sockaddr_in clientAddress;
+	socklen_t clientLen = sizeof(clientAddress);
+	
+	// Set thread to loop forever
+	while(1){
+		// While there are still connections to accept
+		while((clientFd = accept(listenFd, (sockaddr *)&clientAddress, (socklen_t *)&clientLen)) > 0){
+
+			// Add connection fd to epoll marking list
+			addFdToEpoll(epollFd, clientFd);
+
+			cout << "Connection accepted" << endl;
+		}
+
+		if (clientFd == -1 && errno != EAGAIN && errno != EWOULDBLOCK){
+			perror("Accept handling");
+			close(epollFd);
+			close(listenFd);
+			exit(1);
+		}
+
+	}
+}

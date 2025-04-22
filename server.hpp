@@ -4,10 +4,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+
 #include <errno.h>
 
 #include <cstring>
 #include <iostream>
+#include <thread>
 
 #define BACKLOG_MAX 20
 #define MAX_EVENTS 30
@@ -24,5 +26,6 @@ void addFdToEpoll(int epoll, int fd);
 
 void handleAccept(int epollFd, int listenFd);
 
-
 void handleReadOrWrite(int fd);
+
+void acceptLoop(int listenFd, int epollFd);
