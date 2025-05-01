@@ -1,5 +1,9 @@
 #include "server.hpp"
 
+
+static unordered_map<int, clientConn> clientMap = {};
+static mutex clientMapMtx;
+
 int main(){
 	int listenFd;
 	sockaddr_in address;
@@ -8,7 +12,6 @@ int main(){
 	epoll_event events[MAX_EVENTS];
 	int eventCount;
 
-	unordered_map<int, clientConn> clientMap = {};
 
 	// Create a listening socket
 	listenFd = makeListenSocket(address);
@@ -24,7 +27,7 @@ int main(){
 	}
 
 	// Create a thread to constantly accept new conns
-	thread listenT(acceptLoop, listenFd, epollFd, ref(clientMap));
+	thread listenT(acceptLoop, listenFd, epollFd);
 	listenT.detach();
 
 	while (1){
@@ -37,23 +40,42 @@ int main(){
 			uint32_t event = events[i].events;
 
 			if (event & (EPOLLHUP | EPOLLERR)){
-				// Client has disconnected
-
-				// Close autoderegisters fd from epoll
-				clientMap.erase(fd);
-				close(fd);
+				killClient(fd);
+				continue;
 			}
+
+			clientConn* clientPtr = nullptr;
+
+			{
+				lock_guard lock(clientMapMtx);
+				auto it = clientMap.find(fd);
+				if (it == clientMap.end()){
+					// client not found
+					continue;
+				}
+
+				clientPtr = &it->second;
+			}
+
+			bool fatal = false;
 
 			if (event & EPOLLIN){
 				// We are able to read
 				// Attempt read
-				handleRead(epollFd, clientMap[fd]);
-				handleWrite(epollFd, clientMap[fd]);
+				if(!(handleRead(epollFd, *clientPtr) && handleWrite(epollFd, *clientPtr))){
+					fatal = true;
+				}
 			}
 
 			if (event & EPOLLOUT){
 				// Finish writing what was started
-				handleWrite(epollFd, clientMap[fd]);
+				if(!(handleWrite(epollFd, *clientPtr))){
+					fatal = true;
+				}
+			}
+
+			if (fatal){
+				killClient(fd);
 			}
 		}
 	}
@@ -120,6 +142,8 @@ void addFdToEpoll(int epollFd, int fd){
 		exit(1);
 	}
 
+	clientMap[fd].epollMask = event.events;
+
 	cout << "Adding " << fd << " to epoll fd" << endl;
 
 }
@@ -138,22 +162,26 @@ void modFdEpoll(int epollFd, int fd, int ops){
 		exit(1);
 	}
 
+	clientMap[fd].epollMask = event.events;
+
 	cout << "Modding " << fd  << endl;
 
 }
 
-void handleRead(int epollFd, clientConn& client){
+int handleRead(int epollFd, clientConn& client){
 
 	size_t headerSize = sizeof(PacketHeader);
 	PacketHeader header;
 
 	// Do all the reading here
-	drainReadPipe(client.fd, client);
+	if(drainReadPipe(client.fd, client) != 0){
+		return -1;
+	}
 
 	while(1){
 		// If we don't even have a full header
 		if (client.readBuf.size() < headerSize){
-			return;
+			return 0;
 		} else {
 			// We have a header here
 			header = extractHeader(client);
@@ -163,7 +191,8 @@ void handleRead(int epollFd, clientConn& client){
 
 		if (client.readBuf.size() >= fullPacketLen){
 			// If the buffer is empty and we are adding to it
-			if (client.readBuf.empty()){
+			// Only arm if writebuf was empty before we insert
+			if (client.writeBuf.empty() && !(client.epollMask & EPOLLOUT)){
 				// mod epoll fd to watch for open writes
 				modFdEpoll(epollFd, client.fd, EPOLLIN | EPOLLOUT | EPOLLET);
 			}
@@ -174,14 +203,13 @@ void handleRead(int epollFd, clientConn& client){
 			client.writeBuf.insert(client.writeBuf.end(), client.readBuf.begin(), client.readBuf.begin() + fullPacketLen);
 			client.readBuf.erase(client.readBuf.begin(), client.readBuf.begin() + fullPacketLen);
 		} else {
-			break;
+			return 0;
 		}
-
 	}
-	return;
+	return 0;
 }
 
-void handleWrite(int epollFd, clientConn& client){
+int handleWrite(int epollFd, clientConn& client){
 	// While there is still stuff in the buffer
 	while (!client.writeBuf.empty()){
 		// Only write what is needed
@@ -202,16 +230,16 @@ void handleWrite(int epollFd, clientConn& client){
 
 		// Can't write anymore
 		if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)){
-			break;
+			return 0;
 		}
 
 		// Do client deregistration here
 		perror("Writing");
-		break;
+		return -1;
 	}
 
 	// If we have cleared the buffer, unset write flag
-	if (client.writeBuf.empty()){
+	if (client.writeBuf.empty() && (client.epollMask & EPOLLOUT)){
 		modFdEpoll(epollFd, client.fd, EPOLLIN | EPOLLET);
 	}
 }
@@ -231,7 +259,7 @@ PacketHeader extractHeader(clientConn& client){
 	return header;
 }
 
-void drainReadPipe(int fd, clientConn& client){
+int drainReadPipe(int fd, clientConn& client){
 	array<uint8_t, CHUNK> buf{};
 	ssize_t n;
 
@@ -240,24 +268,24 @@ void drainReadPipe(int fd, clientConn& client){
 		client.readBuf.insert(client.readBuf.end(), buf.begin(), buf.begin() + n);
 	}
 
-	// EOF
+	// EOF, client closed connection
 	if (n == 0){
-		return;
+		return -1;
 	}
 
 	// Can't read any more
 	if (n < 0){
 		if (errno == EAGAIN || errno == EWOULDBLOCK){
-			return;
+			return 0;
 		} else {
 			perror("Reading");
-			return;
+			return -1;
 		}
 	}
 }
 
 
-void acceptLoop(int listenFd, int epollFd, unordered_map<int, clientConn>& clients){
+void acceptLoop(int listenFd, int epollFd){
 	int clientFd;
 	sockaddr_in clientAddress;
 	socklen_t clientLen = sizeof(clientAddress);
@@ -267,13 +295,17 @@ void acceptLoop(int listenFd, int epollFd, unordered_map<int, clientConn>& clien
 		// While there are still connections to accept
 		while((clientFd = accept(listenFd, (sockaddr *)&clientAddress, (socklen_t *)& clientLen)) > 0){
 
+			// Lock client map from other threads to prevent race conds
+			lock_guard lock(clientMapMtx);
+
+			// Add client fd to list of connected clients
+			clientMap.emplace(clientFd, clientConn(clientFd));
+
 			// Add connection fd to epoll marking list
 			addFdToEpoll(epollFd, clientFd);
-			
-			// Add client fd to list of connected clients
-			clients.emplace(clientFd, clientConn(clientFd));
 
 			cout << "Connection accepted" << endl;
+			
 		}
 
 		if (clientFd == -1 && errno != EAGAIN && errno != EWOULDBLOCK){
@@ -283,4 +315,16 @@ void acceptLoop(int listenFd, int epollFd, unordered_map<int, clientConn>& clien
 			exit(1);
 		}
 	}
+}
+
+void killClient(int fd){
+	// Wipe the socket
+	close(fd);
+
+	// Lock the map
+	lock_guard lock(clientMapMtx);
+
+	// Wipe from the map
+	clientMap.erase(fd);
+
 }

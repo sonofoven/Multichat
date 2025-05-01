@@ -15,6 +15,7 @@
 #include <cstring>
 #include <iostream>
 #include <thread>
+#include <mutex>
 
 #define BACKLOG_MAX 20
 #define MAX_EVENTS 30
@@ -37,6 +38,7 @@ public:
 	deque<uint8_t> readBuf;
 	deque<uint8_t> writeBuf;
 	int fd;
+	uint32_t epollMask = EPOLLIN | EPOLLET;
 
 	clientConn () : fd(-1) {} // Default constructor
 	clientConn (int fileDescriptor) : fd(fileDescriptor) {}
@@ -57,11 +59,11 @@ void addFdToEpoll(int epoll, int fd);
 void modFdEpoll(int epollFd, int fd, int ops);
 	// Modifies a file descriptor within the epoll pool
 
-void handleRead(int epollFd, clientConn& client);
+int handleRead(int epollFd, clientConn& client);
 
-void handleWrite(int epollFd, clientConn& client);
+int handleWrite(int epollFd, clientConn& client);
 
-void acceptLoop(int listenFd, int epollFd, unordered_map<int, clientConn>& clients);
+void acceptLoop(int listenFd, int epollFd);
 	// Runs on a new thread, constantly accepts
 	// new conns and adds them to the client
 	// list and epoll pool
@@ -70,6 +72,9 @@ PacketHeader extractHeader(clientConn& client);
 	// Read from the beginning of the read buffer
 	// to attain the header
 
-void drainReadPipe(int fd, clientConn& client);
+int drainReadPipe(int fd, clientConn& client);
 	// Read the read pipe til we run out
 	// or until we can't anymore
+
+void killClient(int fd);
+
