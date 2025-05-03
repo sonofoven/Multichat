@@ -5,8 +5,9 @@
 
 #include <cstring>
 #include <iostream>
+#include <vector>
+#include "protocol.hpp"
 
-#define PORT 8080
 
 using namespace std;
 

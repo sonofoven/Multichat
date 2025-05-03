@@ -3,35 +3,29 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 #include <endian.h>
+#include <signal.h>
+
 #include <unordered_map>
 #include <deque>
 #include <vector>
 #include <algorithm>
-
-
-#include <errno.h>
 #include <array>
+
 #include <cstring>
 #include <iostream>
 #include <thread>
 #include <mutex>
 
+#include "protocol.hpp"
+
 #define BACKLOG_MAX 20
 #define MAX_EVENTS 30
-#define PORT 8080
-
-#define CHUNK 4096
 
 
 using namespace std;
 
-enum opcode {
-	CONNECT,
-	MSG,
-	MSGBULK,
-	DISCONNECT
-};
 
 class clientConn {
 public:
@@ -42,11 +36,6 @@ public:
 
 	clientConn () : fd(-1) {} // Default constructor
 	clientConn (int fileDescriptor) : fd(fileDescriptor) {}
-};
-
-struct PacketHeader {
-	uint16_t length;
-	uint16_t opcode;
 };
 
 int makeListenSocket(sockaddr_in address);
@@ -78,3 +67,4 @@ int drainReadPipe(int fd, clientConn& client);
 
 void killClient(int fd);
 
+void killServer(int code);

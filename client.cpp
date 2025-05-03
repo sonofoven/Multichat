@@ -4,7 +4,7 @@
 int main() {
 	int sockFd = 0;
 	struct sockaddr_in serverAddr;
-	const char *hello = "Hello from client";
+	const char *hello = "Hello from clientaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 	// Create socket
 	sockFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -35,6 +35,7 @@ int main() {
 
 	cout << "Connected to server" << endl;
 
+	
 	// Send data
 	send(sockFd, hello, strlen(hello), 0);
 	std::cout << "Message sent" << std::endl;

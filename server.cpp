@@ -1,10 +1,11 @@
 #include "server.hpp"
 
-
 static unordered_map<int, clientConn> clientMap = {};
 static mutex clientMapMtx;
 
 int main(){
+	signal(SIGINT, killServer); 
+
 	int listenFd;
 	sockaddr_in address;
 
@@ -33,6 +34,11 @@ int main(){
 	while (1){
 		// Get # of events captured instantaneously
 		eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
+
+		if (eventCount == -1 && !(errno == EINTR)){
+			cerr << "Epoll Wait failed: " << strerror(errno) << endl;
+			killServer(errno);
+		}
 
 		for (int i = 0; i < eventCount; i++){
 
@@ -169,6 +175,7 @@ void modFdEpoll(int epollFd, int fd, int ops){
 }
 
 int handleRead(int epollFd, clientConn& client){
+	cout<<"Reading stuff"<<endl;
 
 	size_t headerSize = sizeof(PacketHeader);
 	PacketHeader header;
@@ -189,7 +196,14 @@ int handleRead(int epollFd, clientConn& client){
 
 		size_t fullPacketLen = headerSize + header.length;
 
+
 		if (client.readBuf.size() >= fullPacketLen){
+			/* 
+				if (header.opcode == CMG_SERVMSG){
+					cout<< "LETS GOOO" << endl;
+				} 
+			*/
+
 			// If the buffer is empty and we are adding to it
 			// Only arm if writebuf was empty before we insert
 			if (client.writeBuf.empty() && !(client.epollMask & EPOLLOUT)){
@@ -211,6 +225,7 @@ int handleRead(int epollFd, clientConn& client){
 
 int handleWrite(int epollFd, clientConn& client){
 	// While there is still stuff in the buffer
+	cout<<"Writing stuff"<<endl;
 	while (!client.writeBuf.empty()){
 		// Only write what is needed
 		size_t sizeWrite = min(client.writeBuf.size(), (size_t)CHUNK);
@@ -268,7 +283,6 @@ int drainReadPipe(int fd, clientConn& client){
 		client.readBuf.insert(client.readBuf.end(), buf.begin(), buf.begin() + n);
 	}
 
-	// EOF, client closed connection
 	if (n == 0){
 		return -1;
 	}
@@ -278,7 +292,7 @@ int drainReadPipe(int fd, clientConn& client){
 		if (errno == EAGAIN || errno == EWOULDBLOCK){
 			return 0;
 		} else {
-			perror("Reading");
+			perror("Read pipe drain");
 			return -1;
 		}
 	}
@@ -318,6 +332,9 @@ void acceptLoop(int listenFd, int epollFd){
 }
 
 void killClient(int fd){
+
+	cout << "Killing client: " << fd << endl;
+
 	// Wipe the socket
 	close(fd);
 
@@ -327,4 +344,19 @@ void killClient(int fd){
 	// Wipe from the map
 	clientMap.erase(fd);
 
+}
+
+void killServer(int code){
+	// Inform
+	cout << "Killing server over signal: " << code << endl;
+
+	// Lock mutex
+	lock_guard lock(clientMapMtx);
+
+	// Kill every 
+	for (auto i = clientMap.begin(); i != clientMap.end(); i++){
+		killClient(i->first);
+	}
+
+	exit(1);
 }

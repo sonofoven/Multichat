@@ -1,8 +1,8 @@
 server.cpp: In function ‘int handleWrite(int, clientConn&)’:
-server.cpp:245:1: warning: control reaches end of non-void function [-Wreturn-type]
-  245 | }
+server.cpp:260:1: warning: control reaches end of non-void function [-Wreturn-type]
+  260 | }
       | ^
 server.cpp: In function ‘int drainReadPipe(int, clientConn&)’:
-server.cpp:285:1: warning: control reaches end of non-void function [-Wreturn-type]
-  285 | }
+server.cpp:299:1: warning: control reaches end of non-void function [-Wreturn-type]
+  299 | }
       | ^
