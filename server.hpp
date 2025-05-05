@@ -4,7 +4,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
-#include <endian.h>
 #include <signal.h>
 
 #include <unordered_map>

@@ -35,6 +35,7 @@ int main(){
 		// Get # of events captured instantaneously
 		eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
 
+		// If there is an error and it is NOT an interrupt
 		if (eventCount == -1 && !(errno == EINTR)){
 			cerr << "Epoll Wait failed: " << strerror(errno) << endl;
 			killServer(errno);
@@ -53,6 +54,7 @@ int main(){
 			clientConn* clientPtr = nullptr;
 
 			{
+				// Lock the map to look for client
 				lock_guard lock(clientMapMtx);
 				auto it = clientMap.find(fd);
 				if (it == clientMap.end()){
@@ -194,15 +196,14 @@ int handleRead(int epollFd, clientConn& client){
 			header = extractHeader(client);
 		}
 
-		size_t fullPacketLen = headerSize + header.length;
+		// Header length is size of the the full packet, including header
+		size_t fullPacketLen = header.length;
 
 
 		if (client.readBuf.size() >= fullPacketLen){
-			/* 
-				if (header.opcode == CMG_SERVMSG){
-					cout<< "LETS GOOO" << endl;
-				} 
-			*/
+			if (header.opcode == CMG_SERVMSG){
+				cout<< "LETS GOOO" << endl;
+			} 
 
 			// If the buffer is empty and we are adding to it
 			// Only arm if writebuf was empty before we insert
@@ -276,10 +277,6 @@ int drainReadPipe(int fd, clientConn& client){
 		client.readBuf.addBufferToEnd(buf, n);
 	}
 
-	if (n == 0){
-		return -1;
-	}
-
 	// Can't read any more
 	if (n < 0){
 		if (errno == EAGAIN || errno == EWOULDBLOCK){
@@ -289,6 +286,8 @@ int drainReadPipe(int fd, clientConn& client){
 			return -1;
 		}
 	}
+
+	return 0;
 }
 
 
