@@ -8,7 +8,7 @@
 #include <signal.h>
 
 #include <unordered_map>
-#include <deque>
+#include <queue>
 #include <vector>
 #include <algorithm>
 #include <array>
@@ -22,15 +22,50 @@
 
 #define BACKLOG_MAX 20
 #define MAX_EVENTS 30
-
+#define MAX_BUF_SIZE 65536
 
 using namespace std;
 
+class Buffer {
+// Wrapper for vector to make it more "queue"-like
+
+public:
+	vector<uint8_t> buf;
+
+	Buffer () {
+		buf.reserve(CHUNK);
+	}
+
+	void eraseAndShift(size_t bytes){
+		buf.erase(buf.begin(), buf.begin() + bytes);
+	}
+
+	void addBufferToEnd(uint8_t* srcBuf, size_t n){
+		buf.insert(buf.end(), srcBuf, srcBuf + n);
+	}
+
+	void addVectorToEnd(vector<uint8_t>& srcVect, size_t n){
+		buf.insert(buf.end(), srcVect.begin(), srcVect.begin() + n);
+	}
+
+	size_t size(){
+		return buf.size();
+	}
+
+	bool empty(){
+		return buf.empty();
+	}
+
+	uint8_t* data(){
+		return buf.data();
+	}
+
+};
 
 class clientConn {
 public:
-	deque<uint8_t> readBuf;
-	deque<uint8_t> writeBuf;
+	Buffer readBuf;
+	Buffer writeBuf;
 	int fd;
 	uint32_t epollMask = EPOLLIN | EPOLLET;
 

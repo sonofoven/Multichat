@@ -214,8 +214,8 @@ int handleRead(int epollFd, clientConn& client){
 			// Move packet (with header) from read to writeBuf
 			// Later this wont be done b/c we'll have to make new packets using opcodes but for now this is what we'll do
 			// We are just echoing back things to the client, we'll have to add an op handler
-			client.writeBuf.insert(client.writeBuf.end(), client.readBuf.begin(), client.readBuf.begin() + fullPacketLen);
-			client.readBuf.erase(client.readBuf.begin(), client.readBuf.begin() + fullPacketLen);
+			client.writeBuf.addVectorToEnd(client.readBuf.buf, fullPacketLen);
+			client.readBuf.eraseAndShift(fullPacketLen);
 		} else {
 			return 0;
 		}
@@ -225,21 +225,14 @@ int handleRead(int epollFd, clientConn& client){
 
 int handleWrite(int epollFd, clientConn& client){
 	// While there is still stuff in the buffer
-	cout<<"Writing stuff"<<endl;
+	cout << "Writing stuff" << endl;
 	while (!client.writeBuf.empty()){
-		// Only write what is needed
-		size_t sizeWrite = min(client.writeBuf.size(), (size_t)CHUNK);
-		vector<uint8_t> tmp;
-		tmp.reserve(sizeWrite);
 
-		// Copy over one chunk/block of info to vector
-		copy_n(client.writeBuf.begin(), sizeWrite, back_inserter(tmp));
-
-		ssize_t n = write(client.fd, tmp.data(), tmp.size());
+		ssize_t n = write(client.fd, client.writeBuf.data(), client.writeBuf.size());
 
 		if (n > 0){
 			// Erase what has been written from the write buffer
-			client.writeBuf.erase(client.writeBuf.begin(), client.writeBuf.begin() + (size_t)n);
+			client.writeBuf.eraseAndShift((size_t)n);
 			continue;
 		}
 
@@ -264,7 +257,7 @@ PacketHeader extractHeader(clientConn& client){
 	uint8_t* p = (uint8_t*)&header;
 
 	for (size_t i = 0; i < sizeof(header); i++){
-		p[i] = client.readBuf[i];
+		p[i] = client.readBuf.buf[i];
 	}
 	
 	// Set header from little endian to host endian
@@ -275,12 +268,12 @@ PacketHeader extractHeader(clientConn& client){
 }
 
 int drainReadPipe(int fd, clientConn& client){
-	array<uint8_t, CHUNK> buf{};
+	uint8_t buf[CHUNK];
 	ssize_t n;
 
 	// Read til pipe is empty
-	while ((n = read(fd, buf.data(), buf.size())) > 0){
-		client.readBuf.insert(client.readBuf.end(), buf.begin(), buf.begin() + n);
+	while ((n = read(fd, buf, CHUNK)) > 0){
+		client.readBuf.addBufferToEnd(buf, n);
 	}
 
 	if (n == 0){
