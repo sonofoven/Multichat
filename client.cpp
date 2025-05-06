@@ -20,7 +20,7 @@ int main() {
 
 	// Convert IPv4 and IPv6 addresses from text to binary
 	if (inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr) <= 0) {
-		std::cerr << "Invalid address/ Address not supported" << std::endl;
+		cerr << "Invalid address/ Address not supported" << endl;
 		return -1;
 	}
 
@@ -34,55 +34,39 @@ int main() {
 
 	cout << "Connected to server" << endl;
 
-	
-	string line;
-
-	// Get input
-	cout << "Enter message: ";
-	getline(cin, line);
+	// Get text input	
+	vector<uint8_t> data = getTextInput();
 
 	// Make packet
-	vector<uint8_t> packet = makePacket(CMG_SERVMSG, line);
+	Packet packet;
+	packet.data = data;
+	packet.header = makeHeader(CMG_SERVMSG, packet.size());
 
 	// Send data
-	sendPacket(sockFd, packet.data(), packet.size());
+	packet.sendPacket(sockFd);
 
 	// Close socket
 	close(sockFd);
 	return 0;
 }
 
-void sendPacket(int servFd, uint8_t* packet, size_t packetLen){
-	send(servFd, packet, packetLen, 0);
-	std::cout << "Packet sent" << std::endl;
-}
-
-vector<uint8_t> makePacket(opcode code, const string& line){
-	// Make header
-	PacketHeader header = makeHeader(code, line.size()+1);
-
-	// Cast to bytes
-	const uint8_t* byteHeader = reinterpret_cast<const uint8_t*>(&header);
-
-	//make an output buffer 
+vector<uint8_t> getTextInput(){
 	vector<uint8_t> outBuf;
-	outBuf.reserve(header.length);
+	string text;
+	cout << "Enter message: ";
+	cin >> text;
 
-	// Insert header and string into output buffer
-	const char* strBuf = line.data();
-	outBuf.insert(outBuf.end(), byteHeader, byteHeader + sizeof(PacketHeader)); 
-	outBuf.insert(outBuf.end(), strBuf, strBuf + line.size());	
+	outBuf.insert(outBuf.begin(), text.begin(), text.end());
 
-	//Add null terminator
-	outBuf.push_back(0);
-
-
+	// Add null terminator
+	outBuf.push_back('\0');
+	
 	return outBuf;
 }
 
-PacketHeader makeHeader(opcode code, size_t stringLen){
+PacketHeader makeHeader(opcode code, size_t length){
 	PacketHeader newHeader;
-	newHeader.length = htole16((uint16_t)(stringLen + sizeof(PacketHeader)));
+	newHeader.length = htole16((uint16_t)(length));
 	newHeader.opcode = htole16((uint16_t)code);
 	return newHeader;
 }

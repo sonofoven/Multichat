@@ -201,9 +201,23 @@ int handleRead(int epollFd, clientConn& client){
 
 
 		if (client.readBuf.size() >= fullPacketLen){
+
+			// Create a new packet
+			Packet packet;
+
+			// Take the header
+			packet.header = header;
+
+
 			if (header.opcode == CMG_SERVMSG){
-				cout<< "LETS GOOO" << endl;
-			} 
+				// Copy over packet data from the read buffer, there will be a better way of doing this in the future
+				packet.data.insert(packet.data.begin(), client.readBuf.buf.begin() + sizeof(PacketHeader), client.readBuf.buf.begin() + fullPacketLen); 
+
+				// Copy it over to a string and print it
+				string sentData(reinterpret_cast<const char*>(packet.data.data()), packet.data.size());
+				cout << sentData << endl;
+			}
+			
 
 			// If the buffer is empty and we are adding to it
 			// Only arm if writebuf was empty before we insert
@@ -216,6 +230,7 @@ int handleRead(int epollFd, clientConn& client){
 			// Later this wont be done b/c we'll have to make new packets using opcodes but for now this is what we'll do
 			// We are just echoing back things to the client, we'll have to add an op handler
 			client.writeBuf.addVectorToEnd(client.readBuf.buf, fullPacketLen);
+
 			client.readBuf.eraseAndShift(fullPacketLen);
 		} else {
 			return 0;

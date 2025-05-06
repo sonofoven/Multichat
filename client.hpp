@@ -14,6 +14,6 @@ using namespace std;
 
 void sendPacket(int servFd, uint8_t* packet, size_t packetLen);
 
-vector<uint8_t> makePacket(opcode code, const string& line);
+vector<uint8_t> getTextInput();
 
 PacketHeader makeHeader(opcode code, size_t stringLen);
