@@ -51,7 +51,7 @@ int main(){
 				continue;
 			}
 
-			clientConn* clientPtr = nullptr;
+			clientConn* clientPtr = NULL;
 
 			{
 				// Lock the map to look for client
@@ -69,7 +69,7 @@ int main(){
 
 			if (event & EPOLLIN){
 				// We are able to read
-				// Attempt read
+				// Then try to immediately write
 				if(!(handleRead(epollFd, *clientPtr) && handleWrite(epollFd, *clientPtr))){
 					fatal = true;
 				}
@@ -182,6 +182,9 @@ int handleRead(int epollFd, clientConn& client){
 	size_t headerSize = sizeof(PacketHeader);
 	PacketHeader header;
 
+	vector<uint8_t>& readBuf = client.readBuf;
+	vector<uint8_t>& writeBuf = client.writeBuf;
+
 	// Do all the reading here
 	if(drainReadPipe(client.fd, client) != 0){
 		return -1;
@@ -211,7 +214,7 @@ int handleRead(int epollFd, clientConn& client){
 
 			if (header.opcode == CMG_SERVMSG){
 				// Copy over packet data from the read buffer, there will be a better way of doing this in the future
-				packet.data.insert(packet.data.begin(), client.readBuf.buf.begin() + sizeof(PacketHeader), client.readBuf.buf.begin() + fullPacketLen); 
+				packet.data.insert(packet.data.begin(), client.readBuf.begin() + sizeof(PacketHeader), client.readBuf.begin() + fullPacketLen); 
 
 				// Copy it over to a string and print it
 				string sentData(reinterpret_cast<const char*>(packet.data.data()), packet.data.size());
@@ -221,7 +224,7 @@ int handleRead(int epollFd, clientConn& client){
 
 			// If the buffer is empty and we are adding to it
 			// Only arm if writebuf was empty before we insert
-			if (client.writeBuf.empty() && !(client.epollMask & EPOLLOUT)){
+			if (writeBuf.empty() && !(client.epollMask & EPOLLOUT)){
 				// mod epoll fd to watch for open writes
 				modFdEpoll(epollFd, client.fd, EPOLLIN | EPOLLOUT | EPOLLET);
 			}
@@ -229,9 +232,9 @@ int handleRead(int epollFd, clientConn& client){
 			// Move packet (with header) from read to writeBuf
 			// Later this wont be done b/c we'll have to make new packets using opcodes but for now this is what we'll do
 			// We are just echoing back things to the client, we'll have to add an op handler
-			client.writeBuf.addVectorToEnd(client.readBuf.buf, fullPacketLen);
+			writeBuf.insert(writeBuf.end(), readBuf.begin(), readBuf.begin() + fullPacketLen);
 
-			client.readBuf.eraseAndShift(fullPacketLen);
+			readBuf.erase(readBuf.begin(), readBuf.begin() + fullPacketLen);
 		} else {
 			return 0;
 		}
@@ -242,13 +245,18 @@ int handleRead(int epollFd, clientConn& client){
 int handleWrite(int epollFd, clientConn& client){
 	// While there is still stuff in the buffer
 	cout << "Writing stuff" << endl;
-	while (!client.writeBuf.empty()){
 
-		ssize_t n = write(client.fd, client.writeBuf.data(), client.writeBuf.size());
+	vector<uint8_t>& readBuf = client.readBuf;
+	vector<uint8_t>& writeBuf = client.writeBuf;
+
+	while (!writeBuf.empty()){
+
+		ssize_t n = write(client.fd, writeBuf.data(), writeBuf.size());
 
 		if (n > 0){
 			// Erase what has been written from the write buffer
-			client.writeBuf.eraseAndShift((size_t)n);
+			writeBuf.erase(writeBuf.begin(), writeBuf.begin() + n);
+
 			continue;
 		}
 
@@ -273,7 +281,7 @@ PacketHeader extractHeader(clientConn& client){
 	uint8_t* p = (uint8_t*)&header;
 
 	for (size_t i = 0; i < sizeof(header); i++){
-		p[i] = client.readBuf.buf[i];
+		p[i] = client.readBuf[i];
 	}
 	
 	// Set header from little endian to host endian
@@ -289,7 +297,8 @@ int drainReadPipe(int fd, clientConn& client){
 
 	// Read til pipe is empty
 	while ((n = read(fd, buf, CHUNK)) > 0){
-		client.readBuf.addBufferToEnd(buf, n);
+		// Insert onto end of read buffer
+		client.readBuf.insert(client.readBuf.end(), buf, buf + n);
 	}
 
 	// Can't read any more

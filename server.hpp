@@ -25,52 +25,24 @@
 
 using namespace std;
 
-class Buffer {
-// Wrapper for vector to make it more "queue"-like
-
-public:
-	vector<uint8_t> buf;
-
-	Buffer () {
-		buf.reserve(CHUNK);
-	}
-
-	void eraseAndShift(size_t bytes){
-		buf.erase(buf.begin(), buf.begin() + bytes);
-	}
-
-	void addBufferToEnd(uint8_t* srcBuf, size_t n){
-		buf.insert(buf.end(), srcBuf, srcBuf + n);
-	}
-
-	void addVectorToEnd(vector<uint8_t>& srcVect, size_t n){
-		buf.insert(buf.end(), srcVect.begin(), srcVect.begin() + n);
-	}
-
-	size_t size(){
-		return buf.size();
-	}
-
-	bool empty(){
-		return buf.empty();
-	}
-
-	uint8_t* data(){
-		return buf.data();
-	}
-
-};
-
 class clientConn {
 public:
-	Buffer readBuf;
-	Buffer writeBuf;
+	vector<uint8_t> readBuf;
+	vector<uint8_t> writeBuf;
 	int fd;
 	uint32_t epollMask = EPOLLIN | EPOLLET;
 
-	clientConn () : fd(-1) {} // Default constructor
-	clientConn (int fileDescriptor) : fd(fileDescriptor) {}
+	clientConn () : fd(-1) { // Default constructor
+		readBuf.reserve(CHUNK);
+		writeBuf.reserve(CHUNK);
+	}
+	clientConn (int fileDescriptor) : fd(fileDescriptor) {
+		readBuf.reserve(CHUNK);
+		writeBuf.reserve(CHUNK);
+	}
 };
+
+//uint16_t& value = *(vec.begin + bytes);
 
 int makeListenSocket(sockaddr_in address);
 	// Returns a listen socket given an empty addr
