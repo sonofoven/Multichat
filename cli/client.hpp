@@ -7,7 +7,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include "protocol.hpp"
+#include "../protocol.hpp"
 
 
 using namespace std;

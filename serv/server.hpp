@@ -17,7 +17,7 @@
 #include <thread>
 #include <mutex>
 
-#include "protocol.hpp"
+#include "../protocol.hpp"
 
 #define BACKLOG_MAX 20
 #define MAX_EVENTS 30
@@ -66,6 +66,10 @@ void acceptLoop(int listenFd, int epollFd);
 PacketHeader extractHeader(clientConn& client);
 	// Read from the beginning of the read buffer
 	// to attain the header
+
+int protocolParser(Packet& packet, clientConn& sender);
+
+void clientServerMessage(Packet& packet, clientConn& sender);
 
 int drainReadPipe(int fd, clientConn& client);
 	// Read the read pipe til we run out

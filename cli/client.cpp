@@ -39,11 +39,16 @@ int main() {
 
 	// Make packet
 	Packet packet;
-	packet.data = data;
-	packet.header = makeHeader(CMG_SERVMSG, packet.size());
+	packet.data = data.data();
+	packet.dataSize = data.size();
+	PacketHeader header = makeHeader(CMG_SERVMSG, packet.size());
+	packet.header = &header;
 
-	// Send data
-	packet.sendPacket(sockFd);
+	// Send packet
+	send(sockFd, packet.exportData().data(), packet.size(), 0);
+	//// Add err checking
+
+	cout << "Sent packet to server" << endl;
 
 	// Close socket
 	close(sockFd);
@@ -59,7 +64,9 @@ vector<uint8_t> getTextInput(){
 	outBuf.insert(outBuf.begin(), text.begin(), text.end());
 
 	// Add null terminator
-	outBuf.push_back('\0');
+	while (outBuf.size() < sizeof(clientServMsg)){
+		outBuf.push_back('\0');
+	}
 	
 	return outBuf;
 }

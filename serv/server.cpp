@@ -1,7 +1,7 @@
 #include "server.hpp"
 
-static unordered_map<int, clientConn> clientMap = {};
-static mutex clientMapMtx;
+unordered_map<int, clientConn> clientMap = {};
+mutex clientMapMtx;
 
 int main(){
 	signal(SIGINT, killServer); 
@@ -180,7 +180,7 @@ int handleRead(int epollFd, clientConn& client){
 	cout<<"Reading stuff"<<endl;
 
 	size_t headerSize = sizeof(PacketHeader);
-	PacketHeader header;
+	PacketHeader* header;
 
 	vector<uint8_t>& readBuf = client.readBuf;
 	vector<uint8_t>& writeBuf = client.writeBuf;
@@ -192,35 +192,29 @@ int handleRead(int epollFd, clientConn& client){
 
 	while(1){
 		// If we don't even have a full header
-		if (client.readBuf.size() < headerSize){
+		if (readBuf.size() < headerSize){
 			return 0;
 		} else {
 			// We have a header here
-			header = extractHeader(client);
+			header = (PacketHeader*)readBuf.data();
 		}
 
 		// Header length is size of the the full packet, including header
-		size_t fullPacketLen = header.length;
+		size_t fullPacketLen = header->length;
 
 
-		if (client.readBuf.size() >= fullPacketLen){
+		if (readBuf.size() >= fullPacketLen){
 
 			// Create a new packet
 			Packet packet;
 
 			// Take the header
 			packet.header = header;
+			packet.data = readBuf.data() + sizeof(PacketHeader);
+			packet.dataSize = fullPacketLen - sizeof(PacketHeader);
 
 
-			if (header.opcode == CMG_SERVMSG){
-				// Copy over packet data from the read buffer, there will be a better way of doing this in the future
-				packet.data.insert(packet.data.begin(), client.readBuf.begin() + sizeof(PacketHeader), client.readBuf.begin() + fullPacketLen); 
-
-				// Copy it over to a string and print it
-				string sentData(reinterpret_cast<const char*>(packet.data.data()), packet.data.size());
-				cout << sentData << endl;
-			}
-			
+			protocolParser(packet, client);
 
 			// If the buffer is empty and we are adding to it
 			// Only arm if writebuf was empty before we insert
@@ -246,7 +240,7 @@ int handleWrite(int epollFd, clientConn& client){
 	// While there is still stuff in the buffer
 	cout << "Writing stuff" << endl;
 
-	vector<uint8_t>& readBuf = client.readBuf;
+	//vector<uint8_t>& readBuf = client.readBuf;
 	vector<uint8_t>& writeBuf = client.writeBuf;
 
 	while (!writeBuf.empty()){
@@ -271,25 +265,12 @@ int handleWrite(int epollFd, clientConn& client){
 	}
 
 	// If we have cleared the buffer, unset write flag
-	if (client.writeBuf.empty() && (client.epollMask & EPOLLOUT)){
+	if (writeBuf.empty() && (client.epollMask & EPOLLOUT)){
 		modFdEpoll(epollFd, client.fd, EPOLLIN | EPOLLET);
 	}
+	return 0;
 }
 
-PacketHeader extractHeader(clientConn& client){
-	PacketHeader header;
-	uint8_t* p = (uint8_t*)&header;
-
-	for (size_t i = 0; i < sizeof(header); i++){
-		p[i] = client.readBuf[i];
-	}
-	
-	// Set header from little endian to host endian
-	header.length = le16toh(header.length);
-	header.opcode = le16toh(header.opcode);
-
-	return header;
-}
 
 int drainReadPipe(int fd, clientConn& client){
 	uint8_t buf[CHUNK];
@@ -312,6 +293,52 @@ int drainReadPipe(int fd, clientConn& client){
 	}
 
 	return 0;
+}
+
+int protocolParser(Packet& packet, clientConn& sender){
+	int exitCode = 0;
+	switch(packet.header->opcode){
+		case CMG_CONNECT:
+			cout << "OPCODE: CONNECTION" << endl;
+			break;
+			
+		case CMG_MSG:
+			cout << "OPCODE: CLIENT MESSAGE" << endl;
+			break;
+
+		case CMG_GROUPMSG:
+			cout << "OPCODE: GROUP MESSAGE" << endl;
+			break;
+
+		case CMG_BROADMSG:
+			cout << "OPCODE: BROAD MESSAGE" << endl;
+			break;
+
+		case CMG_SERVMSG:
+			cout << "OPCODE: SERVER MESSAGE" << endl;
+			if (packet.dataSize != sizeof(clientServMsg)){
+				cout << "ERROR: MALFORMED PACKET. "<< packet.dataSize << "bytes long" << endl;
+				
+				exitCode = -1;
+				break;
+			}
+
+			// Passing in a reference to packet.data as a clientServMsg
+			clientServerMessage(packet, sender);
+			break;
+
+		case CMG_MSGBULK:
+			cout << "OPCODE: BULK MESSAGE" << endl;
+			break;
+
+		case CMG_DISCONNECT:
+			cout << "OPCODE: DISCONNECTION" << endl;
+			break;
+
+		default:
+			cout << "Unknown opcode" << endl;
+	}
+	return exitCode;
 }
 
 
