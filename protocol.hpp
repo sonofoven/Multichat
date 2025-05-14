@@ -4,14 +4,10 @@
 #define PORT 8080
 #define CHUNK 4096
 
-
 enum opcode {
 	CMG_CONNECT, // Connect and auth
-	CMG_MSG, // Message from one client to one client
-	CMG_GROUPMSG, // Message from one client to every client in a group
 	CMG_BROADMSG, // Message from one client to every client
 	CMG_SERVMSG, // Message directly to the server
-	CMG_MSGBULK, // Message long enough that it needs to be fragmented
 	CMG_DISCONNECT, // Disconnect
 	SMG_CONNVAL, // Connection validation, tells client if it can join
 	SMG_MSG // Sent directly from server to client
@@ -51,23 +47,10 @@ struct clientConnect {
 	uint8_t password[16];
 };
 
-struct clientMsg {
-	uint8_t recipient[256];
-	uint8_t msg[256];
-};
-
 struct clientBroadMsg {
-	uint8_t msg[256];
+	uint8_t* msg;
 };
 
 struct clientServMsg {
-	uint8_t msg[256];
+	uint8_t* msg;
 };
-
-
-struct clientGroupMsg {
-	uint8_t group[16];
-	uint8_t msg[256];
-};
-
-

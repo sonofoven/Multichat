@@ -52,7 +52,10 @@ int main() {
 
 	// Close socket
 	close(sockFd);
-	return 0;
+
+ return 0;
+
+ //interfaceStart();
 }
 
 vector<uint8_t> getTextInput(){
@@ -63,10 +66,10 @@ vector<uint8_t> getTextInput(){
 
 	outBuf.insert(outBuf.begin(), text.begin(), text.end());
 
-	// Add null terminator
-	while (outBuf.size() < sizeof(clientServMsg)){
-		outBuf.push_back('\0');
-	}
+	// Add null terminators
+	//while (outBuf.size() < sizeof(clientServMsg)){
+	outBuf.push_back('\0');
+	//}
 	
 	return outBuf;
 }

@@ -301,14 +301,6 @@ int protocolParser(Packet& packet, clientConn& sender){
 		case CMG_CONNECT:
 			cout << "OPCODE: CONNECTION" << endl;
 			break;
-			
-		case CMG_MSG:
-			cout << "OPCODE: CLIENT MESSAGE" << endl;
-			break;
-
-		case CMG_GROUPMSG:
-			cout << "OPCODE: GROUP MESSAGE" << endl;
-			break;
 
 		case CMG_BROADMSG:
 			cout << "OPCODE: BROAD MESSAGE" << endl;
@@ -316,19 +308,14 @@ int protocolParser(Packet& packet, clientConn& sender){
 
 		case CMG_SERVMSG:
 			cout << "OPCODE: SERVER MESSAGE" << endl;
-			if (packet.dataSize != sizeof(clientServMsg)){
-				cout << "ERROR: MALFORMED PACKET. "<< packet.dataSize << "bytes long" << endl;
-				
-				exitCode = -1;
-				break;
-			}
 
-			// Passing in a reference to packet.data as a clientServMsg
+			// Right now, if someone wants to send a packet without the null byte
+			// they could read other memory, maybe make sure that the packet
+			// sends a length and cap that length too
+
+			// will get back to this
+
 			clientServerMessage(packet, sender);
-			break;
-
-		case CMG_MSGBULK:
-			cout << "OPCODE: BULK MESSAGE" << endl;
 			break;
 
 		case CMG_DISCONNECT:

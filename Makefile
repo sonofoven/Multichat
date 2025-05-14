@@ -4,7 +4,7 @@ CFLAGS  := -Wall -g -fPIC -pedantic
 CLIENT_DIR := cli
 SERVER_DIR := serv
 
-CLIENT_SRCS := $(CLIENT_DIR)/client.cpp
+CLIENT_SRCS := $(CLIENT_DIR)/client.cpp $(CLIENT_DIR)/interface.cpp 
 SERVER_SRCS := $(SERVER_DIR)/server.cpp $(SERVER_DIR)/servUtils.cpp
 
 CLIENT_HDRS := protocol.hpp $(CLIENT_DIR)/client.hpp
@@ -21,7 +21,7 @@ LINK_SERVER := server
 all: $(CLIENT_BIN) $(SERVER_BIN) link
 
 $(CLIENT_BIN): $(CLIENT_SRCS) $(CLIENT_HDRS)
-	$(CC) $(CFLAGS) -o $@ $(CLIENT_SRCS)
+	$(CC) $(CFLAGS) -o $@ $(CLIENT_SRCS) -lncurses
 
 $(SERVER_BIN): $(SERVER_SRCS) $(SERVER_HDRS)
 	$(CC) $(CFLAGS) -o $@ $(SERVER_SRCS)
