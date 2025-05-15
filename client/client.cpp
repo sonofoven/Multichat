@@ -2,6 +2,9 @@
 
 
 int main() {
+
+	interfaceStart();
+	/*
 	int sockFd = 0;
 	struct sockaddr_in serverAddr;
 
@@ -30,13 +33,7 @@ int main() {
 	if (connect(sockFd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
 		perror("Connection failed");
 		exit(1);
-	}
-
-	cout << "Connected to server" << endl;
-
-	// Get text input	
-	vector<uint8_t> data = getTextInput();
-
+	} cout << "Connected to server" << endl; // Get text input	vector<uint8_t> data = getTextInput();
 	// Make packet
 	Packet packet;
 	packet.data = data.data();
@@ -54,8 +51,7 @@ int main() {
 	close(sockFd);
 
  return 0;
-
- //interfaceStart();
+ */
 }
 
 vector<uint8_t> getTextInput(){

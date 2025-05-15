@@ -14,19 +14,6 @@
 
 using namespace std;
 
-
-typedef struct windowBorderStruct {
-	chtype 	ls, rs, ts, bs, tl, tr, bl, br;
-}WIN_BORDER;
-
-
-typedef struct windowStruct {
-	int startx, starty;
-	int height, width;
-	WIN_BORDER border;
-}WIN;
-
-
 void sendPacket(int servFd, uint8_t* packet, size_t packetLen);
 
 vector<uint8_t> getTextInput();
@@ -38,4 +25,8 @@ PacketHeader makeHeader(opcode code, size_t stringLen);
 
 void interfaceStart();
 
-void initWindParams();
+WINDOW* createWindow(int height, int width, int starty, int startx);
+
+WINDOW* createLeftWin();
+WINDOW* createTopWin();
+WINDOW* createBotWin();

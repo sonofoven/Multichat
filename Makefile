@@ -1,8 +1,8 @@
 CC      := g++
 CFLAGS  := -Wall -g -fPIC -pedantic
 
-CLIENT_DIR := cli
-SERVER_DIR := serv
+CLIENT_DIR := client
+SERVER_DIR := server
 
 CLIENT_SRCS := $(CLIENT_DIR)/client.cpp $(CLIENT_DIR)/interface.cpp 
 SERVER_SRCS := $(SERVER_DIR)/server.cpp $(SERVER_DIR)/servUtils.cpp
@@ -13,12 +13,16 @@ SERVER_HDRS := protocol.hpp $(SERVER_DIR)/server.hpp
 CLIENT_BIN := $(CLIENT_DIR)/client
 SERVER_BIN := $(SERVER_DIR)/server
 
-LINK_CLIENT := client
-LINK_SERVER := server
+LINK_CLIENT := cli
+LINK_SERVER := serv
 
-.PHONY: all clean link
+.PHONY: all client server clean link
 
-all: $(CLIENT_BIN) $(SERVER_BIN) link
+all: client server link
+
+client: $(CLIENT_BIN)
+
+server: $(SERVER_BIN)
 
 $(CLIENT_BIN): $(CLIENT_SRCS) $(CLIENT_HDRS)
 	$(CC) $(CFLAGS) -o $@ $(CLIENT_SRCS) -lncurses
