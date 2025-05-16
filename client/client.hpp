@@ -11,6 +11,9 @@
 
 #include <ncurses.h>
 
+#define HALIGN 2
+#define VALIGN 1
+
 
 using namespace std;
 
@@ -30,3 +33,5 @@ WINDOW* createWindow(int height, int width, int starty, int startx);
 WINDOW* createLeftWin();
 WINDOW* createTopWin();
 WINDOW* createBotWin();
+
+vector<uint8_t> getWindowInput(WINDOW* win);

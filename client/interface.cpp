@@ -1,7 +1,6 @@
 #include "client.hpp"
 
 
-
 void interfaceStart(){
 	WINDOW *users, *input, *messages;
 	int ch;
@@ -19,15 +18,15 @@ void interfaceStart(){
 	messages = createTopWin();
 	users = createLeftWin();
 
-	mvwprintw(users, 1, 2, "Users go here");
+	mvwprintw(users, VALIGN, HALIGN, "Users go here");
 	wrefresh(users);
 
-	mvwprintw(input, 1, 2, "You type here");
-	wrefresh(input);
-
-	mvwprintw(messages, 1, 2, "Messages go here");
+	mvwprintw(messages, VALIGN, HALIGN, "Messages go here");
 	wrefresh(messages);
 
+	getWindowInput(input);
+
+	getWindowInput(input);
 
 	getch();
 	endwin();
@@ -49,15 +48,8 @@ WINDOW* createLeftWin() {
 	int width = COLS / 6;
 	int startY = 0;
 	int startX = 0;
-
-	WINDOW* localWin;
-
-	localWin = newwin(height, width, startY, startX);
-	box(localWin, 0, 0);
-
-	wrefresh(localWin);
-
-	return localWin;
+	
+	return createWindow(height, width, startY, startX);
 }
 
 
@@ -67,15 +59,7 @@ WINDOW* createTopWin(){
 	int startY = 0;
 	int startX = COLS / 6;
 
-	WINDOW* localWin;
-
-	localWin = newwin(height, width, startY, startX);
-	box(localWin, 0, 0);
-
-	wrefresh(localWin);
-
-	return localWin;
-
+	return createWindow(height, width, startY, startX);
 }
 
 WINDOW* createBotWin(){
@@ -84,12 +68,80 @@ WINDOW* createBotWin(){
 	int startY = LINES - (LINES /6);
 	int startX = COLS / 6;
 
-	WINDOW* localWin;
+	return createWindow(height, width, startY, startX);
+}
 
-	localWin = newwin(height, width, startY, startX);
-	box(localWin, 0, 0);
+vector<uint8_t> getWindowInput(WINDOW* win){
+	int row, col;
+	getmaxyx(win, row, col);
 
-	wrefresh(localWin);
+	vector<uint8_t> outBuf;
 
-	return localWin;
+	wmove(win, VALIGN, HALIGN); // Move to the beginning of the window
+	curs_set(2); // Make the cursor visible
+
+	int ch; // Hold input one at a time
+	int y, x; // Current y and x pos
+
+	getyx(win, y, x);
+
+	while((ch = wgetch(win)) != '\n'){
+
+		if (ch == 127 || ch == KEY_DC){ 
+
+			// Backspace
+			if (outBuf.size() <= 0){
+				// If there is nothing, don't do anything
+				continue;
+			}
+
+			outBuf.pop_back();
+
+			if (x <= HALIGN){
+
+				// If at left edge
+				wmove(win, y - 1, col - HALIGN - 1);
+				waddch(win, ' ');
+
+				y--;
+				wmove(win, y, col - HALIGN - 1);
+				x = col - HALIGN - 1;
+
+			} else {
+				// Normal deletion
+				wmove(win, y, x - 1);
+				waddch(win, ' ');
+				wmove(win, y, x - 1);
+				x--;
+			}
+
+			continue;
+		}
+
+		if (x >= col - HALIGN - 1){
+
+			// If hit the end of the line
+			waddch(win, ch);
+			wmove(win, y + 1, HALIGN);
+			x = HALIGN;
+			y++;
+
+		} else {
+
+			// Normal movement
+			waddch(win, ch);
+			wmove(win, y, x + 1);
+			x++;
+		}
+
+		outBuf.push_back((uint8_t)ch);
+	}
+
+	outBuf.push_back((uint8_t)'\0');
+
+	werase(win);
+	box(win, 0, 0);
+	wmove(win, VALIGN, HALIGN);
+
+	return outBuf;
 }
