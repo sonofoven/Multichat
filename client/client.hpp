@@ -17,6 +17,12 @@
 
 using namespace std;
 
+typedef struct {
+	WINDOW* textWin; // Window that holds the text
+	WINDOW* bordWin; // Window that hold the border
+	vector<uint8_t> screenBuf; // Buffer that keeps track of all data for window
+} WIN;
+
 void sendPacket(int servFd, uint8_t* packet, size_t packetLen);
 
 vector<uint8_t> getTextInput();
@@ -30,8 +36,8 @@ void interfaceStart();
 
 WINDOW* createWindow(int height, int width, int starty, int startx);
 
-WINDOW* createLeftWin();
-WINDOW* createTopWin();
-WINDOW* createBotWin();
+WIN createLeftWin();
+WIN createTopWin();
+WIN createBotWin();
 
 vector<uint8_t> getWindowInput(WINDOW* win);
