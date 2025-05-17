@@ -3,6 +3,7 @@
 
 #define PORT 8080
 #define CHUNK 4096
+#define MAXMSG 512
 
 enum opcode {
 	CMG_CONNECT, // Connect and auth

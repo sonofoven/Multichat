@@ -8,7 +8,6 @@ void interfaceStart(){
 	cbreak(); // Disable line buffering
 			  // input is handled by me, not interrupt keys tho
 	
-	keypad(stdscr, TRUE);
 	noecho();
 	curs_set(0);
 	refresh();
@@ -17,22 +16,24 @@ void interfaceStart(){
 	messages = createTopWin();
 	users = createLeftWin();
 
-	wprintw(messages.textWin, "Messages go here");
-	wrefresh(messages.textWin);
-
 	wprintw(users.textWin, "Users go here");
 	wrefresh(users.textWin);
 
+	vector<uint8_t> grabbedText = getWindowInput(input.textWin);
+	
+	printToWindow(messages, grabbedText);	
 
-	getWindowInput(input.textWin);
+	grabbedText = getWindowInput(input.textWin);
+	
+	printToWindow(messages, grabbedText);	
 
-	getWindowInput(input.textWin);
+	grabbedText = getWindowInput(input.textWin);
+	
+	printToWindow(messages, grabbedText);	
 
-	getch();
+
 	endwin();
 }
-
-// ADD A WINDOW WITHIN THE FIRST FOR TEXT
 
 WINDOW* createWindow(int height, int width, int starty, int startx){
 	WINDOW* localWin;
@@ -103,13 +104,16 @@ vector<uint8_t> getWindowInput(WINDOW* win){
 	wmove(win, 0, 0); // Move to the beginning of the window
 	curs_set(2); // Make the cursor visible
 
+	size_t maxChar = min(MAXMSG, (row * col));
+
 	int ch; // Hold input one at a time
 	int y, x; // Current y and x pos
 	getyx(win, y, x);
 
+
 	while((ch = wgetch(win)) != '\n'){
 
-		if (ch == 127 || ch == KEY_DC){ 
+		if (ch == 127 || ch == KEY_DC || ch == 8 || ch == KEY_BACKSPACE){ 
 
 			// Backspace
 			if (outBuf.size() <= 0){
@@ -141,7 +145,13 @@ vector<uint8_t> getWindowInput(WINDOW* win){
 			continue;
 		}
 
-		if (x >= col - 1){
+
+
+		if (outBuf.size() >= maxChar){
+			// Can't add no more
+			continue;
+
+		} else if (x >= col - 1){
 
 			// If hit the end of the line
 			waddch(win, ch);
@@ -170,21 +180,52 @@ vector<uint8_t> getWindowInput(WINDOW* win){
 	return outBuf;
 }
 
-void printToWindow(WINDOW* win, vector<uint8_t> inputData){
+void printToWindow(WIN window, vector<uint8_t> inputData){
 	int row, col;
-	getmaxyx(win, row, col);
+	getmaxyx(window.textWin, row, col);
 
-
-	wmove(win, VALIGN, HALIGN); // Move to the beginning of the window
+	wmove(window.textWin, row - 1, 0); // Move to the bottom of the text window
 	curs_set(0);
 
-	int ch; // Hold input one at a time
 	int y, x; // Current y and x pos
 
-	getyx(win, y, x);
+	getyx(window.textWin, y, x);
+
+	scrollok(window.textWin, TRUE);
+	idlok(window.textWin, TRUE);
+
+	// Scroll up
+	wscrl(window.textWin, 1);
 
 	for (uint8_t & ch : inputData){
-		
+		if (ch == '\0'){
+			break;
+		}
+
+		// If you get to the end of the screen
+		if (ch == '\n' || x >= col - 1){
+
+			// Place char
+			window.screenBuf.push_back(ch);
+			if (ch != '\n'){
+				waddch(window.textWin, (char)ch);
+			}
+
+			// Go to the bottom
+			x = 0;
+			y = row - 1;
+			wmove(window.textWin, y, x);
+
+
+		} else {
+
+			// Normal placement
+			window.screenBuf.push_back(ch);
+			waddch(window.textWin, (char)ch);
+			wmove(window.textWin, y, x + 1);
+			x++;
+		}
 	}
 
+	wrefresh(window.textWin);
 }

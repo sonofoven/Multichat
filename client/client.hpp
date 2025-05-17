@@ -41,3 +41,5 @@ WIN createTopWin();
 WIN createBotWin();
 
 vector<uint8_t> getWindowInput(WINDOW* win);
+
+void printToWindow(WIN window, vector<uint8_t> inputData);
