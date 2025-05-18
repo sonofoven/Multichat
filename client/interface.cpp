@@ -229,3 +229,23 @@ void printToWindow(WIN window, vector<uint8_t> inputData){
 
 	wrefresh(window.textWin);
 }
+
+/*
+void printMessage(Packet packet, WIN window){
+	// Handles message based on packet recieved
+
+	vector<uint8_t> outBuf;
+
+	switch(packet.header->opcode){
+		// Format messages in here
+		case SMG_CONNECT:
+			break;
+
+		case SMG_BROADMSG:
+			break;
+
+		case SMG_DISCONNECT:
+			break;
+	}
+}
+*/
