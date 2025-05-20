@@ -23,13 +23,13 @@ typedef struct {
 	vector<uint8_t> screenBuf; // Buffer that keeps track of all data for window
 } WIN;
 
-void sendPacket(int servFd, uint8_t* packet, size_t packetLen);
+void sendPacket(int servFd, Packet* pkt);
 
 vector<uint8_t> getTextInput();
 	// Gets text input for a message. Pad the text input with null
 	// terminators to fill out the struct
 
-PacketHeader makeHeader(opcode code, size_t stringLen);
+//PacketHeader makeHeader(opcode code, size_t stringLen);
 	// Makes a header filled with opcode and stringLen
 
 void interfaceStart();

@@ -1,11 +1,14 @@
 #include <cstdint>
 #include <cstring>
 #include <cstddef>
+#include <vector>
 
 #define PORT    8080
 #define CHUNK   4096
 #define MAXMSG  512
 #define NAMELEN 16
+
+using std::vector;
 
 enum opcode {
 	CMG_CONNECT, // Connect and auth
@@ -24,7 +27,14 @@ enum opcode {
 
 class Packet {
 public:
+	// Header
+    uint16_t length;
+    uint16_t opcode;
+
+	static constexpr size_t headerLen = sizeof(length) + sizeof(opcode);
+
     virtual void parse(const uint8_t* data) = 0;
+    virtual void serialize(vector<uint8_t>& buffer) = 0;
     virtual ~Packet();
 };
 
@@ -32,70 +42,77 @@ public:
 
 class ClientConnect : public Packet {
 public:
-    uint16_t length;
-    uint16_t opcode;
     const char* username;
+
     void parse(const uint8_t* data) override;
+    void serialize(vector<uint8_t>& buffer) override;
 };
 
 class ClientBroadMsg : public Packet {
 public:
-    uint16_t length;
-    uint16_t opcode;
     const char* msg;
+
     void parse(const uint8_t* data) override;
+    void serialize(vector<uint8_t>& buffer) override;
 };
 
 class ClientServMsg : public Packet {
 public:
-    uint16_t length;
-    uint16_t opcode;
     const char* msg;
+
     void parse(const uint8_t* data) override;
+    void serialize(vector<uint8_t>& buffer) override;
 };
 
 class ClientDisconnect : public Packet {
 public:
-    uint16_t length;
-    uint16_t opcode;
     const char* username;
+
     void parse(const uint8_t* data) override;
+    void serialize(vector<uint8_t>& buffer) override;
 };
 
 // Server -> Client
 
 class ServerValidate : public Packet {
 public:
-    uint16_t length;
-    uint16_t opcode;
     bool able;
+
     void parse(const uint8_t* data) override;
+    void serialize(vector<uint8_t>& buffer) override;
 };
 
 class ServerConnect : public Packet {
 public:
-    uint16_t length;
-    uint16_t opcode;
     const char* username;
+
     void parse(const uint8_t* data) override;
+    void serialize(vector<uint8_t>& buffer) override;
 };
 
 class ServerBroadMsg : public Packet {
 public:
-    uint16_t length;
-    uint16_t opcode;
     const char* username;
     const char* msg;
+
     void parse(const uint8_t* data) override;
+    void serialize(vector<uint8_t>& buffer) override;
 };
 
 class ServerDisconnect : public Packet {
 public:
-    uint16_t length;
-    uint16_t opcode;
     const char* username;
+
     void parse(const uint8_t* data) override;
+    void serialize(vector<uint8_t>& buffer) override;
 };
+
+// Helper functions for buffer loading
+
+template <typename T>
+void pushBack(vector<uint8_t>& buffer, T additive);
+void pushUsernameBack(vector<uint8_t>& buffer, const char* username);
+void pushLenBack(vector<uint8_t>& buffer, const char* message, size_t msgLength);
 
 
 // factory table

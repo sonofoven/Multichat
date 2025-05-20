@@ -63,13 +63,11 @@ void acceptLoop(int listenFd, int epollFd);
 	// new conns and adds them to the client
 	// list and epoll pool
 
-PacketHeader extractHeader(clientConn& client);
-	// Read from the beginning of the read buffer
-	// to attain the header
+int protocolParser(Packet* packet, clientConn& sender);
 
-int protocolParser(Packet& packet, clientConn& sender);
+size_t parsePacketLen(uint8_t* data);
 
-void clientServerMessage(Packet& packet, clientConn& sender);
+void clientServerMessage(Packet* packet, clientConn& sender);
 
 int drainReadPipe(int fd, clientConn& client);
 	// Read the read pipe til we run out

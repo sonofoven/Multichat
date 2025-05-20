@@ -3,70 +3,206 @@
 #include <vector>
 #include <cstdint>
 
-void ClientConnect::parse(const uint8_t* data) {
-	length = le16toh(*(uint16_t*)data);
-	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
+Packet::~Packet() = default;
+template <typename T>
 
-	// Get pointer to message
-	constexpr size_t header = sizeof(length) + sizeof(opcode);
-	username = (const char*)(data + header);
+//// Helper functions for buffer transfers ////
+
+void pushBack(vector<uint8_t>& buffer, T additive){
+	const uint8_t* addPtr = (const uint8_t*)&additive;
+
+	buffer.insert(buffer.end(), addPtr, addPtr + sizeof(T));
 }
+
+void pushUsernameBack(vector<uint8_t>& buffer, const char* username){
+	const uint8_t* usrPtr = (const uint8_t*)username;
+	
+	buffer.insert(buffer.end(), usrPtr, usrPtr + strlen(username) + 1);
+}
+
+void pushLenBack(vector<uint8_t>& buffer, const char* message, size_t msgLength){
+	const uint8_t* msgPtr = (const uint8_t*)message;
+	
+	buffer.insert(buffer.end(), msgPtr, msgPtr + msgLength);
+}
+
+
+//// Client -> Server ////
+
+// Client Connection
+
+void ClientConnect::parse(const uint8_t* data) {
+	// This is done so the uint16_t is aligned (for portability)
+	uint16_t leLen;
+	memcpy(&leLen, data, sizeof(leLen));
+	length = le16toh(leLen);
+	
+	uint16_t leOp;
+	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
+	opcode = le16toh(leOp);
+
+	username = (const char*)(data + headerLen);
+}
+
+void ClientConnect::serialize(vector<uint8_t>& buffer) {
+	pushBack(buffer, htole16(length));
+	pushBack(buffer, htole16(opcode));
+	pushUsernameBack(buffer, username);
+}
+
+// Client Broadcast Message
 
 void ClientBroadMsg::parse(const uint8_t* data) {
-	length = le16toh(*(uint16_t*)data);
-	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
+	uint16_t leLen;
+	memcpy(&leLen, data, sizeof(leLen));
+	length = le16toh(leLen);
 	
-	constexpr size_t header = sizeof(length) + sizeof(opcode);
-	msg = (const char*)(data + header);
+	uint16_t leOp;
+	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
+	opcode = le16toh(leOp);
+	
+	msg = (const char*)(data + headerLen);
 }
+
+void ClientBroadMsg::serialize(vector<uint8_t>& buffer) {
+	pushBack(buffer, htole16(length));
+	pushBack(buffer, htole16(opcode));
+
+	size_t msgLength = (size_t)length - headerLen;
+	pushLenBack(buffer, msg, msgLength);
+}
+
+// Client to Server message (for debug/logging)
 
 void ClientServMsg::parse(const uint8_t* data) {
-	length = le16toh(*(uint16_t*)data);
-	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
+	uint16_t leLen;
+	memcpy(&leLen, data, sizeof(leLen));
+	length = le16toh(leLen);
+	
+	uint16_t leOp;
+	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
+	opcode = le16toh(leOp);
 
-	constexpr size_t header = sizeof(length) + sizeof(opcode);
-	msg = (const char*)(data + header);
+	msg = (const char*)(data + headerLen);
 }
+
+void ClientServMsg::serialize(vector<uint8_t>& buffer) {
+	pushBack(buffer, htole16(length));
+	pushBack(buffer, htole16(opcode));
+
+	size_t msgLength = (size_t)length - headerLen;
+	pushLenBack(buffer, msg, msgLength);
+}
+
+// Client Disconnect
 
 void ClientDisconnect::parse(const uint8_t* data) {
-	length = le16toh(*(uint16_t*)data);
-	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
+	uint16_t leLen;
+	memcpy(&leLen, data, sizeof(leLen));
+	length = le16toh(leLen);
+	
+	uint16_t leOp;
+	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
+	opcode = le16toh(leOp);
+
+	username = (const char*)(data + headerLen);
 }
 
+void ClientDisconnect::serialize(vector<uint8_t>& buffer) {
+	pushBack(buffer, htole16(length));
+	pushBack(buffer, htole16(opcode));
+}
+
+//// Server -> Client ////
+
+// Server Validation
+
 void ServerValidate::parse(const uint8_t* data){
-	length = le16toh(*(uint16_t*)data);
-	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
+	uint16_t leLen;
+	memcpy(&leLen, data, sizeof(leLen));
+	length = le16toh(leLen);
+	
+	uint16_t leOp;
+	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
+	opcode = le16toh(leOp);
+
 	able = *(bool*)(data + sizeof(length) + sizeof(opcode));
 }
 
-void ServerConnect::parse(const uint8_t* data) {
-	length = le16toh(*(uint16_t*)data);
-	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
-
-	constexpr size_t header = sizeof(length) + sizeof(opcode);
-	username = (const char*)(data + header);
+void ServerValidate::serialize(vector<uint8_t>& buffer) {
+	pushBack(buffer, htole16(length));
+	pushBack(buffer, htole16(opcode));
+	pushBack(buffer, able);
 }
 
-void ServerBroadMsg::parse(const uint8_t* data) {
-	length = le16toh(*(uint16_t*)data);
-	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
+// Server Connection
+
+void ServerConnect::parse(const uint8_t* data) {
+	uint16_t leLen;
+	memcpy(&leLen, data, sizeof(leLen));
+	length = le16toh(leLen);
 	
-	constexpr size_t header = sizeof(length) + sizeof(opcode);
-	username = (const char*)(data + header);
+	uint16_t leOp;
+	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
+	opcode = le16toh(leOp);
+
+	username = (const char*)(data + headerLen);
+}
+
+void ServerConnect::serialize(vector<uint8_t>& buffer) {
+	pushBack(buffer, htole16(length));
+	pushBack(buffer, htole16(opcode));
+	pushUsernameBack(buffer, username);
+}
+
+// Server Broadcast Message
+
+void ServerBroadMsg::parse(const uint8_t* data) {
+
+	uint16_t leLen;
+	memcpy(&leLen, data, sizeof(leLen));
+	length = le16toh(leLen);
+	
+	uint16_t leOp;
+	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
+	opcode = le16toh(leOp);
+
+	username = (const char*)(data + headerLen);
 	msg = (const char*)(username + strlen(username) + 1);
 }
 
-void ServerDisconnect::parse(const uint8_t* data) {
-	length = le16toh(*(uint16_t*)data);
-	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
+void ServerBroadMsg::serialize(vector<uint8_t>& buffer) {
+	pushBack(buffer, htole16(length));
+	pushBack(buffer, htole16(opcode));
+	pushUsernameBack(buffer, username);
 
-	constexpr size_t header = sizeof(length) + sizeof(opcode);
-	username = (const char*)(data + header);
+	size_t msgLength = (size_t)length - headerLen - (strlen(username) + 1);
+	pushLenBack(buffer, msg, msgLength);
 }
 
-using PacketFactory = Packet* (*)();  // Pointer to a func
-									 // That takes no args
-									 // and return type is Packet*
+// Server Disconnect
+
+void ServerDisconnect::parse(const uint8_t* data) {
+	uint16_t leLen;
+	memcpy(&leLen, data, sizeof(leLen));
+	length = le16toh(leLen);
+	
+	uint16_t leOp;
+	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
+	opcode = le16toh(leOp);
+
+	username = (const char*)(data + headerLen);
+}
+
+void ServerDisconnect::serialize(vector<uint8_t>& buffer) {
+	pushBack(buffer, htole16(length));
+	pushBack(buffer, htole16(opcode));
+	pushUsernameBack(buffer, username);
+}
+
+// Pointer to a func that takes no args and return type is Packet*
+
+using PacketFactory = Packet* (*)();  
 
 Packet* createCConnPacket() { return new ClientConnect(); }
 Packet* createCBroadPacket() { return new ClientBroadMsg(); }
@@ -95,7 +231,13 @@ void registerPackets() {
 
 
 Packet* instancePacketFromData(const uint8_t* data){
-	uint16_t opcode = *(uint16_t*)(data + sizeof(uint16_t));
+	uint16_t leOp;
+	memcpy(&leOp, data + sizeof(uint16_t), sizeof(leOp));
+	uint16_t opcode = le16toh(leOp);
+
+	if (opcode >= NUM_OF_OPCODES || packetFactories[opcode] == nullptr){
+		return nullptr;
+	}
 
 	PacketFactory factory = packetFactories[opcode]; // Set up factory depending on opcode;
 

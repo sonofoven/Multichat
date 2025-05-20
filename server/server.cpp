@@ -5,6 +5,7 @@ mutex clientMapMtx;
 
 int main(){
 	signal(SIGINT, killServer); 
+	registerPackets();
 
 	int listenFd;
 	sockaddr_in address;
@@ -179,12 +180,11 @@ void modFdEpoll(int epollFd, int fd, int ops){
 int handleRead(int epollFd, clientConn& client){
 	cout<<"Reading stuff"<<endl;
 
-	size_t headerSize = sizeof(PacketHeader);
-	PacketHeader* header;
+	size_t headerSize = 2 * sizeof(uint16_t);
 
 	vector<uint8_t>& readBuf = client.readBuf;
 	vector<uint8_t>& writeBuf = client.writeBuf;
-
+	size_t fullPacketLen;
 	// Do all the reading here
 	if(drainReadPipe(client.fd, client) != 0){
 		return -1;
@@ -195,24 +195,16 @@ int handleRead(int epollFd, clientConn& client){
 		if (readBuf.size() < headerSize){
 			return 0;
 		} else {
-			// We have a header here
-			header = (PacketHeader*)readBuf.data();
+			fullPacketLen = parsePacketLen(readBuf.data());
 		}
 
 		// Header length is size of the the full packet, including header
-		size_t fullPacketLen = header->length;
 
 
 		if (readBuf.size() >= fullPacketLen){
 
 			// Create a new packet
-			Packet packet;
-
-			// Take the header
-			packet.header = header;
-			packet.data = readBuf.data() + sizeof(PacketHeader);
-			packet.dataSize = fullPacketLen - sizeof(PacketHeader);
-
+			Packet* packet = instancePacketFromData(readBuf.data());
 
 			protocolParser(packet, client);
 
@@ -295,9 +287,9 @@ int drainReadPipe(int fd, clientConn& client){
 	return 0;
 }
 
-int protocolParser(Packet& packet, clientConn& sender){
+int protocolParser(Packet* packet, clientConn& sender){
 	int exitCode = 0;
-	switch(packet.header->opcode){
+	switch(packet->opcode){
 		case CMG_CONNECT:
 			cout << "OPCODE: CONNECTION" << endl;
 			break;
@@ -326,6 +318,11 @@ int protocolParser(Packet& packet, clientConn& sender){
 			cout << "Unknown opcode" << endl;
 	}
 	return exitCode;
+}
+
+size_t parsePacketLen(uint8_t* data){
+	size_t length = le16toh(*(uint16_t*)data);
+	return length;
 }
 
 
