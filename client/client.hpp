@@ -17,7 +17,7 @@
 
 using namespace std;
 
-typedef struct {
+typedef struct WIN_t{
 	WINDOW* textWin; // Window that holds the text
 	WINDOW* bordWin; // Window that hold the border
 	vector<uint8_t> screenBuf; // Buffer that keeps track of all data for window
@@ -29,9 +29,6 @@ vector<uint8_t> getTextInput();
 	// Gets text input for a message. Pad the text input with null
 	// terminators to fill out the struct
 
-//PacketHeader makeHeader(opcode code, size_t stringLen);
-	// Makes a header filled with opcode and stringLen
-
 void interfaceStart();
 
 WINDOW* createWindow(int height, int width, int starty, int startx);
@@ -40,6 +37,15 @@ WIN createLeftWin();
 WIN createTopWin();
 WIN createBotWin();
 
-vector<uint8_t> getWindowInput(WINDOW* win);
+vector<uint8_t> getWindowInput(WIN& window);
 
 void printToWindow(WIN window, vector<uint8_t> inputData);
+
+//typedef struct UiContext_t{
+//	WIN* leftWin;
+//	WIN* topWin;
+//	WIN* botWin;
+//
+//	UiContext_t(WIN* l, WIN* t, WIN* b) : leftWin(l), topWin(t), botWin(b) {}
+//
+//} UiContext;

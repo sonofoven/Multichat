@@ -19,15 +19,15 @@ void interfaceStart(){
 	wprintw(users.textWin, "Users go here");
 	wrefresh(users.textWin);
 
-	vector<uint8_t> grabbedText = getWindowInput(input.textWin);
+	vector<uint8_t> grabbedText = getWindowInput(input);
 	
 	printToWindow(messages, grabbedText);	
 
-	grabbedText = getWindowInput(input.textWin);
+	grabbedText = getWindowInput(input);
 	
 	printToWindow(messages, grabbedText);	
 
-	grabbedText = getWindowInput(input.textWin);
+	grabbedText = getWindowInput(input);
 	
 	printToWindow(messages, grabbedText);	
 
@@ -95,7 +95,8 @@ WIN createBotWin(){
 	return window;
 }
 
-vector<uint8_t> getWindowInput(WINDOW* win){
+vector<uint8_t> getWindowInput(WIN& window){
+	WINDOW* win = window.textWin;
 	int row, col;
 	getmaxyx(win, row, col);
 

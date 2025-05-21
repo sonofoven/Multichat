@@ -3,6 +3,8 @@
 unordered_map<int, clientConn> clientMap = {};
 mutex clientMapMtx;
 
+unordered_map<string, int> userMap = {};
+
 int main(){
 	signal(SIGINT, killServer); 
 	registerPackets();
@@ -52,23 +54,16 @@ int main(){
 				continue;
 			}
 
-			clientConn* clientPtr = NULL;
-
-			{
-				// Lock the map to look for client
-				lock_guard lock(clientMapMtx);
-				auto it = clientMap.find(fd);
-				if (it == clientMap.end()){
-					// client not found
-					continue;
-				}
-
-				clientPtr = &it->second;
-			}
+			clientConn* clientPtr = lockFindCli(fd);
 
 			bool fatal = false;
 
-			if (event & EPOLLIN){
+			if (clientPtr == NULL){
+				fatal = true;
+			}
+
+
+			if (event & EPOLLIN && !fatal){
 				// We are able to read
 				// Then try to immediately write
 				if(!(handleRead(epollFd, *clientPtr) && handleWrite(epollFd, *clientPtr))){
@@ -76,7 +71,7 @@ int main(){
 				}
 			}
 
-			if (event & EPOLLOUT){
+			if (event & EPOLLOUT && !fatal){
 				// Finish writing what was started
 				if(!(handleWrite(epollFd, *clientPtr))){
 					fatal = true;
@@ -204,9 +199,9 @@ int handleRead(int epollFd, clientConn& client){
 		if (readBuf.size() >= fullPacketLen){
 
 			// Create a new packet
-			Packet* packet = instancePacketFromData(readBuf.data());
+			Packet* pkt = instancePacketFromData(readBuf.data());
 
-			protocolParser(packet, client);
+			protocolParser(pkt, client);
 
 			// If the buffer is empty and we are adding to it
 			// Only arm if writebuf was empty before we insert
@@ -218,7 +213,8 @@ int handleRead(int epollFd, clientConn& client){
 			// Move packet (with header) from read to writeBuf
 			// Later this wont be done b/c we'll have to make new packets using opcodes but for now this is what we'll do
 			// We are just echoing back things to the client, we'll have to add an op handler
-			writeBuf.insert(writeBuf.end(), readBuf.begin(), readBuf.begin() + fullPacketLen);
+
+			//writeBuf.insert(writeBuf.end(), readBuf.begin(), readBuf.begin() + fullPacketLen);
 
 			readBuf.erase(readBuf.begin(), readBuf.begin() + fullPacketLen);
 		} else {
@@ -287,19 +283,31 @@ int drainReadPipe(int fd, clientConn& client){
 	return 0;
 }
 
-int protocolParser(Packet* packet, clientConn& sender){
+int protocolParser(Packet* pkt, clientConn& sender){
 	int exitCode = 0;
-	switch(packet->opcode){
-		case CMG_CONNECT:
+	uint16_t opcode = pkt->opcode;
+
+	switch(opcode){
+		case CMG_CONNECT: {
 			cout << "OPCODE: CONNECTION" << endl;
-			break;
 
-		case CMG_BROADMSG:
+			ClientConnect* clientPacket = static_cast<ClientConnect*>(pkt);
+
+			break;
+		}
+
+		case CMG_BROADMSG: {
 			cout << "OPCODE: BROAD MESSAGE" << endl;
-			break;
 
-		case CMG_SERVMSG:
+			ClientBroadMsg* clientPacket = static_cast<ClientBroadMsg*>(pkt);
+
+			break;
+		}
+
+		case CMG_SERVMSG: {
 			cout << "OPCODE: SERVER MESSAGE" << endl;
+
+			ClientServMsg* clientPacket = static_cast<ClientServMsg*>(pkt);
 
 			// Right now, if someone wants to send a packet without the null byte
 			// they could read other memory, maybe make sure that the packet
@@ -307,21 +315,31 @@ int protocolParser(Packet* packet, clientConn& sender){
 
 			// will get back to this
 
-			clientServerMessage(packet, sender);
+			clientServerMessage(*clientPacket, sender);
 			break;
+		}
 
-		case CMG_DISCONNECT:
+		case CMG_DISCONNECT: {
 			cout << "OPCODE: DISCONNECTION" << endl;
-			break;
 
-		default:
+			ClientDisconnect* clientPacket = static_cast<ClientDisconnect*>(pkt);
+
+			break;
+		}
+
+		default: {
 			cout << "Unknown opcode" << endl;
+			exitCode = -1;
+		}
 	}
 	return exitCode;
 }
 
 size_t parsePacketLen(uint8_t* data){
-	size_t length = le16toh(*(uint16_t*)data);
+	uint16_t leLen;
+	memcpy(&leLen, data, sizeof(leLen));
+	length = le16toh(leLen);
+
 	return length;
 }
 
@@ -362,6 +380,10 @@ void killClient(int fd){
 
 	cout << "Killing client: " << fd << endl;
 
+	// Deregister the username
+	clientConn* clientPtr = lockFindCli(fd);
+	killUser(clientPtr->username);
+
 	// Wipe the socket
 	close(fd);
 
@@ -370,7 +392,10 @@ void killClient(int fd){
 
 	// Wipe from the map
 	clientMap.erase(fd);
+}
 
+void killUser(string username){
+	userMap.erase(username);
 }
 
 void killServer(int code){

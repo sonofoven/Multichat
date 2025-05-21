@@ -50,6 +50,14 @@ void ClientConnect::serialize(vector<uint8_t>& buffer) {
 	pushUsernameBack(buffer, username);
 }
 
+void ClientConnect::ClientConnect(char* usr){
+	// + 1 for null byte
+	length = headerLen + strlen(usr) + 1;
+	opcode = CMG_CONNECT;
+
+	username = (const char*) usr;
+}
+
 // Client Broadcast Message
 
 void ClientBroadMsg::parse(const uint8_t* data) {
@@ -70,6 +78,13 @@ void ClientBroadMsg::serialize(vector<uint8_t>& buffer) {
 
 	size_t msgLength = (size_t)length - headerLen;
 	pushLenBack(buffer, msg, msgLength);
+}
+
+void ClientBroadMsg::ClientBroadMsg(size_t msgLen, char* message){
+	length = headerLen + msgLen;
+	opcode = CMG_BROADMSG;
+
+	msg = (const char*)message;
 }
 
 // Client to Server message (for debug/logging)
@@ -94,6 +109,13 @@ void ClientServMsg::serialize(vector<uint8_t>& buffer) {
 	pushLenBack(buffer, msg, msgLength);
 }
 
+void ClientServMsg::ClientServMsg(size_t msgLen, char* message){
+	length = headerLen + msgLen;
+	opcode = CMG_SERVMSG;
+
+	msg = (const char*)message;
+}
+
 // Client Disconnect
 
 void ClientDisconnect::parse(const uint8_t* data) {
@@ -104,13 +126,16 @@ void ClientDisconnect::parse(const uint8_t* data) {
 	uint16_t leOp;
 	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
 	opcode = le16toh(leOp);
-
-	username = (const char*)(data + headerLen);
 }
 
 void ClientDisconnect::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
+}
+
+void ClientDisconnect::ClientDisconnect(size_t msgLen, char* message){
+	length = headerLen + msgLen;
+	opcode = CMG_DISCONNECT;
 }
 
 //// Server -> Client ////
@@ -135,6 +160,13 @@ void ServerValidate::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, able);
 }
 
+void ServerValidate::ServerValidate(bool a){
+	length = headerLen + sizeof(a);
+	opcode = SMG_VALIDATE;
+
+	able = a;
+}
+
 // Server Connection
 
 void ServerConnect::parse(const uint8_t* data) {
@@ -153,6 +185,13 @@ void ServerConnect::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
 	pushUsernameBack(buffer, username);
+}
+
+void ServerConnect::ServerConnect(char* usr){
+	length = headerLen + strlen(usr) + 1;
+	opcode = SMG_CONNECT;
+
+	username = (const char*)usr;
 }
 
 // Server Broadcast Message
@@ -180,6 +219,15 @@ void ServerBroadMsg::serialize(vector<uint8_t>& buffer) {
 	pushLenBack(buffer, msg, msgLength);
 }
 
+void ServerBroadMsg::ServerBroadMsg(char* usr, size_t msgLen, char* message){
+	length = headerLen + strlen(usr) + 1 + msgLen;
+	opcode = SMG_BROADMSG;
+
+	username = (const char*)usr;
+	
+	msg = (const char*)message;
+}
+
 // Server Disconnect
 
 void ServerDisconnect::parse(const uint8_t* data) {
@@ -198,6 +246,13 @@ void ServerDisconnect::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
 	pushUsernameBack(buffer, username);
+}
+
+void ServerDisconnect::ServerDisconnect(char* usr){
+	length = headerLen + strlen(usr) + 1;
+	opcode = SMG_DISCONNECT;
+
+	username = (const char*)usr;
 }
 
 // Pointer to a func that takes no args and return type is Packet*
@@ -244,6 +299,8 @@ Packet* instancePacketFromData(const uint8_t* data){
 	Packet* pkt = factory(); // Make new packet based on opcode set factory
 
 	pkt->parse(data);
+
+	// The real type is still "hidden" as Packet* and will have to be cast as its proper class
 
 	return pkt;
 }

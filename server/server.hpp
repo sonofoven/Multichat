@@ -31,6 +31,7 @@ public:
 	vector<uint8_t> writeBuf;
 	int fd;
 	uint32_t epollMask = EPOLLIN | EPOLLET;
+	string username;
 
 	clientConn () : fd(-1) { // Default constructor
 		readBuf.reserve(CHUNK);
@@ -42,7 +43,13 @@ public:
 	}
 };
 
-//uint16_t& value = *(vec.begin + bytes);
+// fd to clientConnectionMap
+extern unordered_map<int, clientConn> clientMap;
+extern mutex clientMapMtx;
+
+// username to fd
+extern unordered_map<string, int> userMap;
+// No mutex needed because won't be accessed in any other thread
 
 int makeListenSocket(sockaddr_in address);
 	// Returns a listen socket given an empty addr
@@ -67,12 +74,40 @@ int protocolParser(Packet* packet, clientConn& sender);
 
 size_t parsePacketLen(uint8_t* data);
 
-void clientServerMessage(Packet* packet, clientConn& sender);
 
 int drainReadPipe(int fd, clientConn& client);
 	// Read the read pipe til we run out
 	// or until we can't anymore
 
+
 void killClient(int fd);
 
+void killUser(string user);
+
 void killServer(int code);
+
+//// Utils
+
+string usernameValid(const char* username);
+	// Makes sure the username is of correct length
+	// Makes sure the username is not taken
+	// Returns string if it is a valid username
+
+void clientConnect(ClientConnect& pkt, clientConn& sender);
+
+void clientBroadMsg(ClientBroadMsg& pkt, clientConn& sender);
+
+void clientServerMessage(ClientServMsg& pkt, clientConn& sender);
+
+void clientDisconnect(ClientDisconnect& pkt, clientConn& sender);
+
+
+clientConn* lockFindCli(int fd);
+	// Lock down the map
+	// Find the client corresponding to the fd
+	// release the lock
+
+string usernameExists(const char* username);
+	// Null if the username already exists
+	// Stringifies cstring if it doesn't
+	// This is b/c we're going use it
