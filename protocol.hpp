@@ -47,27 +47,32 @@ public:
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
+	ClientConnect();
 	ClientConnect(char* usr);
 };
 
 class ClientBroadMsg : public Packet {
 public:
     const char* msg;
+	size_t msgLen;
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
-	ClientBroadMsg(size_t msgLen, char* message);
+	ClientBroadMsg();
+	ClientBroadMsg(size_t messageLen, char* message);
 };
 
 class ClientServMsg : public Packet {
 public:
     const char* msg;
+	size_t msgLen;
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
-	ClientServMsg(size_t msgLen, char* message);
+	ClientServMsg();
+	ClientServMsg(size_t messageLen, char* message);
 };
 
 class ClientDisconnect : public Packet {
@@ -87,6 +92,7 @@ public:
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
+	ServerValidate();
 	ServerValidate(bool a);
 };
 
@@ -97,6 +103,7 @@ public:
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
+	ServerConnect();
 	ServerConnect(char* username);
 };
 
@@ -104,11 +111,13 @@ class ServerBroadMsg : public Packet {
 public:
     const char* username;
     const char* msg;
+	size_t msgLen;
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
-	ServerBroadMsg(char* usr, size_t msgLen, char* message);
+	ServerBroadMsg();
+	ServerBroadMsg(char* usr, size_t messageLen, char* message);
 };
 
 class ServerDisconnect : public Packet {
@@ -118,6 +127,7 @@ public:
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
+	ServerDisconnect();
 	ServerDisconnect(char* usr);
 };
 

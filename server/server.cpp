@@ -338,7 +338,7 @@ int protocolParser(Packet* pkt, clientConn& sender){
 size_t parsePacketLen(uint8_t* data){
 	uint16_t leLen;
 	memcpy(&leLen, data, sizeof(leLen));
-	length = le16toh(leLen);
+	size_t length = le16toh(leLen);
 
 	return length;
 }
