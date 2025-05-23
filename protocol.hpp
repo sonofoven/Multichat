@@ -48,7 +48,7 @@ public:
     void serialize(vector<uint8_t>& buffer) override;
 
 	ClientConnect();
-	ClientConnect(char* usr);
+	ClientConnect(const char* usr);
 };
 
 class ClientBroadMsg : public Packet {
@@ -104,7 +104,7 @@ public:
     void serialize(vector<uint8_t>& buffer) override;
 
 	ServerConnect();
-	ServerConnect(char* username);
+	ServerConnect(const char* usr);
 };
 
 class ServerBroadMsg : public Packet {
@@ -117,7 +117,7 @@ public:
     void serialize(vector<uint8_t>& buffer) override;
 
 	ServerBroadMsg();
-	ServerBroadMsg(char* usr, size_t messageLen, char* message);
+	ServerBroadMsg(const char* usr, size_t messageLen, char* message);
 };
 
 class ServerDisconnect : public Packet {
@@ -128,7 +128,7 @@ public:
     void serialize(vector<uint8_t>& buffer) override;
 
 	ServerDisconnect();
-	ServerDisconnect(char* usr);
+	ServerDisconnect(const char* usr);
 };
 
 // Helper functions for buffer loading

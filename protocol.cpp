@@ -50,7 +50,7 @@ void ClientConnect::serialize(vector<uint8_t>& buffer) {
 	pushUsernameBack(buffer, username);
 }
 
-ClientConnect::ClientConnect(char* usr){
+ClientConnect::ClientConnect(const char* usr){
 	// + 1 for null byte
 	length = headerLen + strlen(usr) + 1;
 	opcode = CMG_CONNECT;
@@ -114,6 +114,14 @@ void ClientServMsg::serialize(vector<uint8_t>& buffer) {
 
 	size_t messageLength = (size_t)length - headerLen;
 	pushLenBack(buffer, msg, messageLength);
+}
+
+ClientServMsg::ClientServMsg(size_t messageLen, char* message){
+	length = headerLen + messageLen;
+	opcode = CMG_SERVMSG;
+
+	msgLen = messageLen;
+	msg = (const char*)message;
 }
 
 ClientServMsg::ClientServMsg(){}
@@ -192,7 +200,7 @@ void ServerConnect::serialize(vector<uint8_t>& buffer) {
 	pushUsernameBack(buffer, username);
 }
 
-ServerConnect::ServerConnect(char* usr){
+ServerConnect::ServerConnect(const char* usr){
 	length = headerLen + strlen(usr) + 1;
 	opcode = SMG_CONNECT;
 
@@ -228,7 +236,7 @@ void ServerBroadMsg::serialize(vector<uint8_t>& buffer) {
 	pushLenBack(buffer, msg, msgLen);
 }
 
-ServerBroadMsg::ServerBroadMsg(char* usr, size_t messageLen, char* message){
+ServerBroadMsg::ServerBroadMsg(const char* usr, size_t messageLen, char* message){
 	length = headerLen + strlen(usr) + 1 + messageLen;
 	opcode = SMG_BROADMSG;
 
@@ -260,7 +268,7 @@ void ServerDisconnect::serialize(vector<uint8_t>& buffer) {
 	pushUsernameBack(buffer, username);
 }
 
-ServerDisconnect::ServerDisconnect(char* usr){
+ServerDisconnect::ServerDisconnect(const char* usr){
 	length = headerLen + strlen(usr) + 1;
 	opcode = SMG_DISCONNECT;
 

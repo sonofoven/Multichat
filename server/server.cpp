@@ -78,7 +78,7 @@ int main(){
 				}
 			}
 
-			if (fatal){
+			if (fatal || clientPtr->markToDie == true){
 				killClient(fd);
 			}
 		}

@@ -1,8 +1,9 @@
 #include "server.hpp"
 
-string usernameValid(const char* username){
+string validateUser(const char* username){
 	// If username is too long or too short, reject
 	size_t usrLen = strlen(username);
+
 	if (usrLen > NAMELEN || usrLen <= 0){
 		return "";
 	}
@@ -14,18 +15,43 @@ string usernameValid(const char* username){
 
 void clientConnect(ClientConnect& pkt, clientConn& sender){
 	// Grab username
-	string username = usernameValid(pkt.username);
+	string username = validateUser(pkt.username);
 
 	if (username == ""){
 		// Rejection
-		// Send server val with false val
-	}
 
-	// Accept
-	// Register the username to the map
-	// Add the username to the sender's clientConn
-	// Send server val with true val to sender
-	// Send server connected msg to every other client
+		// Create the rejection response to client
+		ServerValidate response = ServerValidate(false);
+
+		// Send rejection response to client
+		response.serialize(sender.writeBuf);
+
+		// Mark them to die next polling loop
+		sender.markToDie = true;
+	} else {
+		// Accept
+		////Might have to copy over the string because packets gets killed but it could auto copy over 
+
+		// Register the username to the map
+		userMap[username] = sender.fd;
+
+		// Add the username to the sender's clientConn
+		sender.username = username;
+
+		// Create the accept response to client
+		ServerValidate response = ServerValidate(true);
+
+		// Send server val with true val to sender
+		response.serialize(sender.writeBuf);
+
+		// Inform other clients that sender has joined
+
+		// Construct packet
+		ServerConnect responseAll = ServerConnect(pkt.username);
+
+		// Send server connected msg to every other client
+		serializeToAllButSender(responseAll, sender);
+	}
 
 }
 
@@ -43,10 +69,9 @@ void clientServerMessage(ClientServMsg& pkt, clientConn& sender){
 
 void clientDisconnect(ClientDisconnect& pkt, clientConn& sender) {
 	// Announce to everyone but sender that this client has left
-
 }
 
-clientConn* lockAndFind(int fd){
+clientConn* lockFindCli(int fd){
 		clientConn* clientPtr = NULL;
 
 		// Lock the map to look for client
@@ -73,3 +98,19 @@ string usernameExists(const char* username){
 	// username taken
 	return "";
 }
+
+void serializeToAllButSender(Packet& pkt, clientConn& sender){
+	lock_guard lock(clientMapMtx);
+	
+	// Loop over clients connected in the map
+	for (auto i : clientMap){
+		clientConn client = i.second;
+		int fd = i.first;
+
+		// If the sender id is not the current fd
+		if (sender.fd != fd){
+			pkt.serialize(client.writeBuf);
+		}
+	}
+}
+

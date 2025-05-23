@@ -32,6 +32,7 @@ public:
 	int fd;
 	uint32_t epollMask = EPOLLIN | EPOLLET;
 	string username;
+	bool markToDie = false;
 
 	clientConn () : fd(-1) { // Default constructor
 		readBuf.reserve(CHUNK);
@@ -88,7 +89,7 @@ void killServer(int code);
 
 //// Utils
 
-string usernameValid(const char* username);
+string validateUser(const char* username);
 	// Makes sure the username is of correct length
 	// Makes sure the username is not taken
 	// Returns string if it is a valid username
@@ -111,3 +112,5 @@ string usernameExists(const char* username);
 	// Null if the username already exists
 	// Stringifies cstring if it doesn't
 	// This is b/c we're going use it
+
+void serializeToAllButSender(Packet& pkt, clientConn& sender);
