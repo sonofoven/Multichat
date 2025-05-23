@@ -83,12 +83,12 @@ void ClientBroadMsg::serialize(vector<uint8_t>& buffer) {
 	pushLenBack(buffer, msg, messageLength);
 }
 
-ClientBroadMsg::ClientBroadMsg(size_t messageLen, char* message){
+ClientBroadMsg::ClientBroadMsg(size_t messageLen, const char* message){
 	length = headerLen + messageLen;
 	opcode = CMG_BROADMSG;
 
 	msgLen = messageLen;
-	msg = (const char*)message;
+	msg = message;
 }
 
 ClientBroadMsg::ClientBroadMsg(){}
@@ -236,14 +236,14 @@ void ServerBroadMsg::serialize(vector<uint8_t>& buffer) {
 	pushLenBack(buffer, msg, msgLen);
 }
 
-ServerBroadMsg::ServerBroadMsg(const char* usr, size_t messageLen, char* message){
+ServerBroadMsg::ServerBroadMsg(const char* usr, size_t messageLen, const char* message){
 	length = headerLen + strlen(usr) + 1 + messageLen;
 	opcode = SMG_BROADMSG;
 
-	username = (const char*)usr;
+	username = usr;
 	
 	msgLen = messageLen;
-	msg = (const char*)message;
+	msg = message;
 }
 
 ServerBroadMsg::ServerBroadMsg(){}
@@ -272,7 +272,7 @@ ServerDisconnect::ServerDisconnect(const char* usr){
 	length = headerLen + strlen(usr) + 1;
 	opcode = SMG_DISCONNECT;
 
-	username = (const char*)usr;
+	username = usr;
 }
 
 ServerDisconnect::ServerDisconnect(){}

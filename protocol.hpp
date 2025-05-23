@@ -60,7 +60,7 @@ public:
     void serialize(vector<uint8_t>& buffer) override;
 
 	ClientBroadMsg();
-	ClientBroadMsg(size_t messageLen, char* message);
+	ClientBroadMsg(size_t messageLen, const char* message);
 };
 
 class ClientServMsg : public Packet {
@@ -117,7 +117,7 @@ public:
     void serialize(vector<uint8_t>& buffer) override;
 
 	ServerBroadMsg();
-	ServerBroadMsg(const char* usr, size_t messageLen, char* message);
+	ServerBroadMsg(const char* usr, size_t messageLen, const char* message);
 };
 
 class ServerDisconnect : public Packet {

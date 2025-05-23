@@ -1,18 +1,5 @@
 #include "server.hpp"
 
-string validateUser(const char* username){
-	// If username is too long or too short, reject
-	size_t usrLen = strlen(username);
-
-	if (usrLen > NAMELEN || usrLen <= 0){
-		return "";
-	}
-
-	// If username is taken, reject
-	return usernameExists(username);
-}
-
-
 void clientConnect(ClientConnect& pkt, clientConn& sender){
 	// Grab username
 	string username = validateUser(pkt.username);
@@ -30,6 +17,7 @@ void clientConnect(ClientConnect& pkt, clientConn& sender){
 		sender.markToDie = true;
 	} else {
 		// Accept
+
 		////Might have to copy over the string because packets gets killed but it could auto copy over 
 
 		// Register the username to the map
@@ -57,18 +45,32 @@ void clientConnect(ClientConnect& pkt, clientConn& sender){
 
 void clientBroadMsg(ClientBroadMsg& pkt, clientConn& sender){
 	// Send server broad msg to every other client
+	
+	// Construct the packet
+	ServerBroadMsg responseAll = ServerBroadMsg(sender.username.c_str(), pkt.msgLen, pkt.msg);
+
+	// Serialize it to everyone but sender
+	serializeToAllButSender(responseAll, sender);
+
 }
 
 void clientServerMessage(ClientServMsg& pkt, clientConn& sender){
+	// Output the message from the client to the console
 
-	// Get the length of the message because it is not null terminated
-	size_t msgLength = pkt.length - pkt.headerLen;
-
-	cout.write(pkt.msg, msgLength);
+	cout.write(pkt.msg, pkt.msgLen);
 }
 
 void clientDisconnect(ClientDisconnect& pkt, clientConn& sender) {
 	// Announce to everyone but sender that this client has left
+
+	// Set the client to be culled
+	sender.markToDie = true;
+
+	// Create the disconnect response to all other clients
+	ServerDisconnect responseAll = ServerDisconnect(sender.username.c_str());
+
+	// Send server connected msg to every other client
+	serializeToAllButSender(responseAll, sender);
 }
 
 clientConn* lockFindCli(int fd){
@@ -85,6 +87,18 @@ clientConn* lockFindCli(int fd){
 		clientPtr = &it->second;
 
 		return clientPtr;
+}
+
+string validateUser(const char* username){
+	// If username is too long or too short, reject
+	size_t usrLen = strlen(username);
+
+	if (usrLen > NAMELEN || usrLen <= 0){
+		return "";
+	}
+
+	// If username is taken, reject
+	return usernameExists(username);
 }
 
 string usernameExists(const char* username){
@@ -114,3 +128,39 @@ void serializeToAllButSender(Packet& pkt, clientConn& sender){
 	}
 }
 
+void killClient(int fd){
+
+	cout << "Killing client: " << fd << endl;
+
+	// Deregister the username
+	clientConn* clientPtr = lockFindCli(fd);
+	killUser(clientPtr->username);
+
+	// Wipe the socket
+	close(fd);
+
+	// Lock the map
+	lock_guard lock(clientMapMtx);
+
+	// Wipe from the map
+	clientMap.erase(fd);
+}
+
+void killUser(string username){
+	userMap.erase(username);
+}
+
+void killServer(int code){
+	// Inform
+	cout << "Killing server over signal: " << code << endl;
+
+	// Lock mutex
+	lock_guard lock(clientMapMtx);
+
+	// Kill every 
+	for (auto i = clientMap.begin(); i != clientMap.end(); i++){
+		killClient(i->first);
+	}
+
+	exit(1);
+}

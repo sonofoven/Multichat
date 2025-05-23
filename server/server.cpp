@@ -49,8 +49,10 @@ int main(){
 			int fd = events[i].data.fd;
 			uint32_t event = events[i].events;
 
+			// Client disconnected/connection drop
 			if (event & (EPOLLHUP | EPOLLERR)){
 				killClient(fd);
+				// Make sure to alert all others
 				continue;
 			}
 
@@ -63,7 +65,7 @@ int main(){
 			}
 
 
-			if (event & EPOLLIN && !fatal){
+			if (event & EPOLLIN && !fatal && !clientPtr->markToDie){
 				// We are able to read
 				// Then try to immediately write
 				if(!(handleRead(epollFd, *clientPtr) && handleWrite(epollFd, *clientPtr))){
@@ -71,14 +73,14 @@ int main(){
 				}
 			}
 
-			if (event & EPOLLOUT && !fatal){
+			if (event & EPOLLOUT && !fatal && !clientPtr->markToDie){
 				// Finish writing what was started
 				if(!(handleWrite(epollFd, *clientPtr))){
 					fatal = true;
 				}
 			}
 
-			if (fatal || clientPtr->markToDie == true){
+			if (fatal || clientPtr->markToDie){
 				killClient(fd);
 			}
 		}
@@ -374,41 +376,4 @@ void acceptLoop(int listenFd, int epollFd){
 			exit(1);
 		}
 	}
-}
-
-void killClient(int fd){
-
-	cout << "Killing client: " << fd << endl;
-
-	// Deregister the username
-	clientConn* clientPtr = lockFindCli(fd);
-	killUser(clientPtr->username);
-
-	// Wipe the socket
-	close(fd);
-
-	// Lock the map
-	lock_guard lock(clientMapMtx);
-
-	// Wipe from the map
-	clientMap.erase(fd);
-}
-
-void killUser(string username){
-	userMap.erase(username);
-}
-
-void killServer(int code){
-	// Inform
-	cout << "Killing server over signal: " << code << endl;
-
-	// Lock mutex
-	lock_guard lock(clientMapMtx);
-
-	// Kill every 
-	for (auto i = clientMap.begin(); i != clientMap.end(); i++){
-		killClient(i->first);
-	}
-
-	exit(1);
 }
