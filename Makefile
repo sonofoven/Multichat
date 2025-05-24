@@ -6,7 +6,7 @@ PROTO_SRC := protocol.cpp
 CLIENT_DIR := client
 SERVER_DIR := server
 
-CLIENT_SRCS := $(CLIENT_DIR)/client.cpp $(CLIENT_DIR)/interface.cpp $(PROTO_SRC)
+CLIENT_SRCS := $(CLIENT_DIR)/client.cpp $(CLIENT_DIR)/interface.cpp $(CLIENT_DIR)/cliUtils.cpp $(PROTO_SRC)
 SERVER_SRCS := $(SERVER_DIR)/server.cpp $(SERVER_DIR)/servUtils.cpp $(PROTO_SRC)
 
 CLIENT_HDRS := protocol.hpp $(CLIENT_DIR)/client.hpp
@@ -20,7 +20,7 @@ LINK_SERVER := serv
 
 .PHONY: all client server clean link
 
-all: client server link
+all: clean client server link
 
 client: $(CLIENT_BIN)
 

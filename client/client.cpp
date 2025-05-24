@@ -1,5 +1,6 @@
 #include "client.hpp"
 
+list<string> userConns = {};
 
 int main() {
 	registerPackets();
@@ -70,11 +71,3 @@ vector<uint8_t> getTextInput(){
 	
 	return outBuf;
 }
-/*
-PacketHeader makeHeader(opcode code, size_t length){
-	PacketHeader newHeader;
-	newHeader.length = htole16((uint16_t)(length));
-	newHeader.opcode = htole16((uint16_t)code);
-	return newHeader;
-}
-*/

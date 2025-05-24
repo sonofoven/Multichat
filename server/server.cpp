@@ -191,12 +191,9 @@ int handleRead(int epollFd, clientConn& client){
 		// If we don't even have a full header
 		if (readBuf.size() < headerSize){
 			return 0;
-		} else {
-			fullPacketLen = parsePacketLen(readBuf.data());
 		}
-
-		// Header length is size of the the full packet, including header
-
+		
+		fullPacketLen = parsePacketLen(readBuf.data());
 
 		if (readBuf.size() >= fullPacketLen){
 
@@ -212,13 +209,9 @@ int handleRead(int epollFd, clientConn& client){
 				modFdEpoll(epollFd, client.fd, EPOLLIN | EPOLLOUT | EPOLLET);
 			}
 
-			// Move packet (with header) from read to writeBuf
-			// Later this wont be done b/c we'll have to make new packets using opcodes but for now this is what we'll do
-			// We are just echoing back things to the client, we'll have to add an op handler
-
-			//writeBuf.insert(writeBuf.end(), readBuf.begin(), readBuf.begin() + fullPacketLen);
-
+			// Remove the packet from the read queue
 			readBuf.erase(readBuf.begin(), readBuf.begin() + fullPacketLen);
+
 		} else {
 			return 0;
 		}
@@ -295,6 +288,8 @@ int protocolParser(Packet* pkt, clientConn& sender){
 
 			ClientConnect* clientPacket = static_cast<ClientConnect*>(pkt);
 
+			clientConnect(*clientPacket, sender);
+
 			break;
 		}
 
@@ -302,6 +297,8 @@ int protocolParser(Packet* pkt, clientConn& sender){
 			cout << "OPCODE: BROAD MESSAGE" << endl;
 
 			ClientBroadMsg* clientPacket = static_cast<ClientBroadMsg*>(pkt);
+
+			clientBroadMsg(*clientPacket, sender);
 
 			break;
 		}
@@ -311,12 +308,6 @@ int protocolParser(Packet* pkt, clientConn& sender){
 
 			ClientServMsg* clientPacket = static_cast<ClientServMsg*>(pkt);
 
-			// Right now, if someone wants to send a packet without the null byte
-			// they could read other memory, maybe make sure that the packet
-			// sends a length and cap that length too
-
-			// will get back to this
-
 			clientServerMessage(*clientPacket, sender);
 			break;
 		}
@@ -325,6 +316,8 @@ int protocolParser(Packet* pkt, clientConn& sender){
 			cout << "OPCODE: DISCONNECTION" << endl;
 
 			ClientDisconnect* clientPacket = static_cast<ClientDisconnect*>(pkt);
+
+			clientDisconnect(*clientPacket, sender);
 
 			break;
 		}
@@ -344,7 +337,6 @@ size_t parsePacketLen(uint8_t* data){
 
 	return length;
 }
-
 
 void acceptLoop(int listenFd, int epollFd){
 	int clientFd;
