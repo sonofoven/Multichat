@@ -1,11 +1,15 @@
 #include "client.hpp"
 
 list<string> userConns = {};
+vector<uint8_t> readBuf;
+vector<uint8_t> writeBuf;
 
 int main() {
 	registerPackets();
 
-	interfaceStart();
+	UiContext uiContext = interfaceStart();
+
+	dealThreads(0, uiContext);
 	/*
 	int sockFd = 0;
 	struct sockaddr_in serverAddr;
@@ -54,20 +58,4 @@ int main() {
 
  return 0;
  */
-}
-
-vector<uint8_t> getTextInput(){
-	vector<uint8_t> outBuf;
-	string text;
-	cout << "Enter message: ";
-	cin >> text;
-
-	outBuf.insert(outBuf.begin(), text.begin(), text.end());
-
-	// Add null terminators
-	//while (outBuf.size() < sizeof(clientServMsg)){
-	outBuf.push_back('\0');
-	//}
-	
-	return outBuf;
 }

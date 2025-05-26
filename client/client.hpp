@@ -8,6 +8,11 @@
 #include <vector>
 #include <list>
 #include <string>
+#include <condition_variable>
+#include <algorithm>
+#include <functional>
+#include <thread>
+#include <chrono>
 #include "../protocol.hpp"
 
 #include <ncurses.h>
@@ -17,32 +22,36 @@
 
 
 using namespace std;
-
-// Store usernames connected
+using namespace std::chrono;
 extern list<string> userConns;
+	// Store usernames connected
+extern vector<uint8_t> readBuf;
+extern vector<uint8_t> writeBuf;
 
 typedef struct WIN_t{
 	WINDOW* textWin; // Window that holds the text
 	WINDOW* bordWin; // Window that hold the border
-	vector<uint8_t> screenBuf; // Buffer that keeps track of all data for window
+	vector<chtype> screenBuf; // Buffer that keeps track of all data for window
 } WIN;
 
 typedef struct UiContext_t{
-	WIN* leftWin;
-	WIN* topWin;
-	WIN* botWin;
+	WIN* userWin;
+	WIN* msgWin;
+	WIN* inputWin;
+	mutex& ncursesMtx; // For doing any ncurses modifications
 
-	UiContext_t(WIN* l, WIN* t, WIN* b) : leftWin(l), topWin(t), botWin(b) {}
+	UiContext_t(WIN* u, WIN* m, WIN* i, mutex& n) : userWin(u), msgWin(m), inputWin(i), ncursesMtx(n) {}
 
+  	UiContext_t& operator=(const UiContext_t&) = delete; // Removes the copy from the reference
 } UiContext;
-
-void sendPacket(int servFd, Packet* pkt);
 
 vector<uint8_t> getTextInput();
 	// Gets text input for a message. Pad the text input with null
 	// terminators to fill out the struct
 
-void interfaceStart();
+UiContext interfaceStart();
+void dealThreads(int sockFd, UiContext& context);
+void updateUserWindow(WIN& window);
 
 WINDOW* createWindow(int height, int width, int starty, int startx);
 
@@ -50,15 +59,17 @@ WIN createLeftWin();
 WIN createTopWin();
 WIN createBotWin();
 
-vector<uint8_t> getWindowInput(WIN& window);
+vector<uint8_t> getWindowInput(WIN& window, UiContext& context);
 
-void printToWindow(WIN window, vector<uint8_t> inputData);
-
+void printToWindow(WIN& window, vector<uint8_t> inputData);
 
 void serverValidate(ServerValidate& pkt, UiContext& context);
-
 void serverConnect(ServerConnect& pkt, UiContext& context);
-
 void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context);
+void serverDisconnect(ServerDisconnect& pkt, UiContext& context);
 
-void serverDisconnect(ServerValidate& pkt, UiContext& context);
+void inputThread(UiContext& context, bool& ready, condition_variable& writeCv, mutex& writeMtx);
+void readThread(int servFd, UiContext& context);
+void writeThread(int servFd, bool& ready, condition_variable& writeCv, mutex& writeMtx);
+
+int protocolParser(Packet* pkt, UiContext& context);

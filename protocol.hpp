@@ -60,7 +60,7 @@ public:
     void serialize(vector<uint8_t>& buffer) override;
 
 	ClientBroadMsg();
-	ClientBroadMsg(size_t messageLen, const char* message);
+	ClientBroadMsg(vector<uint8_t> message);
 };
 
 class ClientServMsg : public Packet {
@@ -72,7 +72,7 @@ public:
     void serialize(vector<uint8_t>& buffer) override;
 
 	ClientServMsg();
-	ClientServMsg(size_t messageLen, char* message);
+	ClientServMsg(vector<uint8_t> message);
 };
 
 class ClientDisconnect : public Packet {
@@ -144,3 +144,6 @@ using PacketFactory = Packet* (*)();
 extern PacketFactory packetFactories[NUM_OF_OPCODES];
 void registerPackets();
 Packet* instancePacketFromData(const uint8_t* data);
+
+size_t parsePacketLen(uint8_t* data);
+

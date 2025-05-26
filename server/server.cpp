@@ -24,7 +24,6 @@ int main(){
 
 	// Create our epoll instance
 	epollFd = epoll_create1(0);
-
 	if (epollFd == -1){
 		perror("Epoll creation failure");
 		exit(1);
@@ -328,14 +327,6 @@ int protocolParser(Packet* pkt, clientConn& sender){
 		}
 	}
 	return exitCode;
-}
-
-size_t parsePacketLen(uint8_t* data){
-	uint16_t leLen;
-	memcpy(&leLen, data, sizeof(leLen));
-	size_t length = le16toh(leLen);
-
-	return length;
 }
 
 void acceptLoop(int listenFd, int epollFd){

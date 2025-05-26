@@ -1,8 +1,9 @@
 #include "client.hpp"
 
 
-void interfaceStart(){
-	WIN users, input, messages;
+UiContext interfaceStart(){
+	static WIN users, input, messages;
+	static mutex ncursesMtx;
 
 	initscr();
 	cbreak(); // Disable line buffering
@@ -16,23 +17,9 @@ void interfaceStart(){
 	messages = createTopWin();
 	users = createLeftWin();
 
-	wprintw(users.textWin, "Users go here");
-	wrefresh(users.textWin);
+	static UiContext uiContext = UiContext(&users, &messages, &input, ncursesMtx);
 
-	vector<uint8_t> grabbedText = getWindowInput(input);
-	
-	printToWindow(messages, grabbedText);	
-
-	grabbedText = getWindowInput(input);
-	
-	printToWindow(messages, grabbedText);	
-
-	grabbedText = getWindowInput(input);
-	
-	printToWindow(messages, grabbedText);	
-
-
-	endwin();
+	return uiContext;
 }
 
 WINDOW* createWindow(int height, int width, int starty, int startx){
@@ -57,6 +44,10 @@ WIN createLeftWin() {
 	window.bordWin = createWindow(height, width, startY, startX);
 	window.textWin = newwin(height - (2*VALIGN), width - (2*HALIGN), startY + VALIGN, startX + HALIGN);
 
+	scrollok(window.textWin, TRUE);
+	idlok(window.textWin, TRUE);
+
+	wrefresh(window.bordWin);
 	wrefresh(window.textWin);
 
 	return window;
@@ -74,6 +65,10 @@ WIN createTopWin(){
 	window.bordWin = createWindow(height, width, startY, startX);
 	window.textWin = newwin(height - (2*VALIGN), width - (2*HALIGN), startY + VALIGN, startX + HALIGN);
 
+	scrollok(window.textWin, TRUE);
+	idlok(window.textWin, TRUE);
+
+	wrefresh(window.bordWin);
 	wrefresh(window.textWin);
 
 	return window;
@@ -90,12 +85,15 @@ WIN createBotWin(){
 	window.bordWin = createWindow(height, width, startY, startX);
 	window.textWin = newwin(height - (2*VALIGN), width - (2*HALIGN), startY + VALIGN, startX + HALIGN);
 
+	keypad(window.textWin, TRUE);
+
+	wrefresh(window.bordWin);
 	wrefresh(window.textWin);
 
 	return window;
 }
 
-vector<uint8_t> getWindowInput(WIN& window){
+vector<uint8_t> getWindowInput(WIN& window, UiContext& context){
 	// Only work with the textWin (we don't care about no borders)
 	WINDOW* win = window.textWin;
 	int row, col;
@@ -182,52 +180,94 @@ vector<uint8_t> getWindowInput(WIN& window){
 	return outBuf;
 }
 
-void printToWindow(WIN window, vector<uint8_t> inputData){
-	int row, col;
-	getmaxyx(window.textWin, row, col);
+void appendToWindow(WIN& window, string& inputStr, attr_t attributes, int prescroll){
 
-	wmove(window.textWin, row - 1, 0); // Move to the bottom of the text window
+    WINDOW* win = window.textWin;
+
+	int row, col;
+	getmaxyx(win, row, col);
+
+	curs_set(0);
+
+	// Scroll an amount before adding
+	wscrl(win, prescroll);
+
+	if (prescroll > 0){
+		// Adding to the bottom
+		wmove(win, row - 1, 0);
+
+	} else if (prescroll < 0){
+		// Adding to the top of win
+		wmove(win, 0, 0);
+
+	} else {
+		// Adding to the end of what I already have
+	}
+
+    for (char ch: inputStr) {
+        chtype attrCh = (chtype)ch | attributes;
+        window.screenBuf.push_back(attrCh);
+        waddch(win, attrCh);
+    }
+
+    wrefresh(win);
+}
+
+void printToWindow(WIN& window, vector<uint8_t> inputData){
+	string inputStr(inputData.begin(), inputData.end());
+	appendToWindow(window, inputStr, 0, 1);
+}
+
+
+void updateUserWindow(WIN& window){
+
+	WINDOW* win = window.textWin;
+
+	werase(win);
+
+	int row, col;
+	getmaxyx(win, row, col);
+
+	wmove(win, 0, 0); // Move to the top of the textWin
 	curs_set(0);
 
 	int y, x; // Current y and x pos
 
-	getyx(window.textWin, y, x);
+	getyx(win, y, x);
 
-	scrollok(window.textWin, TRUE);
-	idlok(window.textWin, TRUE);
 
-	// Scroll up
-	wscrl(window.textWin, 1);
+	// Scroll down
+	wscrl(win, -1);
 
-	for (uint8_t & ch : inputData){
-		if (ch == '\0'){
-			break;
-		}
-
-		// If you get to the end of the screen
-		if (ch == '\n' || x >= col - 1){
-
-			// Place char
-			window.screenBuf.push_back(ch);
-			if (ch != '\n'){
-				waddch(window.textWin, (char)ch);
+	for (string & str : userConns){
+		for (char & ch : str){
+			if (ch == '\0'){
+				break;
 			}
 
-			// Go to the bottom
-			x = 0;
-			y = row - 1;
-			wmove(window.textWin, y, x);
+			// If you get to the end of the screen
+			if (x >= col - 1){
+
+				// Place char
+				window.screenBuf.push_back(ch);
+				waddch(win, ch);
+
+				// Go one row lower
+				x = 0;
+				y = row + 1;
+				wmove(win, y, x);
 
 
-		} else {
+			} else {
 
-			// Normal placement
-			window.screenBuf.push_back(ch);
-			waddch(window.textWin, (char)ch);
-			wmove(window.textWin, y, x + 1);
-			x++;
+				// Normal placement
+				window.screenBuf.push_back(ch);
+				waddch(win, ch);
+				wmove(win, y, x + 1);
+				x++;
+			}
+
 		}
 	}
-
-	wrefresh(window.textWin);
+	wrefresh(win);
 }

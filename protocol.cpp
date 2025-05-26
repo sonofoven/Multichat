@@ -83,12 +83,12 @@ void ClientBroadMsg::serialize(vector<uint8_t>& buffer) {
 	pushLenBack(buffer, msg, messageLength);
 }
 
-ClientBroadMsg::ClientBroadMsg(size_t messageLen, const char* message){
-	length = headerLen + messageLen;
+ClientBroadMsg::ClientBroadMsg(vector<uint8_t> message){
+	length = headerLen + message.size();
 	opcode = CMG_BROADMSG;
 
-	msgLen = messageLen;
-	msg = message;
+	msgLen = message.size();
+	msg = (const char*)message.data();
 }
 
 ClientBroadMsg::ClientBroadMsg(){}
@@ -116,12 +116,12 @@ void ClientServMsg::serialize(vector<uint8_t>& buffer) {
 	pushLenBack(buffer, msg, messageLength);
 }
 
-ClientServMsg::ClientServMsg(size_t messageLen, char* message){
-	length = headerLen + messageLen;
+ClientServMsg::ClientServMsg(vector<uint8_t> message){
+	length = headerLen + message.size();
 	opcode = CMG_SERVMSG;
 
-	msgLen = messageLen;
-	msg = (const char*)message;
+	msgLen = message.size();
+	msg = (const char*)message.data();
 }
 
 ClientServMsg::ClientServMsg(){}
@@ -326,3 +326,12 @@ Packet* instancePacketFromData(const uint8_t* data){
 
 	return pkt;
 }
+
+size_t parsePacketLen(uint8_t* data){
+	uint16_t leLen;
+	memcpy(&leLen, data, sizeof(leLen));
+	size_t length = le16toh(leLen);
+
+	return length;
+}
+
