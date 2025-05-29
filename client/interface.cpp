@@ -10,6 +10,7 @@ UiContext interfaceStart(){
 	noecho();
 	curs_set(0);
 	refresh();
+	timeout(33);
 
 	input = createInputWin();
 	messages = createMsgWin();
@@ -117,95 +118,99 @@ Win createInputWin(){
 	return window;
 }
 
-vector<uint8_t> getWindowInput(Win& window, UiContext& context){
+vector<uint8_t> processOneChar(Win& window, UiContext& context, int ch, vector<uint8_t> outBuf){
 	// Only work with the textWin (we don't care about no borders)
 	WINDOW* win = window.textWin;
 	int row, col;
 	getmaxyx(win, row, col);
 
-	vector<uint8_t> outBuf;
-
-	wmove(win, 0, 0); // Move to the beginning of the window
 	curs_set(2); // Make the cursor visible
 
 	size_t maxChar = min(MAXMSG, (row * col));
 
-	int ch; // Hold input one at a time
 	int y, x; // Current y and x pos
 	getyx(win, y, x);
 
+	// Hitting enter
+	if (ch == '\n'){
 
-	while((ch = wgetch(win)) != '\n'){
+		outBuf.push_back((uint8_t)'\0');
 
-		if (ch == 127 || ch == KEY_DC || ch == 8 || ch == KEY_BACKSPACE){ 
+		// Lock write buffer and append message to the buffer
+		lock_guard lock(writeMtx);
 
-			// Backspace
-			if (outBuf.size() <= 0){
-				// If there is nothing, don't do anything
-				continue;
-			}
+		// Create packet
+		ClientBroadMsg pkt = ClientBroadMsg(outBuf);
 
-			// Remove the last of the input
-			outBuf.pop_back();
+		// Write into the writeBuf
+		pkt.serialize(writeBuf);
 
-			if (x <= 0){
+		// Create & append full message to message window
+		WINDOW* msgWin = uiContext.msgWin
+		string msgWinStr(output.begin(), output.end());
+		appendToWindow(*msgWin, str, 0, 1);
 
-				// If at left edge
-				wmove(win, y - 1, col - 1);
-				waddch(win, ' ');
+		// Clear the buffer, window, and reset the cursor
+		outBuf.clear();
+		werase(win);
+		wmove(win, 0, 0);
 
-				y--;
-				wmove(win, y, col - 1);
-				x = col - 1;
+		// Refresh Windows
+		wrefresh(win);
 
-			} else {
-				// Normal deletion
-				wmove(win, y, x - 1);
-				waddch(win, ' ');
-				wmove(win, y, x - 1);
-				x--;
-			}
+		// Unlock the writeBuf with the scope
 
-			continue;
+	// Backspace
+	} else if (ch == 127 || ch == KEY_DC || ch == 8 || ch == KEY_BACKSPACE){ 
+
+		// At the beginning
+		if (outBuf.size() <= 0){
+			return outBuf;
 		}
 
+		// Remove the last of the input
+		outBuf.pop_back();
 
+		if (x <= 0){
+			// If at left edge
+			wmove(win, y - 1, col - 1);
+			waddch(win, ' ');
 
-		if (outBuf.size() >= maxChar){
-			// Can't add no more
-			continue;
-
-		} else if (x >= col - 1){
-
-			// If hit the end of the line
-
-			waddch(win, ch);
-			wmove(win, y + 1, 0);
-			x = 0;
-			y++;
+			y--;
+			wmove(win, y, col - 1);
 
 		} else {
-
-			// Normal movement
-			waddch(win, ch);
-			wmove(win, y, x + 1);
-			x++;
+			// Normal deletion
+			wmove(win, y, x - 1);
+			waddch(win, ' ');
+			wmove(win, y, x - 1);
 		}
 
+	// Full
+	} else if (outBuf.size() >= maxChar){
+			return outBuf;
+
+	// End of line
+	} else if (x >= col - 1){
+
+		// If hit the end of the line
+
 		outBuf.push_back((uint8_t)ch);
+		waddch(win, ch);
+		wmove(win, y + 1, 0);
+
+	// Normal placement
+	} else {
+		outBuf.push_back((uint8_t)ch);
+		waddch(win, ch);
+		wmove(win, y, x + 1);
 	}
 
-	outBuf.push_back((uint8_t)'\0');
-
-	// Clear window and reset
-	werase(win);
-	wmove(win, 0, 0);
 	wrefresh(win);
-
 	return outBuf;
 }
 
-void appendToWindow(Win& window, string& inputStr, attr_t attributes, int prescroll){
+void appendToWindow(Win& window, vector<uint8_t> inputVec, attr_t attributes, int prescroll){
 
     WINDOW* win = window.textWin;
 
@@ -229,74 +234,96 @@ void appendToWindow(Win& window, string& inputStr, attr_t attributes, int prescr
 		// Adding to the end of what I already have
 	}
 
-    for (char ch : inputStr) {
-		// Make it so it iterates it all but the last one
+	for (size_t i = 0, i < inputVec.size() - 1, i++){
 
-        chtype attrCh = (chtype)ch | attributes;
+        chtype attrCh = (chtype)inputVec[i] | attributes;
         window.screenBuf.push_back(attrCh);
-		if (ch != '\0'){
-			waddch(win, attrCh);
-		}
+		waddch(win, attrCh);
     }
 
     wrefresh(win);
 }
 
-//void printToWindow(WIN& window, vector<uint8_t> inputData){
-//	string inputStr(inputData.begin(), inputData.end());
-//	appendToWindow(window, inputStr, 0, 1);
-//}
-//
-//
-//void updateUserWindow(WIN& window){
-//
-//	WINDOW* win = window.textWin;
-//
-//	werase(win);
-//
-//	int row, col;
-//	getmaxyx(win, row, col);
-//
-//	wmove(win, 0, 0); // Move to the top of the textWin
-//	curs_set(0);
-//
-//	int y, x; // Current y and x pos
-//
-//	getyx(win, y, x);
-//
-//
-//	// Scroll down
-//	wscrl(win, -1);
-//
-//	for (string & str : userConns){
-//		for (char & ch : str){
-//			if (ch == '\0'){
-//				break;
-//			}
-//
-//			// If you get to the end of the screen
-//			if (x >= col - 1){
-//
-//				// Place char
-//				window.screenBuf.push_back(ch);
-//				waddch(win, ch);
-//
-//				// Go one row lower
-//				x = 0;
-//				y = row + 1;
-//				wmove(win, y, x);
-//
-//
-//			} else {
-//
-//				// Normal placement
-//				window.screenBuf.push_back(ch);
-//				waddch(win, ch);
-//				wmove(win, y, x + 1);
-//				x++;
-//			}
-//
-//		}
-//	}
-//	wrefresh(win);
-//}
+void processRender(renderItem rItem, UiContext context){
+	switch(rItem.rcode){
+		case MESSAGE: {
+
+
+			break;
+		}
+
+		case USERUPDATE: {
+			updateUserWindow(rItem, context);
+
+			break;
+		}
+
+		default:{
+			cerr << "Unknown err code" << endl;
+		}
+	}
+}
+
+
+
+void updateUserWindow(WIN& window, renderItem rItem){
+	lock_guard lock(userMtx);
+
+	WINDOW* win = window.textWin;
+
+	werase(win);
+
+	int row, col;
+	getmaxyx(win, row, col);
+
+	wmove(win, 0, 0); // Move to the top of the textWin
+	curs_set(0);
+
+	int y, x; // Current y and x pos
+
+	getyx(win, y, x);
+
+	// Scroll down
+	//wscrl(win, -1);
+
+	for (size_t i = 0; i < rItem.data.size() - 1; i++){
+		chtype ch = rItem.data[i];
+		window.screenBuf.push_back(ch);
+		//////HERE
+
+
+	}
+
+
+	for (string & str : userConns){
+
+		for (char & ch : str){
+			if (ch == '\0'){
+				break;
+			}
+
+			// If you get to the end of the screen
+			if (x >= col - 1){
+
+				// Place char
+				waddch(win, ch);
+
+				// Go one row lower
+				x = 0;
+				y = row + 1;
+				wmove(win, y, x);
+
+
+			} else {
+
+				// Normal placement
+				window.screenBuf.push_back(ch);
+				waddch(win, ch);
+				wmove(win, y, x + 1);
+				x++;
+			}
+
+		}
+	}
+	wrefresh(win);
+}

@@ -1,56 +1,38 @@
 #include "client.hpp"
 
-//// The multiple threads
-//void dealThreads(int servFd, UiContext& context){
-//
-//	mutex writeMtx; // For writing into the write buffer
-//	condition_variable writeCv;
-//	bool ready = false; // Ready to write (ie there is a full packet in the write buf)
-//
-//
-//	thread inputT(inputThread, ref(context), ref(ready), ref(writeCv), ref(writeMtx));
-//    thread readT(readThread, servFd, ref(context));
-//    thread writeT(writeThread, servFd, ref(ready), ref(writeCv), ref(writeMtx));
-//
-//	inputT.join();
-//	readT.join();
-//	writeT.join();
-//}
-//
-//void inputThread(UiContext& context, bool& ready, condition_variable& writeCv, mutex& writeMtx){
-//	while(1){
-//		// Get input
-//		vector<uint8_t> textInput = getWindowInput(*context.inputWin, context);
-//
-//		// Create packet
-//		ClientBroadMsg pkt = ClientBroadMsg(textInput);
-//
-//		// Lock write buffer and append message to the buffer
-//		{
-//			lock_guard lock(writeMtx);
-//			
-//			// Write into the writeBuf
-//			pkt.serialize(writeBuf);
-//			
-//			// Set the ready flag a ready to transmit
-//			ready = true;
-//
-//			// Unlock the writeBuf with the scope
-//		}
-//
-//		writeCv.notify_one();
-//
-//		// Lock message win
-//		{
-//			lock_guard lock(context.ncursesMtx);
-//
-//			// Print message to the message window
-//			printToWindow(*context.msgWin, textInput);
-//		}
-//	}
-//
-//}
-//
+// The multiple threads
+void dealThreads(int servFd, UiContext& context){
+
+	thread inputT(inputThread, ref(context));
+    thread readT(readThread, servFd, ref(context));
+    thread writeT(writeThread, servFd);
+
+	readT.detach();
+	writeT.detach();
+	inputT.join();
+}
+
+
+void inputThread(UiContext& context){
+	vector<uint8_t> outBuf;
+	while(1){
+		
+		// Get input
+		int ch = getch();
+
+		if (ch != ERR){
+			// If we get input
+			outBuf = processOneChar(*context.inputWin, context, ch, outBuf);
+		}
+
+		if (renderQueue.size() > 0){
+			// Render stuff here
+
+		}
+
+	}
+}
+
 //void readThread(int servFd, UiContext& context){
 //	// Sleep controlled by the read/write of the socket
 //

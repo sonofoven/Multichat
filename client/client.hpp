@@ -20,14 +20,16 @@
 #define VALIGN 1
 
 enum renderCode {
-	APPEND,
-	WIPE,
+	MESSAGE,
+	USERUPDATE,
 	NUM_OF_CODES
 };
 
 using namespace std;
 extern list<string> userConns;
 extern mutex queueMtx;
+extern mutex writeMtx;
+extern mutex userMtx;
 
 	// Store usernames connected
 extern vector<uint8_t> readBuf;
@@ -38,13 +40,11 @@ struct Win{
 	WINDOW* bordWin;		
 	WINDOW* textWin;		 
 	vector<chtype> screenBuf;
-	bool dirty;
 
 	Win() :
 		bordWin(nullptr),
 		textWin(nullptr),
-		screenBuf(),
-		dirty(false) {}
+		screenBuf() {}
 };
 
 struct UiContext{
@@ -88,8 +88,8 @@ vector<uint8_t> getWindowInput(Win& window, UiContext& context);
 
 void appendToWindow(Win& window, string& inputStr, attr_t attributes, int prescroll);
 
-//void printToWindow(WIN& window, vector<uint8_t> inputData);
-//
+processRender(renderItem rItem);
+
 //void serverValidate(ServerValidate& pkt, UiContext& context);
 //void serverConnect(ServerConnect& pkt, UiContext& context);
 //void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context);
