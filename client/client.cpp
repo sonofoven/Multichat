@@ -5,11 +5,16 @@ vector<uint8_t> readBuf;
 vector<uint8_t> writeBuf;
 
 int main() {
-	registerPackets();
+	//registerPackets();
 
 	UiContext uiContext = interfaceStart();
 
-	dealThreads(0, uiContext);
+	getch();
+
+	endwin();
+
+
+	//dealThreads(0, uiContext);
 	/*
 	int sockFd = 0;
 	struct sockaddr_in serverAddr;
