@@ -84,8 +84,10 @@ Win createUserWin();
 Win createMsgWin();
 Win createInputWin();
 
-//vector<uint8_t> getWindowInput(WIN& window, UiContext& context);
-//
+vector<uint8_t> getWindowInput(Win& window, UiContext& context);
+
+void appendToWindow(Win& window, string& inputStr, attr_t attributes, int prescroll);
+
 //void printToWindow(WIN& window, vector<uint8_t> inputData);
 //
 //void serverValidate(ServerValidate& pkt, UiContext& context);

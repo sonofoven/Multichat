@@ -117,126 +117,131 @@ Win createInputWin(){
 	return window;
 }
 
-//vector<uint8_t> getWindowInput(WIN& window, UiContext& context){
-//	// Only work with the textWin (we don't care about no borders)
-//	WINDOW* win = window.textWin;
-//	int row, col;
-//	getmaxyx(win, row, col);
-//
-//	vector<uint8_t> outBuf;
-//
-//	wmove(win, 0, 0); // Move to the beginning of the window
-//	curs_set(2); // Make the cursor visible
-//
-//	size_t maxChar = min(MAXMSG, (row * col));
-//
-//	int ch; // Hold input one at a time
-//	int y, x; // Current y and x pos
-//	getyx(win, y, x);
-//
-//
-//	while((ch = wgetch(win)) != '\n'){
-//
-//		if (ch == 127 || ch == KEY_DC || ch == 8 || ch == KEY_BACKSPACE){ 
-//
-//			// Backspace
-//			if (outBuf.size() <= 0){
-//				// If there is nothing, don't do anything
-//				continue;
-//			}
-//
-//			// Remove the last of the input
-//			outBuf.pop_back();
-//
-//			if (x <= 0){
-//
-//				// If at left edge
-//				wmove(win, y - 1, col - 1);
-//				waddch(win, ' ');
-//
-//				y--;
-//				wmove(win, y, col - 1);
-//				x = col - 1;
-//
-//			} else {
-//				// Normal deletion
-//				wmove(win, y, x - 1);
-//				waddch(win, ' ');
-//				wmove(win, y, x - 1);
-//				x--;
-//			}
-//
-//			continue;
-//		}
-//
-//
-//
-//		if (outBuf.size() >= maxChar){
-//			// Can't add no more
-//			continue;
-//
-//		} else if (x >= col - 1){
-//
-//			// If hit the end of the line
-//			waddch(win, ch);
-//			wmove(win, y + 1, 0);
-//			x = 0;
-//			y++;
-//
-//		} else {
-//
-//			// Normal movement
-//			waddch(win, ch);
-//			wmove(win, y, x + 1);
-//			x++;
-//		}
-//
-//		outBuf.push_back((uint8_t)ch);
-//	}
-//
-//	outBuf.push_back((uint8_t)'\0');
-//
-//	// Clear window and reset
-//	werase(win);
-//	wmove(win, 0, 0);
-//	wrefresh(win);
-//
-//	return outBuf;
-//}
-//
-//void appendToWindow(WIN& window, string& inputStr, attr_t attributes, int prescroll){
-//
-//    WINDOW* win = window.textWin;
-//
-//	int row, col;
-//	getmaxyx(win, row, col);
-//
-//	curs_set(0);
-//
-//	// Scroll an amount before adding
-//	wscrl(win, prescroll);
-//
-//	if (prescroll > 0){
-//		// Adding to the bottom
-//		wmove(win, row - 1, 0);
-//
-//	} else if (prescroll < 0){
-//		// Adding to the top of win
-//		wmove(win, 0, 0);
-//
-//	} else {
-//		// Adding to the end of what I already have
-//	}
-//
-//    for (char ch: inputStr) {
-//        chtype attrCh = (chtype)ch | attributes;
-//        window.screenBuf.push_back(attrCh);
-//        waddch(win, attrCh);
-//    }
-//
-//    wrefresh(win);
-//}
-//
+vector<uint8_t> getWindowInput(Win& window, UiContext& context){
+	// Only work with the textWin (we don't care about no borders)
+	WINDOW* win = window.textWin;
+	int row, col;
+	getmaxyx(win, row, col);
+
+	vector<uint8_t> outBuf;
+
+	wmove(win, 0, 0); // Move to the beginning of the window
+	curs_set(2); // Make the cursor visible
+
+	size_t maxChar = min(MAXMSG, (row * col));
+
+	int ch; // Hold input one at a time
+	int y, x; // Current y and x pos
+	getyx(win, y, x);
+
+
+	while((ch = wgetch(win)) != '\n'){
+
+		if (ch == 127 || ch == KEY_DC || ch == 8 || ch == KEY_BACKSPACE){ 
+
+			// Backspace
+			if (outBuf.size() <= 0){
+				// If there is nothing, don't do anything
+				continue;
+			}
+
+			// Remove the last of the input
+			outBuf.pop_back();
+
+			if (x <= 0){
+
+				// If at left edge
+				wmove(win, y - 1, col - 1);
+				waddch(win, ' ');
+
+				y--;
+				wmove(win, y, col - 1);
+				x = col - 1;
+
+			} else {
+				// Normal deletion
+				wmove(win, y, x - 1);
+				waddch(win, ' ');
+				wmove(win, y, x - 1);
+				x--;
+			}
+
+			continue;
+		}
+
+
+
+		if (outBuf.size() >= maxChar){
+			// Can't add no more
+			continue;
+
+		} else if (x >= col - 1){
+
+			// If hit the end of the line
+
+			waddch(win, ch);
+			wmove(win, y + 1, 0);
+			x = 0;
+			y++;
+
+		} else {
+
+			// Normal movement
+			waddch(win, ch);
+			wmove(win, y, x + 1);
+			x++;
+		}
+
+		outBuf.push_back((uint8_t)ch);
+	}
+
+	outBuf.push_back((uint8_t)'\0');
+
+	// Clear window and reset
+	werase(win);
+	wmove(win, 0, 0);
+	wrefresh(win);
+
+	return outBuf;
+}
+
+void appendToWindow(Win& window, string& inputStr, attr_t attributes, int prescroll){
+
+    WINDOW* win = window.textWin;
+
+	int row, col;
+	getmaxyx(win, row, col);
+
+	curs_set(0);
+
+	// Scroll an amount before adding
+	wscrl(win, prescroll);
+
+	if (prescroll > 0){
+		// Adding to the bottom
+		wmove(win, row - 1, 0);
+
+	} else if (prescroll < 0){
+		// Adding to the top of win
+		wmove(win, 0, 0);
+
+	} else {
+		// Adding to the end of what I already have
+	}
+
+    for (char ch : inputStr) {
+		// Make it so it iterates it all but the last one
+
+        chtype attrCh = (chtype)ch | attributes;
+        window.screenBuf.push_back(attrCh);
+		if (ch != '\0'){
+			waddch(win, attrCh);
+		}
+    }
+
+    wrefresh(win);
+}
+
 //void printToWindow(WIN& window, vector<uint8_t> inputData){
 //	string inputStr(inputData.begin(), inputData.end());
 //	appendToWindow(window, inputStr, 0, 1);

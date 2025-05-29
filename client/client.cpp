@@ -9,10 +9,22 @@ int main() {
 
 	UiContext uiContext = interfaceStart();
 
+	vector<uint8_t> output = getWindowInput(*uiContext.inputWin, uiContext);
+
+	string str(output.begin(), output.end());
+
+	appendToWindow(*uiContext.msgWin, str, 0, 1);
+
+
+	output = getWindowInput(*uiContext.inputWin, uiContext);
+
+	string str2(output.begin(), output.end());
+
+	appendToWindow(*uiContext.msgWin, str2, 0, 1);
+
 	getch();
 
 	endwin();
-
 
 	//dealThreads(0, uiContext);
 	/*
