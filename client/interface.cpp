@@ -5,12 +5,11 @@ UiContext interfaceStart(){
 	static Win users, input, messages;
 
 	initscr();
-	cbreak(); 
 	
 	noecho();
+	cbreak(); 
 	curs_set(0);
 	refresh();
-	timeout(33);
 
 	input = createInputWin();
 	messages = createMsgWin();
@@ -114,12 +113,12 @@ Win createInputWin(){
 								  true);
 
 	keypad(window.textWin, TRUE);
+	nodelay(window.textWin, TRUE);
 
 	return window;
 }
 
 vector<uint8_t> processOneChar(Win& window, UiContext& context, int ch, vector<uint8_t> outBuf){
-	// Only work with the textWin (we don't care about no borders)
 	WINDOW* win = window.textWin;
 	int row, col;
 	getmaxyx(win, row, col);
@@ -134,21 +133,24 @@ vector<uint8_t> processOneChar(Win& window, UiContext& context, int ch, vector<u
 	// Hitting enter
 	if (ch == '\n'){
 
-		outBuf.push_back((uint8_t)'\0');
-
-		// Lock write buffer and append message to the buffer
-		lock_guard lock(writeMtx);
-
 		// Create packet
 		ClientBroadMsg pkt = ClientBroadMsg(outBuf);
+
+		// Lock write buffer and append message to the buffer
+		unique_lock lock(writeMtx);
 
 		// Write into the writeBuf
 		pkt.serialize(writeBuf);
 
+		// Unlock the writeBuf
+		lock.unlock();
+
+		writeCv.notify_one();
+
 		// Create & append full message to message window
-		WINDOW* msgWin = uiContext.msgWin
-		string msgWinStr(output.begin(), output.end());
-		appendToWindow(*msgWin, str, 0, 1);
+		Win* msgWin = context.msgWin;
+		vector<chtype> message = formatMessage(outBuf, clientInfo.username.c_str());
+		appendToWindow(*msgWin, message, 1);
 
 		// Clear the buffer, window, and reset the cursor
 		outBuf.clear();
@@ -158,7 +160,6 @@ vector<uint8_t> processOneChar(Win& window, UiContext& context, int ch, vector<u
 		// Refresh Windows
 		wrefresh(win);
 
-		// Unlock the writeBuf with the scope
 
 	// Backspace
 	} else if (ch == 127 || ch == KEY_DC || ch == 8 || ch == KEY_BACKSPACE){ 
@@ -210,7 +211,30 @@ vector<uint8_t> processOneChar(Win& window, UiContext& context, int ch, vector<u
 	return outBuf;
 }
 
-void appendToWindow(Win& window, vector<uint8_t> inputVec, attr_t attributes, int prescroll){
+vector<chtype> formatMessage(vector<uint8_t> message, const char* username){
+	vector<chtype> outBuf;
+
+	outBuf.push_back((chtype)'[' | A_BOLD);
+
+	// Append username to the beginning of the message in bold
+	for (size_t i = 0; i < strlen(username); i++){
+		outBuf.push_back((chtype)username[i] | A_BOLD);
+	}
+
+	outBuf.push_back((chtype)']' | A_BOLD);
+	outBuf.push_back((chtype)' ');
+	
+	// Convert uint8_t message to chtype
+
+	// No null byte
+	for (size_t i = 0; i < message.size() - 1; i++){
+		outBuf.push_back((chtype)username[i] | A_BOLD);
+	}
+
+	return outBuf;
+}
+
+void appendToWindow(Win& window, vector<chtype> inputVec, int prescroll){
 
     WINDOW* win = window.textWin;
 
@@ -234,40 +258,52 @@ void appendToWindow(Win& window, vector<uint8_t> inputVec, attr_t attributes, in
 		// Adding to the end of what I already have
 	}
 
-	for (size_t i = 0, i < inputVec.size() - 1, i++){
-
-        chtype attrCh = (chtype)inputVec[i] | attributes;
-        window.screenBuf.push_back(attrCh);
-		waddch(win, attrCh);
+	for (size_t i = 0; i < inputVec.size() - 1; i++){
+		chtype ch = inputVec[i];
+        window.screenBuf.push_back(ch);
+		waddch(win, ch);
     }
 
     wrefresh(win);
 }
 
-void processRender(renderItem rItem, UiContext context){
+void processRender(renderItem rItem){
 	switch(rItem.rcode){
 		case MESSAGE: {
-
-
+			// Message recieved, updating message win
+			updateMessageWindow(rItem);
 			break;
 		}
 
 		case USERUPDATE: {
-			updateUserWindow(rItem, context);
+			// User list change recieved, updating userwin
+			updateUserWindow(rItem);
+			break;
+		}
 
+		case USERCONN: {
+			// User list change recieved, informing message win
+			updateUserConn(rItem);
+			break;
+		}
+
+		case USERDISC: {
+			// User list change recieved, informing message win
+			updateUserDisc(rItem);
 			break;
 		}
 
 		default:{
-			cerr << "Unknown err code" << endl;
+			cerr << "Unknown render code" << endl;
+			break;
 		}
 	}
 }
 
+void updateUserWindow(renderItem rItem){
+	// rItem should contain a sorted list of users
 
-
-void updateUserWindow(WIN& window, renderItem rItem){
-	lock_guard lock(userMtx);
+	Win window = *rItem.target;
 
 	WINDOW* win = window.textWin;
 
@@ -283,47 +319,51 @@ void updateUserWindow(WIN& window, renderItem rItem){
 
 	getyx(win, y, x);
 
-	// Scroll down
-	//wscrl(win, -1);
-
+	char bChar;
 	for (size_t i = 0; i < rItem.data.size() - 1; i++){
 		chtype ch = rItem.data[i];
 		window.screenBuf.push_back(ch);
-		//////HERE
 
+		// If you get to the end of the screen
+		if (x >= col - 1 || (bChar = getBaseChar(ch)) == '\0'){
 
-	}
-
-
-	for (string & str : userConns){
-
-		for (char & ch : str){
-			if (ch == '\0'){
-				break;
+			// Place char
+			if (bChar != '\0'){
+				waddch(win, ch);
 			}
 
-			// If you get to the end of the screen
-			if (x >= col - 1){
+			// Go one row lower
+			x = 0;
+			y = row + 1;
+			wmove(win, y, x);
 
-				// Place char
-				waddch(win, ch);
-
-				// Go one row lower
-				x = 0;
-				y = row + 1;
-				wmove(win, y, x);
-
-
-			} else {
-
-				// Normal placement
-				window.screenBuf.push_back(ch);
-				waddch(win, ch);
-				wmove(win, y, x + 1);
-				x++;
-			}
-
+		} else {
+			// Normal placement
+			window.screenBuf.push_back(ch);
+			waddch(win, ch);
+			wmove(win, y, x + 1);
+			x++;
 		}
+
 	}
+
 	wrefresh(win);
+}
+
+// These all update the message window
+
+void updateMessageWindow(renderItem rItem){
+	appendToWindow(*rItem.target, rItem.data, 1);
+}
+
+void updateUserConn(renderItem rItem){
+	appendToWindow(*rItem.target, rItem.data, 1);
+}
+
+void updateUserDisc(renderItem rItem){
+	appendToWindow(*rItem.target, rItem.data, 1);
+}
+
+inline char getBaseChar(chtype ch){
+	return (char)(ch & A_CHARTEXT);
 }

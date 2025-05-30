@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 #include <list>
+#include <queue>
 #include <string>
 #include <condition_variable>
 #include <algorithm>
@@ -22,17 +23,22 @@
 enum renderCode {
 	MESSAGE,
 	USERUPDATE,
+	USERCONN,
+	USERDISC,
 	NUM_OF_CODES
 };
 
 using namespace std;
-extern list<string> userConns;
-extern mutex queueMtx;
-extern mutex writeMtx;
-extern mutex userMtx;
+extern list<string> userConns; // List of users connected to server
+extern mutex userMtx; // Protects userconn list
+
+extern mutex queueMtx; // Protects render queue
+extern mutex writeMtx; // Protects writeBuf
 
 	// Store usernames connected
 extern vector<uint8_t> readBuf;
+
+extern condition_variable writeCv; // Activate the writeBuf
 extern vector<uint8_t> writeBuf;
 
 
@@ -53,30 +59,35 @@ struct UiContext{
 	Win* inputWin;
 
 	UiContext(Win* u, 
-				Win* m, 
-				Win* i) 
-				: 
-				userWin(u), 
-				msgWin(m), 
-				inputWin(i) {}
+			  Win* m, 
+			  Win* i) 
+			  : 
+			  userWin(u), 
+			  msgWin(m), 
+			  inputWin(i) {}
 };
 
+// Render information of each render query
 struct renderItem{
 	Win* target;
 	renderCode rcode;
 	vector<chtype> data;
 };
 
-extern vector<renderItem> renderQueue;
+// For storing connection information
+struct connInfo{
+	string addr;
+	uint16_t port;
+	string username;
+};
 
-//vector<uint8_t> getTextInput();
-	// Gets text input for a message. Pad the text input with null
-	// terminators to fill out the struct
+extern connInfo clientInfo;
+extern queue<renderItem> renderQueue;
+
 
 UiContext interfaceStart();
 
-//void dealThreads(int sockFd, UiContext& context);
-//void updateUserWindow(WIN& window);
+void dealThreads(int sockFd, UiContext& context);
 
 WINDOW* createWindow(int height, int width, int starty, int startx, bool boxOn, bool scroll);
 
@@ -84,19 +95,30 @@ Win createUserWin();
 Win createMsgWin();
 Win createInputWin();
 
-vector<uint8_t> getWindowInput(Win& window, UiContext& context);
+vector<uint8_t> processOneChar(Win& window, UiContext& context, int ch, vector<uint8_t> outBuf);
 
-void appendToWindow(Win& window, string& inputStr, attr_t attributes, int prescroll);
+vector<chtype> formatMessage(vector<uint8_t> message, const char* username);
 
-processRender(renderItem rItem);
+void appendToWindow(Win& window, vector<chtype> inputVec, int prescroll);
 
-//void serverValidate(ServerValidate& pkt, UiContext& context);
-//void serverConnect(ServerConnect& pkt, UiContext& context);
-//void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context);
-//void serverDisconnect(ServerDisconnect& pkt, UiContext& context);
-//
-//void inputThread(UiContext& context, bool& ready, condition_variable& writeCv, mutex& writeMtx);
-//void readThread(int servFd, UiContext& context);
-//void writeThread(int servFd, bool& ready, condition_variable& writeCv, mutex& writeMtx);
-//
-//int protocolParser(Packet* pkt, UiContext& context);
+void processRender(renderItem rItem);
+
+void updateUserWindow(renderItem rItem);
+void updateMessageWindow(renderItem rItem);
+void updateUserConn(renderItem rItem);
+void updateUserDisc(renderItem rItem);
+
+
+
+void inputThread(UiContext& context);
+void readThread(int servFd, UiContext& context);
+void writeThread(int servFd);
+
+int protocolParser(Packet* pkt, UiContext& context);
+
+void serverValidate(ServerValidate& pkt, UiContext& context);
+void serverConnect(ServerConnect& pkt, UiContext& context);
+void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context);
+void serverDisconnect(ServerDisconnect& pkt, UiContext& context);
+
+inline char getBaseChar(chtype ch);
