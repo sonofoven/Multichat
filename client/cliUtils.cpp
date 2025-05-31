@@ -3,46 +3,30 @@
 // The multiple threads
 void dealThreads(int servFd, UiContext& context){
 
-	thread inputT(inputThread, ref(context));
     thread readT(readThread, servFd, ref(context));
     thread writeT(writeThread, servFd);
 
 	readT.detach();
 	writeT.detach();
-	inputT.join();
 }
 
+void userInput(UiContext& context){
+	vector<uint8_t> message = getWindowInput(*context.inputWin, context);
+	ClientBroadMsg pkt = ClientBroadMsg(message);
+	
+	{
+		unique_lock lock(writeMtx);
+		pkt.serialize(writeBuf);
+	}
 
-void inputThread(UiContext& context){
-	vector<uint8_t> outBuf;
-	while(1){
-		
-		// Get input
-		int ch;
-
-		ch = wgetch(context.inputWin->textWin);
-
-		if (ch != ERR){
-			// If we get input
-			outBuf = processOneChar(*context.inputWin, context, ch, move(outBuf));
-		}
-
-    	unique_lock lock(queueMtx, try_to_lock);
-		// If we can't lock or its empty
-		if (!lock || renderQueue.empty()){
-			continue;
-		}
-
-
-		// We have lock and renderQueue got something
-		renderItem rItem = renderQueue.front();
-		renderQueue.pop();
-		lock.unlock();
-
-		// Render stuff here
-		processRender(rItem);
+	vector<chtype> formattedStr = formatMessage(message, clientInfo.username.c_str());
+	
+	{
+		unique_lock lock(msgMtx);
+		appendToWindow(*context.msgWin, formattedStr, 1);
 	}
 }
+
 
 void readThread(int servFd, UiContext& context){
 	// Sleep controlled by the read/write of the socket
@@ -117,6 +101,7 @@ void writeThread(int servFd){
 	}
 }
 
+
 int protocolParser(Packet* pkt, UiContext& context){
 	int exitCode = 0;
 	uint16_t opcode = pkt->opcode;
@@ -171,44 +156,59 @@ int protocolParser(Packet* pkt, UiContext& context){
 }
 
 void serverValidate(ServerValidate& pkt, UiContext& context){
+	// Check if got back good boy mark
 
+	// Get and update userconn list
 
 }
 
 void serverConnect(ServerConnect& pkt, UiContext& context){
-	//// Informs the user about the server connection
-	//string username(pkt.username);
-	//userConns.push_back(username);
+	// Informs the user about client disconnect
+	string username(pkt.username);
 
-	//// Sort in inverse alphabetical order (this is because how its printed)
-	//userConns.sort(greater<string>());
+	userConns.remove(username);
 
-	//{
-	//	lock_guard lock(context.ncursesMtx);
+	// Sort in inverse alphabetical order (this is because how its printed)
+	userConns.sort(greater<string>());
 
-	//	// Update the users window
-	//	updateUserWindow(*context.userWin);
-	//}
+	vector<chtype> formattedStr = formatDisMessage(pkt.username);
+	
+	{
+		unique_lock lock(msgMtx);
+		appendToWindow(*context.msgWin, formattedStr, 1);
+	}
+
+	// Update the users window
+	updateUserWindow(context);
+
 }
 
 void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context){
+	vector<chtype> formattedStr = formatPktMessage(pkt);
 
+	{
+		unique_lock lock(msgMtx);
+		appendToWindow(*context.msgWin, formattedStr, 1);
+	}
 }
 
 void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
-	//// Informs the user about client disconnect
-	//string username(pkt.username);
+	// Informs the user about client disconnect
+	string username(pkt.username);
 
-	//userConns.remove(username);
+	userConns.remove(username);
 
-	//// Sort in inverse alphabetical order (this is because how its printed)
-	//userConns.sort(greater<string>());
+	// Sort in inverse alphabetical order (this is because how its printed)
+	userConns.sort(greater<string>());
 
-	//{
-	//	lock_guard lock(context.ncursesMtx);
+	vector<chtype> formattedStr = formatDisMessage(pkt.username);
 
-	//	// Update the users window
-	//	updateUserWindow(*context.userWin);
-	//}
+	{
+		unique_lock lock(msgMtx);
+		appendToWindow(*context.msgWin, formattedStr, 1);
+	}
+
+	// Update the users window
+	updateUserWindow(context);
+
 }
-

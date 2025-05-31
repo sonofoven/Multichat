@@ -20,26 +20,18 @@
 #define HALIGN 2
 #define VALIGN 1
 
-enum renderCode {
-	MESSAGE,
-	USERUPDATE,
-	USERCONN,
-	USERDISC,
-	NUM_OF_CODES
-};
-
 using namespace std;
-extern list<string> userConns; // List of users connected to server
-extern mutex userMtx; // Protects userconn list
 
-extern mutex queueMtx; // Protects render queue
-extern mutex writeMtx; // Protects writeBuf
+extern list<string> userConns; // List of users connected to server
 
 	// Store usernames connected
 extern vector<uint8_t> readBuf;
 
+extern mutex writeMtx;
 extern condition_variable writeCv; // Activate the writeBuf
 extern vector<uint8_t> writeBuf;
+
+extern mutex msgMtx; // May need to add a queue but should be good 4 now
 
 
 struct Win{
@@ -67,23 +59,14 @@ struct UiContext{
 			  inputWin(i) {}
 };
 
-// Render information of each render query
-struct renderItem{
-	Win* target;
-	renderCode rcode;
-	vector<chtype> data;
-};
-
 // For storing connection information
 struct connInfo{
 	string addr;
 	uint16_t port;
-	string username;
+	string username = "Jimmy";
 };
 
 extern connInfo clientInfo;
-extern queue<renderItem> renderQueue;
-
 
 UiContext interfaceStart();
 
@@ -99,22 +82,21 @@ vector<uint8_t> processOneChar(Win& window, UiContext& context, int ch, vector<u
 
 vector<chtype> formatMessage(vector<uint8_t> message, const char* username);
 
+vector<chtype> formatPktMessage(ServerBroadMsg& pkt);
+vector<chtype> formatDisMessage(const char* username);
+vector<chtype> formatConMessage(const char* username);
+
+
+vector<uint8_t> getWindowInput(Win& window, UiContext& context);
 void appendToWindow(Win& window, vector<chtype> inputVec, int prescroll);
 
-void processRender(renderItem rItem);
-
-void updateUserWindow(renderItem rItem);
-void updateMessageWindow(renderItem rItem);
-void updateUserConn(renderItem rItem);
-void updateUserDisc(renderItem rItem);
-
-
-
-void inputThread(UiContext& context);
 void readThread(int servFd, UiContext& context);
 void writeThread(int servFd);
 
 int protocolParser(Packet* pkt, UiContext& context);
+void userInput(UiContext& context);
+
+void updateUserWindow(UiContext& context);
 
 void serverValidate(ServerValidate& pkt, UiContext& context);
 void serverConnect(ServerConnect& pkt, UiContext& context);
@@ -122,3 +104,4 @@ void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context);
 void serverDisconnect(ServerDisconnect& pkt, UiContext& context);
 
 inline char getBaseChar(chtype ch);
+void pushBackStr(string str, vector<chtype>& outBuf, attr_t attr);

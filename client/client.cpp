@@ -2,21 +2,37 @@
 
 list<string> userConns = {};
 vector<uint8_t> readBuf;
-vector<uint8_t> writeBuf;
-queue<renderItem> renderQueue;
 connInfo clientInfo;
 
-mutex userMtx;
-mutex queueMtx;
+vector<uint8_t> writeBuf;
 mutex writeMtx;
 condition_variable writeCv;
 
+mutex msgMtx;
 
 int main() {
 	registerPackets();
 
+	// Check if setting file exists
+
+	// if not -> form + generate one
+
+	// Attempt connection
+
+	// If no connection -> prompt reconnect
+
+	// If connection -> check validation
+
+	// If bad validation -> prompt message & kick out
+
 	UiContext uiContext = interfaceStart();
-	dealThreads(0, uiContext);
+
+	//Arbitrary thread #
+	dealThreads(24, uiContext);
+
+	while(1){
+		userInput(uiContext);
+	}
 
 
 	endwin();
