@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <functional>
 #include <thread>
+#include <ctime>
 #include "../protocol.hpp"
 
 #include <ncurses.h>

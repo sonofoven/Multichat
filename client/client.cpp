@@ -37,7 +37,6 @@ int main() {
 
 	endwin();
 
-	//dealThreads(0, uiContext);
 	/*
 	int sockFd = 0;
 	struct sockaddr_in serverAddr;

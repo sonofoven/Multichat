@@ -37,14 +37,8 @@ void pushLenBack(vector<uint8_t>& buffer, const char* message, size_t messageLen
 // Client Connection
 
 void ClientConnect::parse(const uint8_t* data) {
-	// This is done so the uint16_t is aligned (for portability)
-	uint16_t leLen;
-	memcpy(&leLen, data, sizeof(leLen));
-	length = le16toh(leLen);
-	
-	uint16_t leOp;
-	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
-	opcode = le16toh(leOp);
+	length = le16toh(*(uint16_t*)data);
+	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
 
 	username = (const char*)(data + headerLen);
 }
@@ -68,13 +62,8 @@ ClientConnect::ClientConnect(){}
 // Client Broadcast Message
 
 void ClientBroadMsg::parse(const uint8_t* data) {
-	uint16_t leLen;
-	memcpy(&leLen, data, sizeof(leLen));
-	length = le16toh(leLen);
-	
-	uint16_t leOp;
-	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
-	opcode = le16toh(leOp);
+	length = le16toh(*(uint16_t*)data);
+	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
 	
 	msg = (const char*)(data + headerLen);
 	msgLen = length - headerLen;
@@ -101,13 +90,8 @@ ClientBroadMsg::ClientBroadMsg(){}
 // Client to Server message (for debug/logging)
 
 void ClientServMsg::parse(const uint8_t* data) {
-	uint16_t leLen;
-	memcpy(&leLen, data, sizeof(leLen));
-	length = le16toh(leLen);
-	
-	uint16_t leOp;
-	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
-	opcode = le16toh(leOp);
+	length = le16toh(*(uint16_t*)data);
+	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
 
 	msg = (const char*)(data + headerLen);
 	msgLen = length - headerLen;
@@ -134,13 +118,8 @@ ClientServMsg::ClientServMsg(){}
 // Client Disconnect
 
 void ClientDisconnect::parse(const uint8_t* data) {
-	uint16_t leLen;
-	memcpy(&leLen, data, sizeof(leLen));
-	length = le16toh(leLen);
-	
-	uint16_t leOp;
-	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
-	opcode = le16toh(leOp);
+	length = le16toh(*(uint16_t*)data);
+	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
 }
 
 void ClientDisconnect::serialize(vector<uint8_t>& buffer) {
@@ -214,20 +193,17 @@ ServerValidate::ServerValidate(){}
 // Server Connection
 
 void ServerConnect::parse(const uint8_t* data) {
-	uint16_t leLen;
-	memcpy(&leLen, data, sizeof(leLen));
-	length = le16toh(leLen);
-	
-	uint16_t leOp;
-	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
-	opcode = le16toh(leOp);
+	length = le16toh(*(uint16_t*)data);
+	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
+	timestamp = le64toh(*(time_t*)(data + headerLen));
 
-	username = (const char*)(data + headerLen);
+	username = (const char*)(data + headerLen + sizeof(time_t));
 }
 
 void ServerConnect::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
+	pushBack(buffer, htole64(timestamp));
 	pushUsernameBack(buffer, username);
 }
 
@@ -236,6 +212,7 @@ ServerConnect::ServerConnect(const char* usr){
 	opcode = SMG_CONNECT;
 
 	username = (const char*)usr;
+	time(&timestamp);
 }
 
 ServerConnect::ServerConnect(){}
@@ -243,27 +220,22 @@ ServerConnect::ServerConnect(){}
 // Server Broadcast Message
 
 void ServerBroadMsg::parse(const uint8_t* data) {
+	length = le16toh(*(uint16_t*)data);
+	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
+	timestamp = le64toh(*(time_t*)(data + headerLen));
 
-	uint16_t leLen;
-	memcpy(&leLen, data, sizeof(leLen));
-	length = le16toh(leLen);
-	
-	uint16_t leOp;
-	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
-	opcode = le16toh(leOp);
-
-	username = (const char*)(data + headerLen);
+	username = (const char*)(data + headerLen + sizeof(time_t));
 	size_t userLen = strlen(username) + 1;
 
 	msg = (const char*)(username + userLen);
-	msgLen = length - headerLen - userLen;
+	msgLen = length - headerLen - userLen - sizeof(time_t);
 }
 
 void ServerBroadMsg::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
+	pushBack(buffer, htole64(timestamp));
 	pushUsernameBack(buffer, username);
-
 	pushLenBack(buffer, msg, msgLen);
 }
 
@@ -275,6 +247,7 @@ ServerBroadMsg::ServerBroadMsg(const char* usr, size_t messageLen, const char* m
 	
 	msgLen = messageLen;
 	msg = message;
+	time(&timestamp);
 }
 
 ServerBroadMsg::ServerBroadMsg(){}
@@ -282,20 +255,17 @@ ServerBroadMsg::ServerBroadMsg(){}
 // Server Disconnect
 
 void ServerDisconnect::parse(const uint8_t* data) {
-	uint16_t leLen;
-	memcpy(&leLen, data, sizeof(leLen));
-	length = le16toh(leLen);
-	
-	uint16_t leOp;
-	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
-	opcode = le16toh(leOp);
+	length = le16toh(*(uint16_t*)data);
+	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
+	timestamp = le64toh(*(time_t*)(data + headerLen));
 
-	username = (const char*)(data + headerLen);
+	username = (const char*)(data + headerLen + sizeof(time_t));
 }
 
 void ServerDisconnect::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
+	pushBack(buffer, htole64(timestamp));
 	pushUsernameBack(buffer, username);
 }
 
@@ -304,6 +274,7 @@ ServerDisconnect::ServerDisconnect(const char* usr){
 	opcode = SMG_DISCONNECT;
 
 	username = usr;
+	time(&timestamp);
 }
 
 ServerDisconnect::ServerDisconnect(){}

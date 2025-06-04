@@ -106,8 +106,8 @@ public:
 
 class ServerConnect : public Packet {
 public:
+	time_t timestamp;
     const char* username;
-	time_t time; // 
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
@@ -118,10 +118,10 @@ public:
 
 class ServerBroadMsg : public Packet {
 public:
+	time_t timestamp;
     const char* username;
     const char* msg;
 	size_t msgLen;
-	time_t time; // 
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
@@ -132,8 +132,8 @@ public:
 
 class ServerDisconnect : public Packet {
 public:
+	time_t timestamp;
     const char* username;
-	time_t time; // 
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
