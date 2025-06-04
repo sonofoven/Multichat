@@ -2,6 +2,10 @@
 #include <cstring>
 #include <cstddef>
 #include <vector>
+#include <ctime>
+#include <string>
+#include <list>
+#include <unordered_map>
 
 #define PORT    8080
 #define CHUNK   4096
@@ -9,6 +13,9 @@
 #define NAMELEN 16
 
 using std::vector;
+using std::unordered_map;
+using std::string;
+using std::list;
 
 enum opcode {
 	CMG_CONNECT, // Connect and auth
@@ -16,7 +23,7 @@ enum opcode {
 	CMG_SERVMSG, // Message directly to the server
 	CMG_DISCONNECT, // Disconnect
 	
-	SMG_VALIDATE, // Message back to client saying they're good
+	SMG_VALIDATE, // Message back to client saying they good, give the whole user list
 	SMG_CONNECT, // Message to all other clients client has connected
 	SMG_BROADMSG, // Message from one client to every client
 	SMG_DISCONNECT, // Let other clients know client disconnected
@@ -88,17 +95,19 @@ public:
 class ServerValidate : public Packet {
 public:
     bool able;
+	list<string> userList;
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
 	ServerValidate();
-	ServerValidate(bool a);
+	ServerValidate(bool a, unordered_map<string,int> userMap);
 };
 
 class ServerConnect : public Packet {
 public:
     const char* username;
+	time_t time; // 
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
@@ -112,6 +121,7 @@ public:
     const char* username;
     const char* msg;
 	size_t msgLen;
+	time_t time; // 
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
@@ -123,6 +133,7 @@ public:
 class ServerDisconnect : public Packet {
 public:
     const char* username;
+	time_t time; // 
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;

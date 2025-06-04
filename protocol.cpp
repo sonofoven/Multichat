@@ -6,6 +6,7 @@
 Packet::~Packet() = default;
 template <typename T>
 
+
 //// Helper functions for buffer transfers ////
 
 void pushBack(vector<uint8_t>& buffer, T additive){
@@ -20,15 +21,19 @@ void pushUsernameBack(vector<uint8_t>& buffer, const char* username){
 	buffer.insert(buffer.end(), usrPtr, usrPtr + strlen(username) + 1);
 }
 
+void pushListBack(vector<uint8_t>& buffer, list<string>& userList){
+	for (auto i : userList){
+		pushUsernameBack(buffer, i.c_str());
+	}
+}
+
 void pushLenBack(vector<uint8_t>& buffer, const char* message, size_t messageLength){
 	const uint8_t* msgPtr = (const uint8_t*)message;
 	
 	buffer.insert(buffer.end(), msgPtr, msgPtr + messageLength);
 }
 
-
 //// Client -> Server ////
-
 // Client Connection
 
 void ClientConnect::parse(const uint8_t* data) {
@@ -154,28 +159,54 @@ ClientDisconnect::ClientDisconnect(){
 // Server Validation
 
 void ServerValidate::parse(const uint8_t* data){
-	uint16_t leLen;
-	memcpy(&leLen, data, sizeof(leLen));
-	length = le16toh(leLen);
-	
-	uint16_t leOp;
-	memcpy(&leOp, data + sizeof(leLen), sizeof(leOp));
-	opcode = le16toh(leOp);
+	length = le16toh(*(uint16_t*)data);
+	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
 
-	able = *(bool*)(data + sizeof(length) + sizeof(opcode));
+	able = *(bool*)(data + headerLen);
+
+	if (able == true){
+		// Set the start point
+		char* curPtr = (char*)data + headerLen + sizeof(able);
+		char* endLoc = (char*)data + length;
+		void* distChk;
+
+		while (curPtr < endLoc){ // While we are within the packet
+
+			// Check to make sure that next null is within the end
+			distChk = memchr(curPtr, 0, endLoc - curPtr);
+
+			if (distChk == nullptr){ // If next null is past end
+				break;
+			}
+
+			string newStr(curPtr);
+			userList.push_back(newStr);
+
+			curPtr = (char*)distChk + 1; 
+		}
+	}
 }
 
 void ServerValidate::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
 	pushBack(buffer, able);
+	if (able == true){
+		pushListBack(buffer, userList);
+	}
 }
 
-ServerValidate::ServerValidate(bool a){
+ServerValidate::ServerValidate(bool a, unordered_map<string, int> userMap){
 	length = headerLen + sizeof(a);
 	opcode = SMG_VALIDATE;
 
 	able = a;
+	if (able == true){ // Only add the map if the conn is valid
+		list<string> userList;
+		for (auto i : userMap){
+			userList.push_back(i.first);
+		}
+	}
 }
 
 ServerValidate::ServerValidate(){}

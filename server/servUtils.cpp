@@ -8,7 +8,7 @@ void clientConnect(ClientConnect& pkt, clientConn& sender){
 		// Rejection
 
 		// Create the rejection response to client
-		ServerValidate response = ServerValidate(false);
+		ServerValidate response = ServerValidate(false, userMap);
 
 		// Send rejection response to client
 		response.serialize(sender.writeBuf);
@@ -27,7 +27,7 @@ void clientConnect(ClientConnect& pkt, clientConn& sender){
 		sender.username = username;
 
 		// Create the accept response to client
-		ServerValidate response = ServerValidate(true);
+		ServerValidate response = ServerValidate(true, userMap);
 
 		// Send server val with true val to sender
 		response.serialize(sender.writeBuf);
@@ -74,19 +74,19 @@ void clientDisconnect(ClientDisconnect& pkt, clientConn& sender) {
 }
 
 clientConn* lockFindCli(int fd){
-		clientConn* clientPtr = NULL;
+	clientConn* clientPtr = NULL;
 
-		// Lock the map to look for client
-		lock_guard lock(clientMapMtx);
-		auto it = clientMap.find(fd);
-		if (it == clientMap.end()){
-			// client not found
-			return NULL;
-		}
+	// Lock the map to look for client
+	lock_guard lock(clientMapMtx);
+	auto it = clientMap.find(fd);
+	if (it == clientMap.end()){
+		// client not found
+		return NULL;
+	}
 
-		clientPtr = &it->second;
+	clientPtr = &it->second;
 
-		return clientPtr;
+	return clientPtr;
 }
 
 string validateUser(const char* username){
@@ -132,8 +132,10 @@ void killClient(int fd){
 
 	cout << "Killing client: " << fd << endl;
 
-	// Deregister the username
+	// Find client
 	clientConn* clientPtr = lockFindCli(fd);
+
+	// Deregister the username
 	killUser(clientPtr->username);
 
 	// Wipe the socket
