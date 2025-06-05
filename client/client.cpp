@@ -17,6 +17,7 @@ int main() {
 
 	// if not -> form + generate one
 
+	
 	// Attempt connection
 
 	// If no connection -> prompt reconnect
@@ -24,18 +25,19 @@ int main() {
 	// If connection -> check validation
 
 	// If bad validation -> prompt message & kick out
+	int sockFd = startUp();
 
-	UiContext uiContext = interfaceStart();
+	//UiContext uiContext = interfaceStart();
 
-	//Arbitrary thread #
-	dealThreads(24, uiContext);
+	////Arbitrary thread #
+	//dealThreads(24, uiContext);
 
-	while(1){
-		userInput(uiContext);
-	}
+	//while(1){
+	//	userInput(uiContext);
+	//}
 
 
-	endwin();
+	//endwin();
 
 	/*
 	int sockFd = 0;

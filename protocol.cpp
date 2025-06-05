@@ -310,9 +310,7 @@ void registerPackets() {
 
 
 Packet* instancePacketFromData(const uint8_t* data){
-	uint16_t leOp;
-	memcpy(&leOp, data + sizeof(uint16_t), sizeof(leOp));
-	uint16_t opcode = le16toh(leOp);
+	uint16_t opcode = le16toh(*(uint16_t*)(data + sizeof(uint16_t)));
 
 	if (opcode >= NUM_OF_OPCODES || packetFactories[opcode] == nullptr){
 		return nullptr;
@@ -330,9 +328,7 @@ Packet* instancePacketFromData(const uint8_t* data){
 }
 
 size_t parsePacketLen(uint8_t* data){
-	uint16_t leLen;
-	memcpy(&leLen, data, sizeof(leLen));
-	size_t length = le16toh(leLen);
+	size_t length = le16toh(*(uint16_t*)data);
 
 	return length;
 }

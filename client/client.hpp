@@ -62,8 +62,8 @@ struct UiContext{
 
 // For storing connection information
 struct connInfo{
-	string addr;
-	uint16_t port;
+	string addr = "127.0.0.1";
+	uint16_t port = 8080;
 	string username = "Jimmy";
 };
 
@@ -106,3 +106,14 @@ void serverDisconnect(ServerDisconnect& pkt, UiContext& context);
 
 inline char getBaseChar(chtype ch);
 void pushBackStr(string str, vector<chtype>& outBuf, attr_t attr);
+
+int networkStart();
+	// Returns socket # if good
+
+int startUp();
+	// Inits the client and does the handshake with the server
+
+void sendOneConn();
+
+void recvOneVal();
+

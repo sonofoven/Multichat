@@ -200,6 +200,7 @@ int handleRead(int epollFd, clientConn& client){
 			// Create a new packet
 			Packet* pkt = instancePacketFromData(readBuf.data());
 
+			// Parse it into the right packet type and handle it
 			protocolParser(pkt, client);
 
 			// If the buffer is empty and we are adding to it

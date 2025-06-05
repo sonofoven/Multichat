@@ -18,6 +18,7 @@ void userInput(UiContext& context){
 		unique_lock lock(writeMtx);
 		pkt.serialize(writeBuf);
 	}
+	writeCv.notify_one();
 
 	vector<chtype> formattedStr = formatMessage(message, clientInfo.username.c_str());
 	
@@ -25,6 +26,68 @@ void userInput(UiContext& context){
 		unique_lock lock(msgMtx);
 		appendToWindow(*context.msgWin, formattedStr, 1);
 	}
+}
+
+int startUp(){
+	int sockfd = networkStart();
+	if(sockfd < 0){
+		exit(0);
+	}
+
+	// send validation
+	sendOneConn();
+
+	// wait for validation
+	recvOneVal();
+
+	// don't forget to wipe the buffers clean
+
+	return sockfd;
+}
+
+int networkStart(){
+	int sockFd = 0;
+	struct sockaddr_in serverAddr;
+
+	// Create socket
+	sockFd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockFd < 0) {
+		cerr << "Socket failed" << endl;
+		exit(1);
+	}
+
+	cout << "Socket created" << endl;
+
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_port = htons(clientInfo.port);
+
+
+	// Convert IPv4 and IPv6 addresses from text to binary
+	if (inet_pton(AF_INET, clientInfo.addr.c_str(), &serverAddr.sin_addr) <= 0) {
+		cerr << "Invalid address/ Address not supported" << endl;
+		return -1;
+	}
+
+	cout << "Options set" << endl;
+
+	// Connect to server
+	if (connect(sockFd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
+		perror("Connection failed");
+		exit(1);
+	} 
+
+	cout << "Connected to server" << endl; 
+
+	return sockFd;
+}
+
+
+void sendOneConn(){
+
+}
+
+void recvOneVal(){
+
 }
 
 
@@ -108,7 +171,7 @@ int protocolParser(Packet* pkt, UiContext& context){
 
 	switch(opcode){
 		case SMG_VALIDATE: {
-			cout << "OPCODE: VALIDATION" << endl;
+			cerr << "OPCODE: VALIDATION" << endl;
 
 			ServerValidate* serverPacket = static_cast<ServerValidate*>(pkt);
 
@@ -117,7 +180,7 @@ int protocolParser(Packet* pkt, UiContext& context){
 		}
 
 		case SMG_CONNECT: {
-			cout << "OPCODE: CONNECTION" << endl;
+			cerr << "OPCODE: CONNECTION" << endl;
 
 			ServerConnect* serverPacket = static_cast<ServerConnect*>(pkt);
 
@@ -127,7 +190,7 @@ int protocolParser(Packet* pkt, UiContext& context){
 		}
 
 		case SMG_BROADMSG: {
-			cout << "OPCODE: BROAD MESSAGE" << endl;
+			cerr << "OPCODE: BROAD MESSAGE" << endl;
 
 			ServerBroadMsg* serverPacket = static_cast<ServerBroadMsg*>(pkt);
 
@@ -138,7 +201,7 @@ int protocolParser(Packet* pkt, UiContext& context){
 
 
 		case SMG_DISCONNECT: {
-			cout << "OPCODE: DISCONNECTION" << endl;
+			cerr << "OPCODE: DISCONNECTION" << endl;
 
 			ServerDisconnect* serverPacket = static_cast<ServerDisconnect*>(pkt);
 
@@ -148,7 +211,7 @@ int protocolParser(Packet* pkt, UiContext& context){
 		}
 
 		default: {
-			cout << "Unknown opcode" << endl;
+			cerr << "Unknown opcode" << endl;
 			exitCode = -1;
 		}
 	}
@@ -156,10 +219,20 @@ int protocolParser(Packet* pkt, UiContext& context){
 }
 
 void serverValidate(ServerValidate& pkt, UiContext& context){
+	// YOU SHOULD NEVER GET THIS WHILE RUNNING
+	// You can use this in the future to occasionally send out sync's
+
 	// Check if got back good boy mark
+	if (!pkt.able){
+		// Push back to set up form here
+		exit(0);
+	}
 
 	// Get and update userconn list
 
+	// This coult be an issue with the move
+	userConns = move(pkt.userList);
+	updateUserWindow(context);
 }
 
 void serverConnect(ServerConnect& pkt, UiContext& context){
