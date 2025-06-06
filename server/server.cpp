@@ -50,7 +50,7 @@ int main(){
 
 			// Client disconnected/connection drop
 			if (event & (EPOLLHUP | EPOLLERR)){
-				killClient(fd);
+				dropClient(fd);
 				// ADD SOMETHING HERE THAT INFORMS ALL CLIENTS 
 				continue;
 			}
@@ -81,7 +81,7 @@ int main(){
 
 			if (fatal || clientPtr->markToDie){
 				// ADD SOMETHING HERE THAT INFORMS ALL CLIENTS 
-				killClient(fd);
+				dropClient(fd);
 			}
 		}
 	}

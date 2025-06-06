@@ -45,6 +45,16 @@ void clientConnect(ClientConnect& pkt, clientConn& sender){
 
 void clientBroadMsg(ClientBroadMsg& pkt, clientConn& sender){
 	// Send server broad msg to every other client
+
+
+	// If the client is trying to impersonate someone or 
+	// try to send a message w/out connecting first kill them
+
+	if(!valConnMsg(sender.username, sender)){
+		cout << "Sabatoure detected" << endl;
+		sender.markToDie = true;
+		return;
+	}
 	
 	// Construct the packet
 	ServerBroadMsg responseAll = ServerBroadMsg(sender.username.c_str(), pkt.msgLen, pkt.msg);
@@ -61,6 +71,7 @@ void clientServerMessage(ClientServMsg& pkt, clientConn& sender){
 }
 
 void clientDisconnect(ClientDisconnect& pkt, clientConn& sender) {
+	// You pretty much should never recieve this, actually im gonna remove this
 	// Announce to everyone but sender that this client has left
 
 	// Set the client to be culled
@@ -73,15 +84,35 @@ void clientDisconnect(ClientDisconnect& pkt, clientConn& sender) {
 	serializeToAllButSender(responseAll, sender);
 }
 
+void dropClient(int fd){
+	// Find client conn from fd
+	clientConn* cliPtr = lockFindCli(fd);
+
+	if (!cliPtr){
+		killClient(fd);
+	}
+	
+	// If client registered w/ username
+	if (usernameExists(cliPtr->username.c_str()) != ""){
+		// Create disconnect packet
+		ServerDisconnect responseAll = ServerDisconnect(cliPtr->username.c_str());
+		// Serialize to all
+		serializeToAllButSender(responseAll, *cliPtr);
+	}
+
+	// Kill client
+	killClient(fd);
+}
+
 clientConn* lockFindCli(int fd){
-	clientConn* clientPtr = NULL;
+	clientConn* clientPtr = nullptr;
 
 	// Lock the map to look for client
 	lock_guard lock(clientMapMtx);
 	auto it = clientMap.find(fd);
 	if (it == clientMap.end()){
 		// client not found
-		return NULL;
+		return nullptr;
 	}
 
 	clientPtr = &it->second;
@@ -101,6 +132,7 @@ string validateUser(const char* username){
 	return usernameExists(username);
 }
 
+
 string usernameExists(const char* username){
 	string userStr = username;
 	auto it = userMap.find(userStr);
@@ -111,6 +143,19 @@ string usernameExists(const char* username){
 
 	// username taken
 	return "";
+}
+
+bool valConnMsg(string username, clientConn& sender){
+
+	// Rudimentary check to prevent impersonation
+	auto it = userMap.find(username);
+	if (it == userMap.end()){
+		// username not registered
+		return false;
+	}
+
+	// check that username given is matching the one registered
+	return it->second == sender.fd;
 }
 
 void serializeToAllButSender(Packet& pkt, clientConn& sender){
@@ -134,6 +179,11 @@ void killClient(int fd){
 
 	// Find client
 	clientConn* clientPtr = lockFindCli(fd);
+
+	if (!clientPtr){
+		close(fd);
+		return;
+	}
 
 	// Deregister the username
 	killUser(clientPtr->username);

@@ -102,6 +102,9 @@ void clientServerMessage(ClientServMsg& pkt, clientConn& sender);
 
 void clientDisconnect(ClientDisconnect& pkt, clientConn& sender);
 
+void dropClient(int fd);
+	// Informs other clients of drop if registered
+	// kills otherwise
 
 clientConn* lockFindCli(int fd);
 	// Lock down the map
@@ -112,5 +115,7 @@ string usernameExists(const char* username);
 	// Null if the username already exists
 	// Stringifies cstring if it doesn't
 	// This is b/c we're going use it
+
+bool valConnMsg(string username, clientConn& sender);
 
 void serializeToAllButSender(Packet& pkt, clientConn& sender);
