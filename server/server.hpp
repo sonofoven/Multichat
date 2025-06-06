@@ -102,6 +102,7 @@ void clientServerMessage(ClientServMsg& pkt, clientConn& sender);
 
 void clientDisconnect(ClientDisconnect& pkt, clientConn& sender);
 
+
 void dropClient(int fd);
 	// Informs other clients of drop if registered
 	// kills otherwise

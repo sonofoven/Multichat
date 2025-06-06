@@ -29,20 +29,21 @@ void userInput(UiContext& context){
 }
 
 int startUp(){
-	int sockfd = networkStart();
-	if(sockfd < 0){
-		exit(0);
+	int servFd = networkStart();
+	if(servFd < 0){
+		// Can't connect
+		return -1;
 	}
 
 	// send validation
-	sendOneConn();
+	sendOneConn(servFd);
 
 	// wait for validation
-	recvOneVal();
+	if (!recvOneVal(servFd)){
+		return -1;
+	}
 
-	// don't forget to wipe the buffers clean
-
-	return sockfd;
+	return servFd;
 }
 
 int networkStart(){
@@ -53,7 +54,7 @@ int networkStart(){
 	sockFd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockFd < 0) {
 		cerr << "Socket failed" << endl;
-		exit(1);
+		return -1;
 	}
 
 	cout << "Socket created" << endl;
@@ -73,7 +74,7 @@ int networkStart(){
 	// Connect to server
 	if (connect(sockFd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
 		perror("Connection failed");
-		exit(1);
+		return -1;
 	} 
 
 	cout << "Connected to server" << endl; 
@@ -82,12 +83,66 @@ int networkStart(){
 }
 
 
-void sendOneConn(){
+void sendOneConn(int servFd){
+	ClientConnect pkt = ClientConnect(clientInfo.username.c_str());
+	pkt.serialize(writeBuf);
 
+	// Write to fd
+	ssize_t total = writeBuf.size();
+	ssize_t sent = 0;
+	while (total > sent){
+		ssize_t n = write(servFd, writeBuf.data() + sent, total - sent);
+
+		if (n < 0){
+			// Write err
+			cerr << "Error writing" << endl;
+			break;
+		}
+		sent += n;
+	}
+
+	writeBuf.clear();
 }
 
-void recvOneVal(){
 
+bool recvOneVal(int servFd){
+	bool retVal;
+	size_t fullPacketLen;
+
+	while(1){
+		uint8_t buf[CHUNK];
+		ssize_t n;
+		while ((n = read(servFd, buf, CHUNK)) > 0){
+			// Insert onto end of read buffer
+			readBuf.insert(readBuf.end(), buf, buf + n);
+		}
+
+		// ERROR handling later
+		if (n < 0){
+			continue;
+		}
+
+
+		if (readBuf.size() < Packet::headerLen){
+			continue;
+		}
+		
+		fullPacketLen = parsePacketLen(readBuf.data());
+
+		// Wait for full packet
+		if (readBuf.size() >= fullPacketLen){
+			Packet* pkt = instancePacketFromData(readBuf.data());
+
+			ServerValidate* serverVal = static_cast<ServerValidate*>(pkt);
+
+			retVal = serverVal->able;
+
+			// Remove the packet from the read queue
+			readBuf.clear();
+
+			return retVal;
+		}
+	}
 }
 
 
@@ -128,8 +183,6 @@ void readThread(int servFd, UiContext& context){
 			// Remove the packet from the read queue
 			readBuf.erase(readBuf.begin(), readBuf.begin() + fullPacketLen);
 
-		} else {
-			continue;
 		}
 	}
 }

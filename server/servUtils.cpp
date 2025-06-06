@@ -25,6 +25,7 @@ void clientConnect(ClientConnect& pkt, clientConn& sender){
 
 		// Add the username to the sender's clientConn
 		sender.username = username;
+		cout << "Adding username: " << username << endl;
 
 		// Create the accept response to client
 		ServerValidate response = ServerValidate(true, userMap);
@@ -84,6 +85,8 @@ void clientDisconnect(ClientDisconnect& pkt, clientConn& sender) {
 	serializeToAllButSender(responseAll, sender);
 }
 
+
+
 void dropClient(int fd){
 	// Find client conn from fd
 	clientConn* cliPtr = lockFindCli(fd);
@@ -94,6 +97,10 @@ void dropClient(int fd){
 	
 	// If client registered w/ username
 	if (usernameExists(cliPtr->username.c_str()) != ""){
+
+		// Inform log
+		cout << "Dropping user: " << cliPtr->username << endl;
+
 		// Create disconnect packet
 		ServerDisconnect responseAll = ServerDisconnect(cliPtr->username.c_str());
 		// Serialize to all

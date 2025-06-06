@@ -51,7 +51,6 @@ int main(){
 			// Client disconnected/connection drop
 			if (event & (EPOLLHUP | EPOLLERR)){
 				dropClient(fd);
-				// ADD SOMETHING HERE THAT INFORMS ALL CLIENTS 
 				continue;
 			}
 
@@ -67,20 +66,21 @@ int main(){
 			if (event & EPOLLIN && !fatal && !clientPtr->markToDie){
 				// We are able to read
 				// Then try to immediately write
-				if(!(handleRead(epollFd, *clientPtr) && handleWrite(epollFd, *clientPtr))){
+				if ((!handleRead(epollFd, *clientPtr) && !handleWrite(epollFd, *clientPtr))){
+					cout << "Fatal read" << endl;
 					fatal = true;
 				}
 			}
 
 			if (event & EPOLLOUT && !fatal && !clientPtr->markToDie){
 				// Finish writing what was started
-				if(!(handleWrite(epollFd, *clientPtr))){
+				if (!handleWrite(epollFd, *clientPtr)){
+					cout << "Fatal write" << endl;
 					fatal = true;
 				}
 			}
 
 			if (fatal || clientPtr->markToDie){
-				// ADD SOMETHING HERE THAT INFORMS ALL CLIENTS 
 				dropClient(fd);
 			}
 		}
@@ -184,11 +184,13 @@ int handleRead(int epollFd, clientConn& client){
 	size_t fullPacketLen;
 	// Do all the reading here
 	if(drainReadPipe(client.fd, client) != 0){
+		cout << "Read fd fail" << endl;
 		return -1;
 	}
 
+	// If we don't even have a full header
 	while(1){
-		// If we don't even have a full header
+
 		if (readBuf.size() < headerSize){
 			return 0;
 		}
@@ -244,6 +246,7 @@ int handleWrite(int epollFd, clientConn& client){
 		}
 
 		// Do client deregistration here
+		cout << "BAD" << endl;
 		perror("Writing");
 		return -1;
 	}

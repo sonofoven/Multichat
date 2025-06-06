@@ -113,7 +113,7 @@ int networkStart();
 int startUp();
 	// Inits the client and does the handshake with the server
 
-void sendOneConn();
+void sendOneConn(int servFd);
 
-void recvOneVal();
+bool recvOneVal(int servFd);
 
