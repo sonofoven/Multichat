@@ -3,8 +3,8 @@
 // The multiple threads
 void dealThreads(int servFd, UiContext& context){
 
-    thread readT(readThread, servFd, ref(context));
-    thread writeT(writeThread, servFd);
+	thread readT(readThread, servFd, ref(context));
+	thread writeT(writeThread, servFd);
 
 	readT.detach();
 	writeT.detach();
@@ -148,7 +148,6 @@ bool recvOneVal(int servFd){
 
 	return retVal;
 }
-
 
 void readThread(int servFd, UiContext& context){
 	// Sleep controlled by the read/write of the socket
