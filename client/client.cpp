@@ -25,30 +25,26 @@ int main() {
 	// If connection -> check validation
 
 	// If bad validation -> prompt message & kick out
-	int sockFd = startUp();
+	int servFd = startUp();
 
-	if (sockFd < 0){
+	if (servFd < 0){
 		cout << "Connection Not Possible" << endl;
 		exit(1);
 	}
 
 	cout << "Connection Validated" << endl;
 
-	while(1){
+	UiContext uiContext = interfaceStart();
 
+	//Arbitrary thread #
+	dealThreads(servFd, uiContext);
+
+	while(1){
+		userInput(uiContext);
 	}
 
-	//UiContext uiContext = interfaceStart();
 
-	////Arbitrary thread #
-	//dealThreads(24, uiContext);
-
-	//while(1){
-	//	userInput(uiContext);
-	//}
-
-
-	//endwin();
+	endwin();
 
 	/*
 	int sockFd = 0;
