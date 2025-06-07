@@ -180,6 +180,7 @@ void serializeToAllButSender(Packet& pkt, clientConn& sender){
 	}
 }
 
+
 void killClient(int fd){
 
 	cout << "Killing client: " << fd << endl;

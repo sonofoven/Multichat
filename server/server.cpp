@@ -6,15 +6,17 @@ mutex clientMapMtx;
 unordered_map<string, int> userMap = {};
 
 int main(){
-	signal(SIGINT, killServer); 
+
+	//signal(SIGINT, killServer); 
 	registerPackets();
+
+	signal(SIGINT, killServer);
 
 	int listenFd;
 	sockaddr_in address;
 
 	int epollFd = -1;
 	epoll_event events[MAX_EVENTS];
-	int eventCount;
 
 
 	// Create a listening socket
@@ -35,13 +37,20 @@ int main(){
 
 	while (1){
 		// Get # of events captured instantaneously
-		eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
 
-		// If there is an error and it is NOT an interrupt
-		if (eventCount == -1 && !(errno == EINTR)){
-			cerr << "Epoll Wait failed: " << strerror(errno) << endl;
-			killServer(errno);
-		}
+        int eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
+        if (eventCount == -1) {
+            if (errno == EINTR) {
+                // our handler set g_quit ⇒ break out
+                break;
+            } else if (errno != EINTR) {
+				cerr << "epoll wait" << endl;
+                break;
+            }
+            // if EINTR but gquit==0
+            continue;
+        }
+
 
 		for (int i = 0; i < eventCount; i++){
 
@@ -66,7 +75,7 @@ int main(){
 			if (event & EPOLLIN && !fatal && !clientPtr->markToDie){
 				// We are able to read
 				// Then try to immediately write
-				if ((!handleRead(epollFd, *clientPtr) && !handleWrite(epollFd, *clientPtr))){
+				if (((handleRead(epollFd, *clientPtr) < 0) || (handleWrite(epollFd, *clientPtr) < 0))){
 					cout << "Fatal read" << endl;
 					fatal = true;
 				}
@@ -74,7 +83,7 @@ int main(){
 
 			if (event & EPOLLOUT && !fatal && !clientPtr->markToDie){
 				// Finish writing what was started
-				if (!handleWrite(epollFd, *clientPtr)){
+				if (handleWrite(epollFd, *clientPtr) < 0){
 					cout << "Fatal write" << endl;
 					fatal = true;
 				}
@@ -86,8 +95,8 @@ int main(){
 		}
 	}
 
-	// Close socket
 	close(listenFd);
+	killServer(0);
 	return 0;
 }
 
@@ -138,7 +147,7 @@ void addFdToEpoll(int epollFd, int fd){
 
 	// Set event to check input and set as edge triggered
 	epoll_event event;
-	event.events = EPOLLIN | EPOLLET;
+	event.events = EPOLLIN | EPOLLET | EPOLLHUP | EPOLLERR;
 	event.data.fd = fd;
 
 	// Add fd to epoll
@@ -192,12 +201,14 @@ int handleRead(int epollFd, clientConn& client){
 	while(1){
 
 		if (readBuf.size() < headerSize){
+			cout << "Not a full header" << endl;
 			return 0;
 		}
 		
 		fullPacketLen = parsePacketLen(readBuf.data());
 
 		if (readBuf.size() >= fullPacketLen){
+			bool wasEmpty = writeBuf.empty();
 
 			// Create a new packet
 			Packet* pkt = instancePacketFromData(readBuf.data());
@@ -207,19 +218,22 @@ int handleRead(int epollFd, clientConn& client){
 
 			// If the buffer is empty and we are adding to it
 			// Only arm if writebuf was empty before we insert
-			if (writeBuf.empty() && !(client.epollMask & EPOLLOUT)){
+			if (wasEmpty && !(client.epollMask & EPOLLOUT)){
 				// mod epoll fd to watch for open writes
 				modFdEpoll(epollFd, client.fd, EPOLLIN | EPOLLOUT | EPOLLET);
+				cout << "Fresh buffer append" << endl;
 			}
 
 			// Remove the packet from the read queue
 			readBuf.erase(readBuf.begin(), readBuf.begin() + fullPacketLen);
+			cout << "Sent full packet" << endl;
+			return 0;
 
 		} else {
+			cout << "No packet sent" << endl;
 			return 0;
 		}
 	}
-	return 0;
 }
 
 int handleWrite(int epollFd, clientConn& client){
@@ -242,11 +256,12 @@ int handleWrite(int epollFd, clientConn& client){
 
 		// Can't write anymore
 		if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)){
+			cout << "Can't write no more" << endl;
 			return 0;
 		}
 
 		// Do client deregistration here
-		cout << "BAD" << endl;
+		cout << "Error in write" << endl;
 		perror("Writing");
 		return -1;
 	}
@@ -255,6 +270,7 @@ int handleWrite(int epollFd, clientConn& client){
 	if (writeBuf.empty() && (client.epollMask & EPOLLOUT)){
 		modFdEpoll(epollFd, client.fd, EPOLLIN | EPOLLET);
 	}
+	cout << "Unset write mod" << endl;
 	return 0;
 }
 
@@ -270,7 +286,10 @@ int drainReadPipe(int fd, clientConn& client){
 	}
 
 	// Can't read any more
-	if (n < 0){
+	if (n == 0){
+		// Conn closed
+		return -1;
+	} else if (n < 0){
 		if (errno == EAGAIN || errno == EWOULDBLOCK){
 			return 0;
 		} else {

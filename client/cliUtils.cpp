@@ -106,43 +106,47 @@ void sendOneConn(int servFd){
 
 
 bool recvOneVal(int servFd){
-	bool retVal;
-	size_t fullPacketLen;
+	size_t fullLen;
 
-	while(1){
-		uint8_t buf[CHUNK];
-		ssize_t n;
-		while ((n = read(servFd, buf, CHUNK)) > 0){
-			// Insert onto end of read buffer
-			readBuf.insert(readBuf.end(), buf, buf + n);
+	size_t headerLen = Packet::headerLen;
+
+	size_t got = 0;
+	readBuf.resize(headerLen);
+	while (got < headerLen){
+		ssize_t n = read(servFd, readBuf.data() + got, headerLen - got);
+
+		if (n <= 0) {
+			cerr << "Error reading header" << endl;
+			return false;
 		}
 
-		// ERROR handling later
-		if (n < 0){
-			continue;
-		}
-
-
-		if (readBuf.size() < Packet::headerLen){
-			continue;
-		}
-		
-		fullPacketLen = parsePacketLen(readBuf.data());
-
-		// Wait for full packet
-		if (readBuf.size() >= fullPacketLen){
-			Packet* pkt = instancePacketFromData(readBuf.data());
-
-			ServerValidate* serverVal = static_cast<ServerValidate*>(pkt);
-
-			retVal = serverVal->able;
-
-			// Remove the packet from the read queue
-			readBuf.clear();
-
-			return retVal;
-		}
+		got += n;
 	}
+
+	fullLen = parsePacketLen(readBuf.data());
+
+	// Read rest of the packet
+	readBuf.resize(fullLen);
+	while (got < fullLen){
+		ssize_t n = read(servFd, readBuf.data() + got, fullLen - got);
+
+		if (n <= 0) {
+			cerr << "Error reading rest of packet" << endl;
+			return false;
+		}
+
+		got += n;
+	}
+
+	Packet* pkt = instancePacketFromData(readBuf.data());
+	ServerValidate* serverVal = static_cast<ServerValidate*>(pkt);
+
+	bool retVal = serverVal->able;
+
+	// Remove the packet from the read queue
+	readBuf.clear();
+
+	return retVal;
 }
 
 

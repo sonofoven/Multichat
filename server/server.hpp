@@ -16,6 +16,8 @@
 #include <iostream>
 #include <thread>
 #include <mutex>
+#include <atomic>
+#include <csignal>
 
 #include "../protocol.hpp"
 
@@ -51,6 +53,8 @@ extern mutex clientMapMtx;
 // username to fd
 extern unordered_map<string, int> userMap;
 // No mutex needed because won't be accessed in any other thread
+
+//int* listenFdPtr;
 
 int makeListenSocket(sockaddr_in address);
 	// Returns a listen socket given an empty addr
