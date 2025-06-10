@@ -8,6 +8,7 @@ void dealThreads(int servFd, UiContext& context){
 
 	readT.detach();
 	writeT.detach();
+	updateUserWindow(context);
 }
 
 void userInput(UiContext& context){
@@ -57,7 +58,7 @@ int networkStart(){
 		return -1;
 	}
 
-	cout << "Socket created" << endl;
+	//cout << "Socket created" << endl;
 
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_port = htons(clientInfo.port);
@@ -69,7 +70,7 @@ int networkStart(){
 		return -1;
 	}
 
-	cout << "Options set" << endl;
+	//cout << "Options set" << endl;
 
 	// Connect to server
 	if (connect(sockFd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {

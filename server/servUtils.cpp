@@ -62,7 +62,6 @@ void clientBroadMsg(ClientBroadMsg& pkt, clientConn& sender){
 
 	// Serialize it to everyone but sender
 	serializeToAllButSender(responseAll, sender);
-
 }
 
 void clientServerMessage(ClientServMsg& pkt, clientConn& sender){

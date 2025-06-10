@@ -75,7 +75,7 @@ int main(){
 			if (event & EPOLLIN && !fatal && !clientPtr->markToDie){
 				// We are able to read
 				// Then try to immediately write
-				if (((handleRead(epollFd, *clientPtr) < 0) || (handleWrite(epollFd, *clientPtr) < 0))){
+				if ((handleRead(epollFd, *clientPtr) < 0)){// || (handleWrite(epollFd, *clientPtr) < 0))){
 					cout << "Fatal read" << endl;
 					fatal = true;
 				}
@@ -112,7 +112,7 @@ int makeListenSocket(sockaddr_in address){
 		exit(1);
 	}
 
-	cout << "Socket created" << endl;
+	//cout << "Socket created" << endl;
 
 	// Set Options
 	setsockopt(sockFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -121,7 +121,7 @@ int makeListenSocket(sockaddr_in address){
 		// Convert port number to network byte order (big endian)
 	address.sin_port = htons(PORT);
 
-	cout << "Options set" << endl;
+	//cout << "Options set" << endl;
 
 	// Bind socket fd to address
 	if (bind(sockFd, (sockaddr *)&address, sizeof(address)) < 0) {
@@ -129,7 +129,7 @@ int makeListenSocket(sockaddr_in address){
 		exit(1);
 	}
 
-	cout << "Address bound to socket" << endl;
+	//cout << "Address bound to socket" << endl;
 
 	// Listen
 	if (listen(sockFd, BACKLOG_MAX) < 0) {
@@ -159,7 +159,7 @@ void addFdToEpoll(int epollFd, int fd){
 
 	clientMap[fd].epollMask = event.events;
 
-	cout << "Adding " << fd << " to epoll fd" << endl;
+	//cout << "Adding " << fd << " to epoll fd" << endl;
 
 }
 
@@ -179,12 +179,12 @@ void modFdEpoll(int epollFd, int fd, int ops){
 
 	clientMap[fd].epollMask = event.events;
 
-	cout << "Modding " << fd  << endl;
+	//cout << "Modding " << fd  << endl;
 
 }
 
 int handleRead(int epollFd, clientConn& client){
-	cout<<"Reading stuff"<<endl;
+	cout << "Reading packet from "<< client.username << endl;
 
 	size_t headerSize = 2 * sizeof(uint16_t);
 
@@ -193,7 +193,6 @@ int handleRead(int epollFd, clientConn& client){
 	size_t fullPacketLen;
 	// Do all the reading here
 	if(drainReadPipe(client.fd, client) != 0){
-		cout << "Read fd fail" << endl;
 		return -1;
 	}
 
@@ -201,11 +200,11 @@ int handleRead(int epollFd, clientConn& client){
 	while(1){
 
 		if (readBuf.size() < headerSize){
-			cout << "Not a full header" << endl;
 			return 0;
 		}
 		
 		fullPacketLen = parsePacketLen(readBuf.data());
+		cout << "Packet length is: " << fullPacketLen << endl;
 
 		if (readBuf.size() >= fullPacketLen){
 			bool wasEmpty = writeBuf.empty();
@@ -218,19 +217,16 @@ int handleRead(int epollFd, clientConn& client){
 
 			// If the buffer is empty and we are adding to it
 			// Only arm if writebuf was empty before we insert
-			if (wasEmpty && !(client.epollMask & EPOLLOUT)){
+			if (wasEmpty && writeBuf.size() > 0){
 				// mod epoll fd to watch for open writes
 				modFdEpoll(epollFd, client.fd, EPOLLIN | EPOLLOUT | EPOLLET);
-				cout << "Fresh buffer append" << endl;
 			}
 
 			// Remove the packet from the read queue
 			readBuf.erase(readBuf.begin(), readBuf.begin() + fullPacketLen);
-			cout << "Sent full packet" << endl;
 			return 0;
 
 		} else {
-			cout << "No packet sent" << endl;
 			return 0;
 		}
 	}
@@ -238,10 +234,11 @@ int handleRead(int epollFd, clientConn& client){
 
 int handleWrite(int epollFd, clientConn& client){
 	// While there is still stuff in the buffer
-	cout << "Writing stuff" << endl;
+	cout << "Sending packet to "<< client.username << endl;
 
 	//vector<uint8_t>& readBuf = client.readBuf;
 	vector<uint8_t>& writeBuf = client.writeBuf;
+	cout << "Bytes to be written is: " << writeBuf.size() << endl;
 
 	while (!writeBuf.empty()){
 
@@ -250,27 +247,29 @@ int handleWrite(int epollFd, clientConn& client){
 		if (n > 0){
 			// Erase what has been written from the write buffer
 			writeBuf.erase(writeBuf.begin(), writeBuf.begin() + n);
+			cout << "Written bytes is: " << n << endl;
 
 			continue;
 		}
 
 		// Can't write anymore
 		if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)){
-			cout << "Can't write no more" << endl;
 			return 0;
 		}
 
 		// Do client deregistration here
-		cout << "Error in write" << endl;
+		cerr << "Error in write" << endl;
 		perror("Writing");
 		return -1;
 	}
 
+
 	// If we have cleared the buffer, unset write flag
 	if (writeBuf.empty() && (client.epollMask & EPOLLOUT)){
+		cout << "CLEARING THIS" << endl;
 		modFdEpoll(epollFd, client.fd, EPOLLIN | EPOLLET);
 	}
-	cout << "Unset write mod" << endl;
+	//cout << "Unset write mod" << endl;
 	return 0;
 }
 

@@ -192,6 +192,7 @@ vector<uint8_t> getWindowInput(Win& window, UiContext& context){
 
 		outBuf.push_back((uint8_t)ch);
 	}
+	outBuf.push_back((uint8_t)0);
 
 	// Clear window and reset
 	werase(win);
@@ -297,6 +298,9 @@ void appendToWindow(Win& window, vector<chtype> inputVec, int prescroll){
 
 	for (size_t i = 0; i < inputVec.size(); i++){
 		chtype ch = inputVec[i];
+		if (getBaseChar(inputVec[i]) == '\0'){
+			continue;
+		}
         window.screenBuf.push_back(ch);
 		waddch(win, ch);
     }
