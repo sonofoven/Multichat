@@ -41,7 +41,6 @@ void clientConnect(ClientConnect& pkt, clientConn& sender){
 		// Send server connected msg to every other client
 		serializeToAllButSender(responseAll, sender);
 	}
-
 }
 
 void clientBroadMsg(ClientBroadMsg& pkt, clientConn& sender){
@@ -59,6 +58,7 @@ void clientBroadMsg(ClientBroadMsg& pkt, clientConn& sender){
 	
 	// Construct the packet
 	ServerBroadMsg responseAll = ServerBroadMsg(sender.username.c_str(), pkt.msgLen, pkt.msg);
+	cout << "Broadcast message: " << pkt.msg << endl;
 
 	// Serialize it to everyone but sender
 	serializeToAllButSender(responseAll, sender);

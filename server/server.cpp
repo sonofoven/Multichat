@@ -191,6 +191,9 @@ int handleRead(int epollFd, clientConn& client){
 	vector<uint8_t>& readBuf = client.readBuf;
 	vector<uint8_t>& writeBuf = client.writeBuf;
 	size_t fullPacketLen;
+
+
+
 	// Do all the reading here
 	if(drainReadPipe(client.fd, client) != 0){
 		return -1;
@@ -266,7 +269,6 @@ int handleWrite(int epollFd, clientConn& client){
 
 	// If we have cleared the buffer, unset write flag
 	if (writeBuf.empty() && (client.epollMask & EPOLLOUT)){
-		cout << "CLEARING THIS" << endl;
 		modFdEpoll(epollFd, client.fd, EPOLLIN | EPOLLET);
 	}
 	//cout << "Unset write mod" << endl;

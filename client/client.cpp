@@ -17,7 +17,6 @@ int main() {
 
 	// if not -> form + generate one
 
-	
 	// Attempt connection
 
 	// If no connection -> prompt reconnect
@@ -45,5 +44,4 @@ int main() {
 
 
 	endwin();
-
 }
