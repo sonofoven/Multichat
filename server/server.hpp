@@ -52,7 +52,9 @@ extern mutex clientMapMtx;
 
 // username to fd
 extern unordered_map<string, int> userMap;
-// No mutex needed because won't be accessed in any other thread
+
+// 
+extern int epollFd;
 
 //int* listenFdPtr;
 
@@ -63,14 +65,14 @@ void addFdToEpoll(int epoll, int fd);
 	// Adds a file descriptor to the epoll pool
 
 
-void modFdEpoll(int epollFd, int fd, int ops);
+void modFdEpoll(int fd, int ops);
 	// Modifies a file descriptor within the epoll pool
 
-int handleRead(int epollFd, clientConn& client);
+int handleRead(clientConn& client);
 
-int handleWrite(int epollFd, clientConn& client);
+int handleWrite(clientConn& client);
 
-void acceptLoop(int listenFd, int epollFd);
+void acceptLoop(int listenFd);
 	// Runs on a new thread, constantly accepts
 	// new conns and adds them to the client
 	// list and epoll pool

@@ -152,8 +152,8 @@ void serializeToAllButSender(Packet& pkt, clientConn& sender){
 	lock_guard lock(clientMapMtx);
 	
 	// Loop over clients connected in the map
-	for (auto i : clientMap){
-		clientConn client = i.second;
+	for (auto& i : clientMap){
+		clientConn& client = i.second;
 		int fd = i.first;
 
 		// If the sender id is not the current fd

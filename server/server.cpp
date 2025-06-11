@@ -5,6 +5,8 @@ mutex clientMapMtx;
 
 unordered_map<string, int> userMap = {};
 
+int epollFd;
+
 int main(){
 
 	//signal(SIGINT, killServer); 
@@ -15,7 +17,7 @@ int main(){
 	int listenFd;
 	sockaddr_in address;
 
-	int epollFd = -1;
+	epollFd = -1;
 	epoll_event events[MAX_EVENTS];
 
 
@@ -32,7 +34,7 @@ int main(){
 	}
 
 	// Create a thread to constantly accept new conns
-	thread listenT(acceptLoop, listenFd, epollFd);
+	thread listenT(acceptLoop, listenFd);
 	listenT.detach();
 
 	while (1){
@@ -75,7 +77,7 @@ int main(){
 			if (event & EPOLLIN && !fatal && !clientPtr->markToDie){
 				// We are able to read
 				// Then try to immediately write
-				if ((handleRead(epollFd, *clientPtr) < 0)){// || (handleWrite(epollFd, *clientPtr) < 0))){
+				if ((handleRead(*clientPtr) < 0)){// || (handleWrite(epollFd, *clientPtr) < 0))){
 					cout << "Fatal read" << endl;
 					fatal = true;
 				}
@@ -83,7 +85,7 @@ int main(){
 
 			if (event & EPOLLOUT && !fatal && !clientPtr->markToDie){
 				// Finish writing what was started
-				if (handleWrite(epollFd, *clientPtr) < 0){
+				if (handleWrite(*clientPtr) < 0){
 					cout << "Fatal write" << endl;
 					fatal = true;
 				}
@@ -140,7 +142,7 @@ int makeListenSocket(sockaddr_in address){
 	return sockFd;
 }
 	
-void addFdToEpoll(int epollFd, int fd){
+void addFdToEpoll(int fd){
 	
 	// Set the file descriptor to nonblocking
 	fcntl(fd, F_SETFL, O_NONBLOCK);
@@ -163,7 +165,7 @@ void addFdToEpoll(int epollFd, int fd){
 
 }
 
-void modFdEpoll(int epollFd, int fd, int ops){
+void modFdEpoll(int fd, int ops){
 	
 	// Set event to new ops, make sure EPOLLET is set regardless
 	epoll_event event;
@@ -183,7 +185,7 @@ void modFdEpoll(int epollFd, int fd, int ops){
 
 }
 
-int handleRead(int epollFd, clientConn& client){
+int handleRead(clientConn& client){
 	cout << "Reading packet from "<< client.username << endl;
 
 	size_t headerSize = 2 * sizeof(uint16_t);
@@ -222,7 +224,7 @@ int handleRead(int epollFd, clientConn& client){
 			// Only arm if writebuf was empty before we insert
 			if (wasEmpty && writeBuf.size() > 0){
 				// mod epoll fd to watch for open writes
-				modFdEpoll(epollFd, client.fd, EPOLLIN | EPOLLOUT | EPOLLET);
+				modFdEpoll(client.fd, EPOLLIN | EPOLLOUT | EPOLLET);
 			}
 
 			// Remove the packet from the read queue
@@ -235,7 +237,7 @@ int handleRead(int epollFd, clientConn& client){
 	}
 }
 
-int handleWrite(int epollFd, clientConn& client){
+int handleWrite(clientConn& client){
 	// While there is still stuff in the buffer
 	cout << "Sending packet to "<< client.username << endl;
 
@@ -269,7 +271,7 @@ int handleWrite(int epollFd, clientConn& client){
 
 	// If we have cleared the buffer, unset write flag
 	if (writeBuf.empty() && (client.epollMask & EPOLLOUT)){
-		modFdEpoll(epollFd, client.fd, EPOLLIN | EPOLLET);
+		modFdEpoll(client.fd, EPOLLIN | EPOLLET);
 	}
 	//cout << "Unset write mod" << endl;
 	return 0;
@@ -344,7 +346,7 @@ int protocolParser(Packet* pkt, clientConn& sender){
 	return exitCode;
 }
 
-void acceptLoop(int listenFd, int epollFd){
+void acceptLoop(int listenFd){
 	int clientFd;
 	sockaddr_in clientAddress;
 	socklen_t clientLen = sizeof(clientAddress);
@@ -361,7 +363,7 @@ void acceptLoop(int listenFd, int epollFd){
 			clientMap.emplace(clientFd, clientConn(clientFd));
 
 			// Add connection fd to epoll marking list
-			addFdToEpoll(epollFd, clientFd);
+			addFdToEpoll(clientFd);
 
 			cout << "Connection accepted" << endl;
 			
