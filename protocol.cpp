@@ -15,22 +15,15 @@ void pushBack(vector<uint8_t>& buffer, T additive){
 	buffer.insert(buffer.end(), addPtr, addPtr + sizeof(T));
 }
 
-void pushUsernameBack(vector<uint8_t>& buffer, const char* username){
-	const uint8_t* usrPtr = (const uint8_t*)username;
-	
-	buffer.insert(buffer.end(), usrPtr, usrPtr + strlen(username) + 1);
+void pushStrBack(vector<uint8_t>& buffer, string& str){
+	buffer.insert(buffer.end(), str.begin(), str.end());
+	buffer.push_back('\0');
 }
 
 void pushListBack(vector<uint8_t>& buffer, list<string>& userList){
 	for (auto i : userList){
-		pushUsernameBack(buffer, i.c_str());
+		pushUsernameBack(buffer, i);
 	}
-}
-
-void pushLenBack(vector<uint8_t>& buffer, const char* message, size_t messageLength){
-	const uint8_t* msgPtr = (const uint8_t*)message;
-	
-	buffer.insert(buffer.end(), msgPtr, msgPtr + messageLength);
 }
 
 //// Client -> Server ////
@@ -40,21 +33,21 @@ void ClientConnect::parse(const uint8_t* data) {
 	length = le16toh(*(uint16_t*)data);
 	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
 
-	username = (const char*)(data + headerLen);
+	username = (char*)(data + headerLen);
 }
 
 void ClientConnect::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
-	pushUsernameBack(buffer, username);
+	pushStrBack(buffer, username);
 }
 
-ClientConnect::ClientConnect(const char* usr){
+ClientConnect::ClientConnect(string& usr){
 	// + 1 for null byte
 	length = headerLen + strlen(usr) + 1;
 	opcode = CMG_CONNECT;
 
-	username = (const char*) usr;
+	username = usr;
 }
 
 ClientConnect::ClientConnect(){}
@@ -65,73 +58,47 @@ void ClientBroadMsg::parse(const uint8_t* data) {
 	length = le16toh(*(uint16_t*)data);
 	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
 	
-	msg = (const char*)(data + headerLen);
-	msgLen = length - headerLen;
+	msg = (char*)(data + headerLen);
 }
 
 void ClientBroadMsg::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
-
-	size_t messageLength = (size_t)length - headerLen;
-	pushLenBack(buffer, msg, messageLength);
+	pushStrBack(buffer, msg);
 }
 
-ClientBroadMsg::ClientBroadMsg(vector<uint8_t> message){
-	length = headerLen + message.size();
+ClientBroadMsg::ClientBroadMsg(string& message){
+	length = headerLen + message.size() + 1;
 	opcode = CMG_BROADMSG;
 
-	msgLen = message.size();
-	msg = (const char*)message.data();
+	msg = message;
 }
 
 ClientBroadMsg::ClientBroadMsg(){}
 
-// Client to Server message (for debug/logging)
+// Client to Server message (for debug/logging/API)
 
 void ClientServMsg::parse(const uint8_t* data) {
 	length = le16toh(*(uint16_t*)data);
 	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
 
-	msg = (const char*)(data + headerLen);
-	msgLen = length - headerLen;
+	msg = (char*)(data + headerLen);
 }
 
 void ClientServMsg::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
-
-	size_t messageLength = (size_t)length - headerLen;
-	pushLenBack(buffer, msg, messageLength);
+	pushStrBack(buffer, msg);
 }
 
-ClientServMsg::ClientServMsg(vector<uint8_t> message){
+ClientServMsg::ClientServMsg(string& message){
 	length = headerLen + message.size();
 	opcode = CMG_SERVMSG;
 
-	msgLen = message.size();
-	msg = (const char*)message.data();
+	msg = message;
 }
 
 ClientServMsg::ClientServMsg(){}
-
-// Client Disconnect
-
-void ClientDisconnect::parse(const uint8_t* data) {
-	length = le16toh(*(uint16_t*)data);
-	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
-}
-
-void ClientDisconnect::serialize(vector<uint8_t>& buffer) {
-	pushBack(buffer, htole16(length));
-	pushBack(buffer, htole16(opcode));
-}
-
-ClientDisconnect::ClientDisconnect(){
-	length = headerLen;
-	opcode = CMG_DISCONNECT;
-}
-
 
 //// Server -> Client ////
 
@@ -143,8 +110,9 @@ void ServerValidate::parse(const uint8_t* data){
 
 	able = *(bool*)(data + headerLen);
 
+	// Add all the strings if client is able to connect
 	if (able == true){
-		// Set the start point
+		// Set the start point of username list
 		char* curPtr = (char*)data + headerLen + sizeof(able);
 		char* endLoc = (char*)data + length;
 		void* distChk;
@@ -175,7 +143,7 @@ void ServerValidate::serialize(vector<uint8_t>& buffer) {
 	}
 }
 
-ServerValidate::ServerValidate(bool a, unordered_map<string, int> userMap){
+ServerValidate::ServerValidate(bool a, unordered_map<string, int>& userMap){
 	length = headerLen + sizeof(a);
 	opcode = SMG_VALIDATE;
 
@@ -197,21 +165,21 @@ void ServerConnect::parse(const uint8_t* data) {
 	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
 	timestamp = le64toh(*(time_t*)(data + headerLen));
 
-	username = (const char*)(data + headerLen + sizeof(time_t));
+	username = (string)(data + headerLen + sizeof(time_t));
 }
 
 void ServerConnect::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
 	pushBack(buffer, htole64(timestamp));
-	pushUsernameBack(buffer, username);
+	pushStrBack(buffer, username);
 }
 
-ServerConnect::ServerConnect(const char* usr){
+ServerConnect::ServerConnect(string& usr){
 	length = headerLen + strlen(usr) + 1;
 	opcode = SMG_CONNECT;
 
-	username = (const char*)usr;
+	username = usr;
 	time(&timestamp);
 }
 
@@ -224,11 +192,8 @@ void ServerBroadMsg::parse(const uint8_t* data) {
 	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
 	timestamp = le64toh(*(time_t*)(data + headerLen));
 
-	username = (const char*)(data + headerLen + sizeof(time_t));
-	size_t userLen = strlen(username) + 1;
-
-	msg = (const char*)(username + userLen);
-	msgLen = length - headerLen - userLen - sizeof(time_t);
+	username = (char*)(data + headerLen + sizeof(time_t));
+	msg = (char*)(username + strlen(username) + 1);
 }
 
 void ServerBroadMsg::serialize(vector<uint8_t>& buffer) {
@@ -236,16 +201,15 @@ void ServerBroadMsg::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(opcode));
 	pushBack(buffer, htole64(timestamp));
 	pushUsernameBack(buffer, username);
-	pushLenBack(buffer, msg, msgLen);
+	pushStrBack(buffer, msg);
 }
 
-ServerBroadMsg::ServerBroadMsg(const char* usr, size_t messageLen, const char* message){
-	length = headerLen + strlen(usr) + 1 + messageLen;
+ServerBroadMsg::ServerBroadMsg(string& usr, string& message){
+	length = headerLen + strlen(usr) + strlen(message) + 2;
 	opcode = SMG_BROADMSG;
 
 	username = usr;
 	
-	msgLen = messageLen;
 	msg = message;
 	time(&timestamp);
 }
@@ -259,7 +223,7 @@ void ServerDisconnect::parse(const uint8_t* data) {
 	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
 	timestamp = le64toh(*(time_t*)(data + headerLen));
 
-	username = (const char*)(data + headerLen + sizeof(time_t));
+	username = (char*)(data + headerLen + sizeof(time_t));
 }
 
 void ServerDisconnect::serialize(vector<uint8_t>& buffer) {
@@ -269,7 +233,7 @@ void ServerDisconnect::serialize(vector<uint8_t>& buffer) {
 	pushUsernameBack(buffer, username);
 }
 
-ServerDisconnect::ServerDisconnect(const char* usr){
+ServerDisconnect::ServerDisconnect(string& usr){
 	length = headerLen + strlen(usr) + 1;
 	opcode = SMG_DISCONNECT;
 

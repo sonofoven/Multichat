@@ -21,7 +21,6 @@ enum opcode {
 	CMG_CONNECT, // Connect and auth
 	CMG_BROADMSG, // Message from one client to every client
 	CMG_SERVMSG, // Message directly to the server
-	CMG_DISCONNECT, // Disconnect
 	
 	SMG_VALIDATE, // Message back to client saying they good, give the whole user list
 	SMG_CONNECT, // Message to all other clients client has connected
@@ -47,52 +46,42 @@ public:
 
 // Client -> Server
 
-class ClientConnect : public Packet {
+class ClientConnect : public Packet { ///
 public:
-    const char* username;
+    string username;
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
 	ClientConnect();
-	ClientConnect(const char* usr);
+	ClientConnect(string& usr);
 };
 
-class ClientBroadMsg : public Packet {
+class ClientBroadMsg : public Packet { ///
 public:
-    const char* msg;
-	size_t msgLen;
+    string msg;
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
 	ClientBroadMsg();
-	ClientBroadMsg(vector<uint8_t> message);
+	ClientBroadMsg(string& message);
 };
 
-class ClientServMsg : public Packet {
+class ClientServMsg : public Packet { ///
 public:
-    const char* msg;
-	size_t msgLen;
+    string msg;
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
 	ClientServMsg();
-	ClientServMsg(vector<uint8_t> message);
-};
-
-class ClientDisconnect : public Packet {
-public:
-    void parse(const uint8_t* data) override;
-    void serialize(vector<uint8_t>& buffer) override;
-
-	ClientDisconnect();
+	ClientServMsg(string& message);
 };
 
 // Server -> Client
 
-class ServerValidate : public Packet {
+class ServerValidate : public Packet { ///
 public:
     bool able;
 	list<string> userList;
@@ -101,54 +90,53 @@ public:
     void serialize(vector<uint8_t>& buffer) override;
 
 	ServerValidate();
-	ServerValidate(bool a, unordered_map<string,int> userMap);
+	ServerValidate(bool a, unordered_map<string,int>& userMap);
 };
 
-class ServerConnect : public Packet {
+class ServerConnect : public Packet { ///
 public:
 	time_t timestamp;
-    const char* username;
+    string username;
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
 	ServerConnect();
-	ServerConnect(const char* usr);
+	ServerConnect(string& usr);
 };
 
-class ServerBroadMsg : public Packet {
+class ServerBroadMsg : public Packet { ///
 public:
 	time_t timestamp;
-    const char* username;
-    const char* msg;
-	size_t msgLen;
+    string username;
+    string msg;
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
 	ServerBroadMsg();
-	ServerBroadMsg(const char* usr, size_t messageLen, const char* message);
+	ServerBroadMsg(string& usr, string& message);
 };
 
 class ServerDisconnect : public Packet {
 public:
 	time_t timestamp;
-    const char* username;
+    string username;
 
     void parse(const uint8_t* data) override;
     void serialize(vector<uint8_t>& buffer) override;
 
 	ServerDisconnect();
-	ServerDisconnect(const char* usr);
+	ServerDisconnect(string& usr);
 };
 
-// Helper functions for buffer loading
+// Helper functions for buffer serialization
 
 template <typename T>
 void pushBack(vector<uint8_t>& buffer, T additive);
-void pushUsernameBack(vector<uint8_t>& buffer, const char* username);
-void pushLenBack(vector<uint8_t>& buffer, const char* message, size_t msgLength);
-
+void pushStringBack(vector<uint8_t>& buffer, string username);
+void pushLenBack(vector<uint8_t>& buffer, string message);
+void pushListBack(vector<uint8_t>& buffer, list<string>& userList);
 
 // factory table
 using PacketFactory = Packet* (*)();
@@ -157,4 +145,3 @@ void registerPackets();
 Packet* instancePacketFromData(const uint8_t* data);
 
 size_t parsePacketLen(uint8_t* data);
-

@@ -117,12 +117,12 @@ Win createInputWin(){
 	return window;
 }
 
-vector<uint8_t> getWindowInput(Win& window, UiContext& context){
+string getWindowInput(Win& window, UiContext& context){
 	WINDOW* win = window.textWin;
 	int row, col;
 	getmaxyx(win, row, col);
 
-	vector<uint8_t> outBuf;
+	string outBuf;
 
 	wmove(win, 0, 0); // Move to the beginning of the window
 	curs_set(2); // Make the cursor visible
@@ -190,9 +190,8 @@ vector<uint8_t> getWindowInput(Win& window, UiContext& context){
 			x++;
 		}
 
-		outBuf.push_back((uint8_t)ch);
+		outBuf.push_back(ch);
 	}
-	outBuf.push_back((uint8_t)0);
 
 	// Clear window and reset
 	werase(win);
@@ -202,14 +201,14 @@ vector<uint8_t> getWindowInput(Win& window, UiContext& context){
 	return outBuf;
 }
 
-vector<chtype> formatMessage(vector<uint8_t> message, const char* username){
+vector<chtype> formatMessage(string& message, string& username){
 	vector<chtype> outBuf;
 
 	outBuf.push_back((chtype)'[' | A_BOLD);
 
 	// Append username to the beginning of the message in bold
-	for (size_t i = 0; i < strlen(username); i++){
-		outBuf.push_back((chtype)username[i] | A_BOLD);
+	for (char& ch : username){
+		outBuf.push_back((chtype)ch | A_BOLD);
 	}
 
 	outBuf.push_back((chtype)']' | A_BOLD);
@@ -217,36 +216,14 @@ vector<chtype> formatMessage(vector<uint8_t> message, const char* username){
 	
 	// Convert uint8_t message to chtype
 
-	// No null byte
-	for (size_t i = 0; i < message.size(); i++){
-		outBuf.push_back((chtype)message[i]);
+	for (char& ch : message){
+		outBuf.push_back((chtype)ch);
 	}
 
 	return outBuf;
 }
 
-vector<chtype> formatPktMessage(ServerBroadMsg& pkt){
-	vector<chtype> outBuf;
-
-	outBuf.push_back((chtype)'[' | A_BOLD);
-
-	// Append username to the beginning of the message in bold
-	for (size_t i = 0; i < strlen(pkt.username); i++){
-		outBuf.push_back((chtype)pkt.username[i] | A_BOLD);
-	}
-
-	outBuf.push_back((chtype)']' | A_BOLD);
-	outBuf.push_back((chtype)' ');
-	
-	// No null byte
-	for (size_t i = 0; i < pkt.msgLen; i++){
-		outBuf.push_back((chtype)pkt.msg[i]);
-	}
-
-	return outBuf;
-}
-
-vector<chtype> formatDisMessage(const char* username){
+vector<chtype> formatDisMessage(string& username){
 	vector<chtype> outBuf;
 
 	pushBackStr("<--    ", outBuf, A_DIM);
@@ -258,7 +235,7 @@ vector<chtype> formatDisMessage(const char* username){
 	return outBuf;
 }
 
-vector<chtype> formatConMessage(const char* username){
+vector<chtype> formatConMessage(string& username){
 	vector<chtype> outBuf;
 
 	pushBackStr("<--    ", outBuf, A_DIM);
@@ -272,7 +249,7 @@ vector<chtype> formatConMessage(const char* username){
 }
 
 
-void appendToWindow(Win& window, vector<chtype> inputVec, int prescroll){
+void appendToWindow(Win& window, vector<chtype> chTypeVec, int prescroll){
 
     WINDOW* win = window.textWin;
 
@@ -296,11 +273,7 @@ void appendToWindow(Win& window, vector<chtype> inputVec, int prescroll){
 		// Adding to the end of what I already have
 	}
 
-	for (size_t i = 0; i < inputVec.size(); i++){
-		chtype ch = inputVec[i];
-		if (getBaseChar(inputVec[i]) == '\0'){
-			continue;
-		}
+	for (chtype& ch : chTypeVec){
         window.screenBuf.push_back(ch);
 		waddch(win, ch);
     }
@@ -329,8 +302,8 @@ void updateUserWindow(UiContext& context){
 	// Scroll down
 	wscrl(win, -1);
 
-	for (string & str : userConns){
-		for (char & ch : str){
+	for (string& str : userConns){
+		for (char& ch : str){
 
 			// If you get to the end of the screen
 			if (x >= col - 1 || ch == '\0'){
@@ -368,7 +341,7 @@ inline char getBaseChar(chtype ch){
 }
 
 void pushBackStr(string str, vector<chtype>& outBuf, attr_t attr){
-	for(char & ch : str){
+	for(char& ch : str){
 		outBuf.push_back((chtype)ch | attr);
 	}
 }

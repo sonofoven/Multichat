@@ -28,8 +28,8 @@ extern list<string> userConns; // List of users connected to server
 	// Store usernames connected
 extern vector<uint8_t> readBuf;
 
-extern mutex writeMtx;
-extern condition_variable writeCv; // Activate the writeBuf
+extern mutex writeMtx; // Activate the writeBuf
+extern condition_variable writeCv; 
 extern vector<uint8_t> writeBuf;
 
 extern mutex msgMtx; // May need to add a queue but should be good 4 now
@@ -73,22 +73,24 @@ UiContext interfaceStart();
 
 void dealThreads(int sockFd, UiContext& context);
 
-WINDOW* createWindow(int height, int width, int starty, int startx, bool boxOn, bool scroll);
-
+// Window creation funcs
+WINDOW* createWindow(int height, 
+					 int width, 
+					 int starty, 
+					 int startx, 
+					 bool boxOn, 
+					 bool scroll);
 Win createUserWin();
 Win createMsgWin();
 Win createInputWin();
 
-vector<uint8_t> processOneChar(Win& window, UiContext& context, int ch, vector<uint8_t> outBuf);
-
-vector<chtype> formatMessage(vector<uint8_t> message, const char* username);
-
-vector<chtype> formatPktMessage(ServerBroadMsg& pkt);
-vector<chtype> formatDisMessage(const char* username);
-vector<chtype> formatConMessage(const char* username);
+// Formatting funcs
+vector<chtype> formatMessage(string message, string username);
+vector<chtype> formatDisMessage(string username);
+vector<chtype> formatConMessage(string username);
 
 
-vector<uint8_t> getWindowInput(Win& window, UiContext& context);
+string getWindowInput(Win& window, UiContext& context);
 void appendToWindow(Win& window, vector<chtype> inputVec, int prescroll);
 
 void readThread(int servFd, UiContext& context);

@@ -12,7 +12,7 @@ void dealThreads(int servFd, UiContext& context){
 }
 
 void userInput(UiContext& context){
-	vector<uint8_t> message = getWindowInput(*context.inputWin, context);
+	string message = getWindowInput(*context.inputWin, context);
 	ClientBroadMsg pkt = ClientBroadMsg(message);
 	
 	{
