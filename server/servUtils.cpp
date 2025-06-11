@@ -156,9 +156,18 @@ void serializeToAllButSender(Packet& pkt, clientConn& sender){
 		clientConn& client = i.second;
 		int fd = i.first;
 
-		// If the sender id is not the current fd
-		if (sender.fd != fd){
-			pkt.serialize(client.writeBuf);
+		// Shouldn't send to yourself
+		if (sender.fd == fd){
+			continue;
+		}
+
+		bool wasEmpty = client.writeBuf.empty();
+
+		pkt.serialize(client.writeBuf);
+
+		if (wasEmpty && !client.writeBuf.empty()){
+			// mod epoll fd to watch for open writes
+			modFdEpoll(client.fd, EPOLLIN | EPOLLOUT | EPOLLET);
 		}
 	}
 }

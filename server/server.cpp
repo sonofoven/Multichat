@@ -222,7 +222,7 @@ int handleRead(clientConn& client){
 
 			// If the buffer is empty and we are adding to it
 			// Only arm if writebuf was empty before we insert
-			if (wasEmpty && writeBuf.size() > 0){
+			if (wasEmpty && !writeBuf.empty()){
 				// mod epoll fd to watch for open writes
 				modFdEpoll(client.fd, EPOLLIN | EPOLLOUT | EPOLLET);
 			}
