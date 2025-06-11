@@ -336,16 +336,6 @@ int protocolParser(Packet* pkt, clientConn& sender){
 			break;
 		}
 
-		case CMG_DISCONNECT: {
-			cout << "OPCODE: DISCONNECTION" << endl;
-
-			ClientDisconnect* clientPacket = static_cast<ClientDisconnect*>(pkt);
-
-			clientDisconnect(*clientPacket, sender);
-
-			break;
-		}
-
 		default: {
 			cout << "Unknown opcode" << endl;
 			exitCode = -1;

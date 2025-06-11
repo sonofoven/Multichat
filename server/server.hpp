@@ -87,13 +87,13 @@ int drainReadPipe(int fd, clientConn& client);
 
 void killClient(int fd);
 
-void killUser(string user);
+void killUser(string& user);
 
 void killServer(int code);
 
 //// Utils
 
-string validateUser(const char* username);
+string validateUser(string& username);
 	// Makes sure the username is of correct length
 	// Makes sure the username is not taken
 	// Returns string if it is a valid username
@@ -104,7 +104,6 @@ void clientBroadMsg(ClientBroadMsg& pkt, clientConn& sender);
 
 void clientServerMessage(ClientServMsg& pkt, clientConn& sender);
 
-void clientDisconnect(ClientDisconnect& pkt, clientConn& sender);
 
 
 void dropClient(int fd);
@@ -116,11 +115,11 @@ clientConn* lockFindCli(int fd);
 	// Find the client corresponding to the fd
 	// release the lock
 
-string usernameExists(const char* username);
+string usernameExists(string& username);
 	// Null if the username already exists
 	// Stringifies cstring if it doesn't
 	// This is b/c we're going use it
 
-bool valConnMsg(string username, clientConn& sender);
+bool valConnMsg(string& username, clientConn& sender);
 
 void serializeToAllButSender(Packet& pkt, clientConn& sender);

@@ -64,7 +64,7 @@ struct UiContext{
 struct connInfo{
 	string addr = "127.0.0.1";
 	uint16_t port = 8080;
-	string username = "Jimmy";
+	string username = "Timmy";
 };
 
 extern connInfo clientInfo;
@@ -85,9 +85,9 @@ Win createMsgWin();
 Win createInputWin();
 
 // Formatting funcs
-vector<chtype> formatMessage(string message, string username);
-vector<chtype> formatDisMessage(string username);
-vector<chtype> formatConMessage(string username);
+vector<chtype> formatMessage(string& message, string& username);
+vector<chtype> formatDisMessage(string& username);
+vector<chtype> formatConMessage(string& username);
 
 
 string getWindowInput(Win& window, UiContext& context);

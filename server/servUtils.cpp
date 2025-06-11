@@ -57,7 +57,7 @@ void clientBroadMsg(ClientBroadMsg& pkt, clientConn& sender){
 	}
 	
 	// Construct the packet
-	ServerBroadMsg responseAll = ServerBroadMsg(sender.username.c_str(), pkt.msgLen, pkt.msg);
+	ServerBroadMsg responseAll = ServerBroadMsg(sender.username, pkt.msg);
 	cout << "Broadcast message: " << pkt.msg << endl;
 
 	// Serialize it to everyone but sender
@@ -67,23 +67,8 @@ void clientBroadMsg(ClientBroadMsg& pkt, clientConn& sender){
 void clientServerMessage(ClientServMsg& pkt, clientConn& sender){
 	// Output the message from the client to the console
 
-	cout.write(pkt.msg, pkt.msgLen);
+	cout << pkt.msg << endl;
 }
-
-void clientDisconnect(ClientDisconnect& pkt, clientConn& sender) {
-	// You pretty much should never recieve this, actually im gonna remove this
-	// Announce to everyone but sender that this client has left
-
-	// Set the client to be culled
-	sender.markToDie = true;
-
-	// Create the disconnect response to all other clients
-	ServerDisconnect responseAll = ServerDisconnect(sender.username.c_str());
-
-	// Send server connected msg to every other client
-	serializeToAllButSender(responseAll, sender);
-}
-
 
 
 void dropClient(int fd){
@@ -95,13 +80,13 @@ void dropClient(int fd){
 	}
 	
 	// If client registered w/ username
-	if (usernameExists(cliPtr->username.c_str()) != ""){
+	if (usernameExists(cliPtr->username) != ""){
 
 		// Inform log
 		cout << "Dropping user: " << cliPtr->username << endl;
 
 		// Create disconnect packet
-		ServerDisconnect responseAll = ServerDisconnect(cliPtr->username.c_str());
+		ServerDisconnect responseAll = ServerDisconnect(cliPtr->username);
 		// Serialize to all
 		serializeToAllButSender(responseAll, *cliPtr);
 	}
@@ -126,9 +111,9 @@ clientConn* lockFindCli(int fd){
 	return clientPtr;
 }
 
-string validateUser(const char* username){
+string validateUser(string& username){
 	// If username is too long or too short, reject
-	size_t usrLen = strlen(username);
+	size_t usrLen = username.size();
 
 	if (usrLen > NAMELEN || usrLen <= 0){
 		return "";
@@ -139,19 +124,18 @@ string validateUser(const char* username){
 }
 
 
-string usernameExists(const char* username){
-	string userStr = username;
-	auto it = userMap.find(userStr);
+string usernameExists(string& username){
+	auto it = userMap.find(username);
 	if (it == userMap.end()){
 		// username not taken
-		return userStr;
+		return username;
 	}
 
 	// username taken
 	return "";
 }
 
-bool valConnMsg(string username, clientConn& sender){
+bool valConnMsg(string& username, clientConn& sender){
 
 	// Rudimentary check to prevent impersonation
 	auto it = userMap.find(username);
@@ -205,7 +189,7 @@ void killClient(int fd){
 	clientMap.erase(fd);
 }
 
-void killUser(string username){
+void killUser(string& username){
 	userMap.erase(username);
 }
 

@@ -21,7 +21,7 @@ void userInput(UiContext& context){
 	}
 	writeCv.notify_one();
 
-	vector<chtype> formattedStr = formatMessage(message, clientInfo.username.c_str());
+	vector<chtype> formattedStr = formatMessage(message, clientInfo.username);
 	
 	{
 		unique_lock lock(msgMtx);
@@ -85,7 +85,7 @@ int networkStart(){
 
 
 void sendOneConn(int servFd){
-	ClientConnect pkt = ClientConnect(clientInfo.username.c_str());
+	ClientConnect pkt = ClientConnect(clientInfo.username);
 	pkt.serialize(writeBuf);
 
 	// Write to fd
@@ -314,7 +314,7 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 }
 
 void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context){
-	vector<chtype> formattedStr = formatPktMessage(pkt);
+	vector<chtype> formattedStr = formatMessage(pkt.msg, pkt.username);
 
 	{
 		unique_lock lock(msgMtx);
