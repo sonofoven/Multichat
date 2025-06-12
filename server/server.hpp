@@ -1,8 +1,4 @@
 #include <netinet/in.h>
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <errno.h>
 #include <signal.h>
 
@@ -22,7 +18,6 @@
 #include "../protocol.hpp"
 
 #define BACKLOG_MAX 20
-#define MAX_EVENTS 30
 #define MAX_BUF_SIZE 65536
 
 using namespace std;

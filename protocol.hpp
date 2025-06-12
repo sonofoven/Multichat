@@ -6,11 +6,16 @@
 #include <string>
 #include <list>
 #include <unordered_map>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #define PORT    8080
 #define CHUNK   4096
 #define MAXMSG  512
 #define NAMELEN 16
+#define MAX_EVENTS 30
 
 using std::vector;
 using std::unordered_map;
@@ -145,3 +150,6 @@ void registerPackets();
 Packet* instancePacketFromData(const uint8_t* data);
 
 size_t parsePacketLen(uint8_t* data);
+
+void epollModify(int epollFd, int fd, int ops, int func);
+

@@ -49,7 +49,6 @@ int main(){
 				cerr << "epoll wait" << endl;
                 break;
             }
-            // if EINTR but gquit==0
             continue;
         }
 
@@ -147,39 +146,22 @@ void addFdToEpoll(int fd){
 	// Set the file descriptor to nonblocking
 	fcntl(fd, F_SETFL, O_NONBLOCK);
 
-	// Set event to check input and set as edge triggered
-	epoll_event event;
-	event.events = EPOLLIN | EPOLLET | EPOLLHUP | EPOLLERR;
-	event.data.fd = fd;
+	int options = EPOLLIN | EPOLLET | EPOLLHUP | EPOLLERR;
 
-	// Add fd to epoll
-	if (epoll_ctl(epollFd, EPOLL_CTL_ADD, fd, &event)){
-		perror("Failed to add fd to epoll");
-		close(epollFd);
-		exit(1);
-	}
+	epollModify(epollFd, fd, options, EPOLL_CTL_ADD);
 
-	clientMap[fd].epollMask = event.events;
+	clientMap[fd].epollMask = options;
 
 	//cout << "Adding " << fd << " to epoll fd" << endl;
 
 }
 
 void modFdEpoll(int fd, int ops){
+	int options = ops | EPOLLET;
 	
-	// Set event to new ops, make sure EPOLLET is set regardless
-	epoll_event event;
-	event.events = ops | EPOLLET;
-	event.data.fd = fd;
-
-	// Add fd to epoll
-	if (epoll_ctl(epollFd, EPOLL_CTL_MOD, fd, &event)){
-		perror("Failed to modify fd in epoll");
-		close(epollFd);
-		exit(1);
-	}
-
-	clientMap[fd].epollMask = event.events;
+	epollModify(epollFd, fd, options, EPOLL_CTL_MOD);
+	
+	clientMap[fd].epollMask = options;
 
 	//cout << "Modding " << fd  << endl;
 

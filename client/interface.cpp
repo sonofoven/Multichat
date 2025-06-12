@@ -112,93 +112,121 @@ Win createInputWin(){
 								  false,
 								  true);
 
+	nodelay(window.textWin, TRUE);
 	keypad(window.textWin, TRUE);
 
 	return window;
 }
 
-string getWindowInput(Win& window, UiContext& context){
-	WINDOW* win = window.textWin;
+void handleCh(UiContext& context, int ch, int servFd){
+
+	Win& inWin = *context.inputWin;
+	WINDOW* inWindow = inWin.textWin;
+
 	int row, col;
-	getmaxyx(win, row, col);
+	getmaxyx(inWindow, row, col);
 
-	string outBuf;
-
-	wmove(win, 0, 0); // Move to the beginning of the window
 	curs_set(2); // Make the cursor visible
 
 	size_t maxChar = min(MAXMSG, (row * col));
 
-	int ch; // Hold input one at a time
 	int y, x; // Current y and x pos
-	getyx(win, y, x);
+	getyx(inWindow, y, x);
 
+	// Handle Backspace
+	if (ch == 127 || ch == KEY_DC || ch == 8 || ch == KEY_BACKSPACE){ 
 
-	while((ch = wgetch(win)) != '\n'){
-
-		if (ch == 127 || ch == KEY_DC || ch == 8 || ch == KEY_BACKSPACE){ 
-
-			// Backspace
-			if (outBuf.size() <= 0){
-				// If there is nothing, don't do anything
-				continue;
-			}
-
-			// Remove the last of the input
-			outBuf.pop_back();
-
-			if (x <= 0){
-
-				// If at left edge
-				wmove(win, y - 1, col - 1);
-				waddch(win, ' ');
-
-				y--;
-				wmove(win, y, col - 1);
-				x = col - 1;
-
-			} else {
-				// Normal deletion
-				wmove(win, y, x - 1);
-				waddch(win, ' ');
-				wmove(win, y, x - 1);
-				x--;
-			}
-
-			continue;
+		// Backspace
+		if (inputBuf.size() <= 0){
+			// If there is nothing, don't do anything
+			return;
 		}
 
+		// Remove the last of the input
+		inputBuf.pop_back();
 
+		if (x <= 0){
 
-		if (outBuf.size() >= maxChar){
-			// Can't add no more
-			continue;
+			// If at left edge
+			wmove(inWindow, y - 1, col - 1);
+			waddch(inWindow, ' ');
 
-		} else if (x >= col - 1){
-
-			// If hit the end of the line
-			waddch(win, ch);
-			wmove(win, y + 1, 0);
-			x = 0;
-			y++;
+			y--;
+			wmove(inWindow, y, col - 1);
+			x = col - 1;
 
 		} else {
-
-			// Normal movement
-			waddch(win, ch);
-			wmove(win, y, x + 1);
-			x++;
+			// Normal deletion
+			wmove(inWindow, y, x - 1);
+			waddch(inWindow, ' ');
+			wmove(inWindow, y, x - 1);
+			x--;
 		}
-
-		outBuf.push_back(ch);
+		wrefresh(inWindow);
 	}
 
-	// Clear window and reset
-	werase(win);
-	wmove(win, 0, 0);
-	wrefresh(win);
+	// Handle enter
+	if (ch == '\n'){
+		if (inputBuf.empty()){
+			return;
+		}
 
-	return outBuf;
+		// Clear the window
+		werase(inWindow);
+		wmove(inWindow, 0, 0);
+		wrefresh(inWindow);
+		
+		// Format string and output it
+		vector<chtype> formatStr = formatMessage(inputBuf, clientInfo.username);
+		appendToWindow(*context.msgWin, formatStr, 1);
+		wrefresh(context.msgWin->textWin);
+
+		// Append packet to writeBuf
+		ClientBroadMsg pkt = ClientBroadMsg(inputBuf);
+		pkt.serialize(writeBuf);
+
+		// If initial send didn't work, mark fd for output checking
+		ssize_t sent = write(servFd, writeBuf.data(), writeBuf.size());
+		if (sent > 0){
+			writeBuf.erase(writeBuf.begin(), writeBuf.begin() + sent);	
+
+		} else if (sent < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+			//Big error, handle
+			perror("Init write");
+			exit(1);
+		}
+
+		if (!writeBuf.empty()) {
+			epollModify(epollFd, servFd, EPOLLIN|EPOLLOUT|EPOLLET|EPOLLHUP|EPOLLERR, EPOLL_CTL_MOD);
+		}
+		
+		inputBuf.clear();
+
+		return;
+		
+	}
+
+	if (inputBuf.size() >= maxChar){
+		// Can't add no more
+		return;
+
+	} else if (x >= col - 1){
+
+		// If hit the end of the line
+		waddch(inWindow, ch);
+		wmove(inWindow, y + 1, 0);
+		x = 0;
+		y++;
+
+	} else {
+
+		// Normal movement
+		waddch(inWindow, ch);
+		wmove(inWindow, y, x + 1);
+		x++;
+	}
+	wrefresh(inWindow);
+
 }
 
 vector<chtype> formatMessage(string& message, string& username){

@@ -211,6 +211,7 @@ ServerBroadMsg::ServerBroadMsg(string& usr, string& message){
 
 	username = usr;
 	
+	// We don't care about the message anymore
 	msg = message;
 	time(&timestamp);
 }
@@ -296,3 +297,15 @@ size_t parsePacketLen(uint8_t* data){
 	return length;
 }
 
+
+void epollModify(int epollFd, int fd, int ops, int func){
+	epoll_event event;
+	event.events = ops;
+	event.data.fd = fd;
+
+	if (epoll_ctl(epollFd, func, fd, &event)){
+		perror("Failed to modify fd in epoll");
+		close(epollFd);
+		exit(1);
+	}
+}

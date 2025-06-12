@@ -1,33 +1,33 @@
 #include "client.hpp"
 
-// The multiple threads
-void dealThreads(int servFd, UiContext& context){
+//// The multiple threads
+//void dealThreads(int servFd, UiContext& context){
+//
+//	thread readT(readThread, servFd, ref(context));
+//	thread writeT(writeThread, servFd);
+//
+//	readT.detach();
+//	writeT.detach();
+//	updateUserWindow(context);
+//}
 
-	thread readT(readThread, servFd, ref(context));
-	thread writeT(writeThread, servFd);
-
-	readT.detach();
-	writeT.detach();
-	updateUserWindow(context);
-}
-
-void userInput(UiContext& context){
-	string message = getWindowInput(*context.inputWin, context);
-	ClientBroadMsg pkt = ClientBroadMsg(message);
-	
-	{
-		unique_lock lock(writeMtx);
-		pkt.serialize(writeBuf);
-	}
-	writeCv.notify_one();
-
-	vector<chtype> formattedStr = formatMessage(message, clientInfo.username);
-	
-	{
-		unique_lock lock(msgMtx);
-		appendToWindow(*context.msgWin, formattedStr, 1);
-	}
-}
+//void userInput(UiContext& context){
+//	string message = getWindowInput(*context.inputWin, context);
+//	ClientBroadMsg pkt = ClientBroadMsg(message);
+//	
+//	{
+//		unique_lock lock(writeMtx);
+//		pkt.serialize(writeBuf);
+//	}
+//	writeCv.notify_one();
+//
+//	vector<chtype> formattedStr = formatMessage(message, clientInfo.username);
+//	
+//	{
+//		unique_lock lock(msgMtx);
+//		appendToWindow(*context.msgWin, formattedStr, 1);
+//	}
+//}
 
 int startUp(){
 	int servFd = networkStart();
@@ -150,76 +150,76 @@ bool recvOneVal(int servFd){
 	return retVal;
 }
 
-void readThread(int servFd, UiContext& context){
-	// Sleep controlled by the read/write of the socket
+//void readThread(int servFd, UiContext& context){
+//	// Sleep controlled by the read/write of the socket
+//
+//	// Read what there is to the global readBuf (change global to pass in)
+//
+//	size_t fullPacketLen;
+//
+//	while(1){
+//		uint8_t buf[CHUNK];
+//		ssize_t n;
+//		while ((n = read(servFd, buf, CHUNK)) > 0){
+//			// Insert onto end of read buffer
+//			readBuf.insert(readBuf.end(), buf, buf + n);
+//		}
+//
+//		// ERROR handling later
+//		if (n < 0){
+//			continue;
+//		}
+//
+//
+//		if (readBuf.size() < Packet::headerLen){
+//			continue;
+//		}
+//		
+//		fullPacketLen = parsePacketLen(readBuf.data());
+//
+//		// Wait for full packet
+//		if (readBuf.size() >= fullPacketLen){
+//			Packet* pkt = instancePacketFromData(readBuf.data());
+//
+//			// Switch depending on opcode
+//			protocolParser(pkt, context);
+//
+//			// Remove the packet from the read queue
+//			readBuf.erase(readBuf.begin(), readBuf.begin() + fullPacketLen);
+//
+//		}
+//	}
+//}
 
-	// Read what there is to the global readBuf (change global to pass in)
-
-	size_t fullPacketLen;
-
-	while(1){
-		uint8_t buf[CHUNK];
-		ssize_t n;
-		while ((n = read(servFd, buf, CHUNK)) > 0){
-			// Insert onto end of read buffer
-			readBuf.insert(readBuf.end(), buf, buf + n);
-		}
-
-		// ERROR handling later
-		if (n < 0){
-			continue;
-		}
-
-
-		if (readBuf.size() < Packet::headerLen){
-			continue;
-		}
-		
-		fullPacketLen = parsePacketLen(readBuf.data());
-
-		// Wait for full packet
-		if (readBuf.size() >= fullPacketLen){
-			Packet* pkt = instancePacketFromData(readBuf.data());
-
-			// Switch depending on opcode
-			protocolParser(pkt, context);
-
-			// Remove the packet from the read queue
-			readBuf.erase(readBuf.begin(), readBuf.begin() + fullPacketLen);
-
-		}
-	}
-}
-
-void writeThread(int servFd){
-	while(1){
-		vector<uint8_t> writeData;
-
-		{
-			// Lock the thread
-			unique_lock lock(writeMtx);
-			// Unlock til notified and writeBuf aint empty
-			writeCv.wait(lock, []{return !writeBuf.empty(); });
-			// Move writeBuf data to writeData and visa versa
-			writeBuf.swap(writeData);
-			// ^ This clears the writeBuf btw
-		}
-
-		// Write to fd
-		ssize_t total = writeData.size();
-		ssize_t sent = 0;
-		while (total > sent){
-			ssize_t n = write(servFd, writeData.data() + sent, total - sent);
-
-			if (n < 0){
-				// Write err
-				cerr << "Error writing" << endl;
-				break;
-			}
-			sent += n;
-		}
-	}
-}
+//void writeThread(int servFd){
+//	while(1){
+//		vector<uint8_t> writeData;
+//
+//		{
+//			// Lock the thread
+//			unique_lock lock(writeMtx);
+//			// Unlock til notified and writeBuf aint empty
+//			writeCv.wait(lock, []{return !writeBuf.empty(); });
+//			// Move writeBuf data to writeData and visa versa
+//			writeBuf.swap(writeData);
+//			// ^ This clears the writeBuf btw
+//		}
+//
+//		// Write to fd
+//		ssize_t total = writeData.size();
+//		ssize_t sent = 0;
+//		while (total > sent){
+//			ssize_t n = write(servFd, writeData.data() + sent, total - sent);
+//
+//			if (n < 0){
+//				// Write err
+//				cerr << "Error writing" << endl;
+//				break;
+//			}
+//			sent += n;
+//		}
+//	}
+//}
 
 
 int protocolParser(Packet* pkt, UiContext& context){
@@ -303,10 +303,7 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 
 	vector<chtype> formattedStr = formatDisMessage(pkt.username);
 	
-	{
-		unique_lock lock(msgMtx);
-		appendToWindow(*context.msgWin, formattedStr, 1);
-	}
+	appendToWindow(*context.msgWin, formattedStr, 1);
 
 	// Update the users window
 	updateUserWindow(context);
@@ -316,10 +313,7 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context){
 	vector<chtype> formattedStr = formatMessage(pkt.msg, pkt.username);
 
-	{
-		unique_lock lock(msgMtx);
-		appendToWindow(*context.msgWin, formattedStr, 1);
-	}
+	appendToWindow(*context.msgWin, formattedStr, 1);
 }
 
 void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
@@ -333,10 +327,7 @@ void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
 
 	vector<chtype> formattedStr = formatDisMessage(pkt.username);
 
-	{
-		unique_lock lock(msgMtx);
-		appendToWindow(*context.msgWin, formattedStr, 1);
-	}
+	appendToWindow(*context.msgWin, formattedStr, 1);
 
 	// Update the users window
 	updateUserWindow(context);

@@ -23,17 +23,13 @@
 
 using namespace std;
 
-extern list<string> userConns; // List of users connected to server
+// List of users connected to server
+extern list<string> userConns; 
 
-	// Store usernames connected
 extern vector<uint8_t> readBuf;
-
-extern mutex writeMtx; // Activate the writeBuf
-extern condition_variable writeCv; 
 extern vector<uint8_t> writeBuf;
-
-extern mutex msgMtx; // May need to add a queue but should be good 4 now
-
+extern string inputBuf;
+extern int epollFd;
 
 struct Win{
 	WINDOW* bordWin;		
@@ -93,13 +89,13 @@ vector<chtype> formatConMessage(string& username);
 string getWindowInput(Win& window, UiContext& context);
 void appendToWindow(Win& window, vector<chtype> inputVec, int prescroll);
 
-void readThread(int servFd, UiContext& context);
-void writeThread(int servFd);
-
 int protocolParser(Packet* pkt, UiContext& context);
-void userInput(UiContext& context);
 
 void updateUserWindow(UiContext& context);
+
+void handleCh(UiContext& context, int ch, int servFd);
+void handleWrite(int servFd, UiContext& context);
+void handleRead(int servFd, UiContext& context);
 
 void serverValidate(ServerValidate& pkt, UiContext& context);
 void serverConnect(ServerConnect& pkt, UiContext& context);
@@ -118,4 +114,3 @@ int startUp();
 void sendOneConn(int servFd);
 
 bool recvOneVal(int servFd);
-

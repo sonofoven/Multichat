@@ -5,10 +5,10 @@ vector<uint8_t> readBuf;
 connInfo clientInfo;
 
 vector<uint8_t> writeBuf;
-mutex writeMtx;
-condition_variable writeCv;
+string inputBuf;
 
-mutex msgMtx;
+
+int epollFd;
 
 int main() {
 	registerPackets();
@@ -33,15 +33,73 @@ int main() {
 
 	cout << "Connection Validated" << endl;
 
-	UiContext uiContext = interfaceStart();
 
-	//Arbitrary thread #
-	dealThreads(servFd, uiContext);
+	// Set up epoll for both server and key input
 
-	while(1){
-		userInput(uiContext);
+	epollFd = -1;
+	epoll_event events[MAX_EVENTS];
+
+	// Create our epoll instance
+	epollFd = epoll_create1(0);
+	if (epollFd == -1){
+		perror("Epoll creation failure");
+		exit(1);
 	}
 
+	UiContext uiContext = interfaceStart();
 
+	fcntl(servFd, F_SETFL, O_NONBLOCK);
+	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	epollModify(epollFd, servFd, EPOLLIN | EPOLLET | EPOLLHUP | EPOLLERR, EPOLL_CTL_ADD);
+	epollModify(epollFd, STDIN_FILENO, EPOLLIN | EPOLLET, EPOLL_CTL_ADD);
+
+	while (1){
+        int eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
+        if (eventCount == -1) {
+            if (errno == EINTR) {
+                break;
+            } else if (errno != EINTR) {
+				cerr << "epoll wait" << endl;
+                break;
+            }
+            continue;
+        }
+
+
+		for (int i = 0; i < eventCount; i++){
+
+			int fd = events[i].data.fd;
+			uint32_t event = events[i].events;
+
+			if (fd == servFd){
+				// If something happened w/ serverfd
+				if (event & (EPOLLHUP | EPOLLERR)){
+					// Server dying event
+					close(epollFd);
+					close(servFd);
+					endwin();
+					exit(1);
+
+				} else if (event & EPOLLOUT){
+					// Write event
+					//handleWrite(servFd, uiContext);
+
+				} else {
+					// Read event
+					//handleRead(servFd, uiContext);
+				}
+
+			} else {
+				// If something happened w/ keyboard input
+				int ch;
+				while ((ch = wgetch(uiContext.inputWin->textWin) != ERR)){
+					handleCh(uiContext, ch, servFd);
+				}
+			}
+		}
+	}
+
+	close(epollFd);
+	close(servFd);
 	endwin();
 }
