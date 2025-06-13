@@ -170,7 +170,6 @@ void modFdEpoll(int fd, int ops){
 int handleRead(clientConn& client){
 	cout << "Reading packet from "<< client.username << endl;
 
-	size_t headerSize = 2 * sizeof(uint16_t);
 
 	vector<uint8_t>& readBuf = client.readBuf;
 	vector<uint8_t>& writeBuf = client.writeBuf;
@@ -179,14 +178,14 @@ int handleRead(clientConn& client){
 
 
 	// Do all the reading here
-	if(drainReadPipe(client.fd, client) != 0){
+	if (drainReadPipe(client.fd, client) != 0){
 		return -1;
 	}
 
 	// If we don't even have a full header
 	while(1){
 
-		if (readBuf.size() < headerSize){
+		if (readBuf.size() < Packet::headerLen){
 			return 0;
 		}
 		
@@ -217,6 +216,32 @@ int handleRead(clientConn& client){
 			return 0;
 		}
 	}
+}
+
+int drainReadPipe(int fd, clientConn& client){
+	uint8_t buf[CHUNK];
+	ssize_t n;
+
+	// Read til pipe is empty
+	while ((n = read(fd, buf, CHUNK)) > 0){
+		// Insert onto end of read buffer
+		client.readBuf.insert(client.readBuf.end(), buf, buf + n);
+	}
+
+	// Can't read any more
+	if (n == 0){
+		// Conn closed
+		return -1;
+	} else if (n < 0){
+		if (errno == EAGAIN || errno == EWOULDBLOCK){
+			return 0;
+		} else {
+			perror("Read pipe drain");
+			return -1;
+		}
+	}
+
+	return 0;
 }
 
 int handleWrite(clientConn& client){
@@ -260,31 +285,6 @@ int handleWrite(clientConn& client){
 }
 
 
-int drainReadPipe(int fd, clientConn& client){
-	uint8_t buf[CHUNK];
-	ssize_t n;
-
-	// Read til pipe is empty
-	while ((n = read(fd, buf, CHUNK)) > 0){
-		// Insert onto end of read buffer
-		client.readBuf.insert(client.readBuf.end(), buf, buf + n);
-	}
-
-	// Can't read any more
-	if (n == 0){
-		// Conn closed
-		return -1;
-	} else if (n < 0){
-		if (errno == EAGAIN || errno == EWOULDBLOCK){
-			return 0;
-		} else {
-			perror("Read pipe drain");
-			return -1;
-		}
-	}
-
-	return 0;
-}
 
 int protocolParser(Packet* pkt, clientConn& sender){
 	int exitCode = 0;

@@ -1,34 +1,5 @@
 #include "client.hpp"
 
-//// The multiple threads
-//void dealThreads(int servFd, UiContext& context){
-//
-//	thread readT(readThread, servFd, ref(context));
-//	thread writeT(writeThread, servFd);
-//
-//	readT.detach();
-//	writeT.detach();
-//	updateUserWindow(context);
-//}
-
-//void userInput(UiContext& context){
-//	string message = getWindowInput(*context.inputWin, context);
-//	ClientBroadMsg pkt = ClientBroadMsg(message);
-//	
-//	{
-//		unique_lock lock(writeMtx);
-//		pkt.serialize(writeBuf);
-//	}
-//	writeCv.notify_one();
-//
-//	vector<chtype> formattedStr = formatMessage(message, clientInfo.username);
-//	
-//	{
-//		unique_lock lock(msgMtx);
-//		appendToWindow(*context.msgWin, formattedStr, 1);
-//	}
-//}
-
 int startUp(){
 	int servFd = networkStart();
 	if(servFd < 0){
@@ -150,77 +121,88 @@ bool recvOneVal(int servFd){
 	return retVal;
 }
 
-//void readThread(int servFd, UiContext& context){
-//	// Sleep controlled by the read/write of the socket
-//
-//	// Read what there is to the global readBuf (change global to pass in)
-//
-//	size_t fullPacketLen;
-//
-//	while(1){
-//		uint8_t buf[CHUNK];
-//		ssize_t n;
-//		while ((n = read(servFd, buf, CHUNK)) > 0){
-//			// Insert onto end of read buffer
-//			readBuf.insert(readBuf.end(), buf, buf + n);
-//		}
-//
-//		// ERROR handling later
-//		if (n < 0){
-//			continue;
-//		}
-//
-//
-//		if (readBuf.size() < Packet::headerLen){
-//			continue;
-//		}
-//		
-//		fullPacketLen = parsePacketLen(readBuf.data());
-//
-//		// Wait for full packet
-//		if (readBuf.size() >= fullPacketLen){
-//			Packet* pkt = instancePacketFromData(readBuf.data());
-//
-//			// Switch depending on opcode
-//			protocolParser(pkt, context);
-//
-//			// Remove the packet from the read queue
-//			readBuf.erase(readBuf.begin(), readBuf.begin() + fullPacketLen);
-//
-//		}
-//	}
-//}
+void handleRead(int servFd, UiContext& context){
+	// Reading
 
-//void writeThread(int servFd){
-//	while(1){
-//		vector<uint8_t> writeData;
-//
-//		{
-//			// Lock the thread
-//			unique_lock lock(writeMtx);
-//			// Unlock til notified and writeBuf aint empty
-//			writeCv.wait(lock, []{return !writeBuf.empty(); });
-//			// Move writeBuf data to writeData and visa versa
-//			writeBuf.swap(writeData);
-//			// ^ This clears the writeBuf btw
-//		}
-//
-//		// Write to fd
-//		ssize_t total = writeData.size();
-//		ssize_t sent = 0;
-//		while (total > sent){
-//			ssize_t n = write(servFd, writeData.data() + sent, total - sent);
-//
-//			if (n < 0){
-//				// Write err
-//				cerr << "Error writing" << endl;
-//				break;
-//			}
-//			sent += n;
-//		}
-//	}
-//}
+	if (drainReadFd(servFd) != 0){
+		return;
+	}
 
+	while(readBuf.size() >= Packet::headerLen){
+
+		size_t fullPacketLen = parsePacketLen(readBuf.data());
+
+		if (fullPacketLen < Packet::headerLen){
+			//cerr << "Lying runt" << endl;
+			// Kill one byte until hopefully it works
+			readBuf.erase(readBuf.begin());
+			continue;
+		}
+
+
+		// Wait for full packet
+		if (readBuf.size() >= fullPacketLen){
+			Packet* pkt = instancePacketFromData(readBuf.data());
+
+			if (!pkt){
+				//cerr << "Packet cannot be instanced" << endl;
+				readBuf.erase(readBuf.begin(), readBuf.begin() + fullPacketLen);
+				continue;
+			}
+
+			// Switch depending on opcode
+			protocolParser(pkt, context);
+
+			// Remove the packet from the read queue
+			readBuf.erase(readBuf.begin(), readBuf.begin() + fullPacketLen);
+		} else {
+			break;
+		}
+	}
+}
+
+int drainReadFd(int servFd){
+	uint8_t buf[CHUNK];
+	ssize_t n;
+
+	// Read til pipe is empty
+	while ((n = read(servFd, buf, CHUNK)) > 0){
+		// Insert onto end of read buffer
+		readBuf.insert(readBuf.end(), buf, buf + n);
+	}
+
+	// Can't read any more
+	if (n == 0){
+		// Conn closed
+		return -1;
+	} else if (n < 0){
+		if (errno == EAGAIN || errno == EWOULDBLOCK){
+			return 0;
+		} else {
+			//perror("Read pipe drain");
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+void handleWrite(int servFd){
+	ssize_t sent = write(servFd, writeBuf.data(), writeBuf.size());
+	if (sent > 0){
+		writeBuf.erase(writeBuf.begin(), writeBuf.begin() + sent);	
+	} else if (sent < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+		//Big error, handle
+		//perror("Backupwrite write");
+		exit(1);
+	}
+
+	if (!writeBuf.empty()) {
+		epollModify(epollFd, servFd, EPOLLIN|EPOLLOUT|EPOLLET|EPOLLHUP|EPOLLERR, EPOLL_CTL_MOD);
+	} else {
+		epollModify(epollFd, servFd, EPOLLIN|EPOLLET|EPOLLHUP|EPOLLERR, EPOLL_CTL_MOD);
+	}
+}
 
 int protocolParser(Packet* pkt, UiContext& context){
 	int exitCode = 0;
@@ -228,7 +210,6 @@ int protocolParser(Packet* pkt, UiContext& context){
 
 	switch(opcode){
 		case SMG_VALIDATE: {
-			cerr << "OPCODE: VALIDATION" << endl;
 
 			ServerValidate* serverPacket = static_cast<ServerValidate*>(pkt);
 
@@ -237,7 +218,6 @@ int protocolParser(Packet* pkt, UiContext& context){
 		}
 
 		case SMG_CONNECT: {
-			cerr << "OPCODE: CONNECTION" << endl;
 
 			ServerConnect* serverPacket = static_cast<ServerConnect*>(pkt);
 
@@ -247,7 +227,6 @@ int protocolParser(Packet* pkt, UiContext& context){
 		}
 
 		case SMG_BROADMSG: {
-			cerr << "OPCODE: BROAD MESSAGE" << endl;
 
 			ServerBroadMsg* serverPacket = static_cast<ServerBroadMsg*>(pkt);
 
@@ -258,7 +237,6 @@ int protocolParser(Packet* pkt, UiContext& context){
 
 
 		case SMG_DISCONNECT: {
-			cerr << "OPCODE: DISCONNECTION" << endl;
 
 			ServerDisconnect* serverPacket = static_cast<ServerDisconnect*>(pkt);
 
@@ -268,7 +246,6 @@ int protocolParser(Packet* pkt, UiContext& context){
 		}
 
 		default: {
-			cerr << "Unknown opcode" << endl;
 			exitCode = -1;
 		}
 	}
@@ -300,8 +277,7 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 
 	// Sort in inverse alphabetical order (this is because how its printed)
 	userConns.sort(greater<string>());
-
-	vector<chtype> formattedStr = formatDisMessage(pkt.username);
+	vector<chtype> formattedStr = formatConMessage(pkt.username);
 	
 	appendToWindow(*context.msgWin, formattedStr, 1);
 

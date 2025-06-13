@@ -80,19 +80,25 @@ int main() {
 					endwin();
 					exit(1);
 
-				} else if (event & EPOLLOUT){
-					// Write event
-					//handleWrite(servFd, uiContext);
+				}
 
-				} else {
+				if (event & EPOLLOUT){
+					// Write event
+					handleWrite(servFd);
+
+				}
+
+				if (event & EPOLLIN){
 					// Read event
-					//handleRead(servFd, uiContext);
+					handleRead(servFd, uiContext);
 				}
 
 			} else {
 				// If something happened w/ keyboard input
 				int ch;
-				while ((ch = wgetch(uiContext.inputWin->textWin) != ERR)){
+
+				curs_set(2); // Make the cursor visible
+				while ((ch = wgetch(uiContext.inputWin->textWin)) != ERR){
 					handleCh(uiContext, ch, servFd);
 				}
 			}

@@ -176,11 +176,11 @@ void ServerConnect::serialize(vector<uint8_t>& buffer) {
 }
 
 ServerConnect::ServerConnect(string& usr){
-	length = headerLen + usr.size() + 1;
+	time(&timestamp);
+	length = headerLen + usr.size() + sizeof(timestamp) + 1;
 	opcode = SMG_CONNECT;
 
 	username = usr;
-	time(&timestamp);
 }
 
 ServerConnect::ServerConnect(){}
@@ -206,14 +206,14 @@ void ServerBroadMsg::serialize(vector<uint8_t>& buffer) {
 }
 
 ServerBroadMsg::ServerBroadMsg(string& usr, string& message){
-	length = headerLen + usr.size() + message.size() + 2;
+	time(&timestamp);
+	length = headerLen + usr.size() + message.size() + sizeof(timestamp) + 2;
 	opcode = SMG_BROADMSG;
 
 	username = usr;
 	
 	// We don't care about the message anymore
 	msg = message;
-	time(&timestamp);
 }
 
 ServerBroadMsg::ServerBroadMsg(){}
@@ -236,11 +236,11 @@ void ServerDisconnect::serialize(vector<uint8_t>& buffer) {
 }
 
 ServerDisconnect::ServerDisconnect(string& usr){
-	length = headerLen + usr.size() + 1;
+	time(&timestamp);
+	length = headerLen + usr.size() + sizeof(timestamp) + 1;
 	opcode = SMG_DISCONNECT;
 
 	username = usr;
-	time(&timestamp);
 }
 
 ServerDisconnect::ServerDisconnect(){}

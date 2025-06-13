@@ -23,6 +23,13 @@
 
 using namespace std;
 
+// For storing connection information
+struct connInfo{
+	string addr = "127.0.0.1";
+	uint16_t port = 8080;
+	string username = "Jimmy";
+};
+
 // List of users connected to server
 extern list<string> userConns; 
 
@@ -56,12 +63,6 @@ struct UiContext{
 			  inputWin(i) {}
 };
 
-// For storing connection information
-struct connInfo{
-	string addr = "127.0.0.1";
-	uint16_t port = 8080;
-	string username = "Dimmy";
-};
 
 extern connInfo clientInfo;
 
@@ -94,8 +95,9 @@ int protocolParser(Packet* pkt, UiContext& context);
 void updateUserWindow(UiContext& context);
 
 void handleCh(UiContext& context, int ch, int servFd);
-void handleWrite(int servFd, UiContext& context);
 void handleRead(int servFd, UiContext& context);
+void handleWrite(int servFd);
+int drainReadFd(int servFd);
 
 void serverValidate(ServerValidate& pkt, UiContext& context);
 void serverConnect(ServerConnect& pkt, UiContext& context);

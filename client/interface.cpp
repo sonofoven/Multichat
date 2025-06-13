@@ -15,7 +15,8 @@ UiContext interfaceStart(){
 	messages = createMsgWin();
 	users = createUserWin();
 
-	static UiContext uiContext = UiContext(&users, &messages, &input);
+	UiContext uiContext = UiContext(&users, &messages, &input);
+	updateUserWindow(uiContext);
 
 	return uiContext;
 }
@@ -119,6 +120,7 @@ Win createInputWin(){
 }
 
 void handleCh(UiContext& context, int ch, int servFd){
+	refresh();
 
 	Win& inWin = *context.inputWin;
 	WINDOW* inWindow = inWin.textWin;
@@ -126,18 +128,17 @@ void handleCh(UiContext& context, int ch, int servFd){
 	int row, col;
 	getmaxyx(inWindow, row, col);
 
-	curs_set(2); // Make the cursor visible
 
-	size_t maxChar = min(MAXMSG, (row * col));
+	size_t maxChar = min(MAXMSG, (row * col) - 1);
 
 	int y, x; // Current y and x pos
 	getyx(inWindow, y, x);
 
 	// Handle Backspace
-	if (ch == 127 || ch == KEY_DC || ch == 8 || ch == KEY_BACKSPACE){ 
+	if (ch == KEY_BACKSPACE || ch == 263){ 
 
 		// Backspace
-		if (inputBuf.size() <= 0){
+		if (inputBuf.empty()){
 			// If there is nothing, don't do anything
 			return;
 		}
@@ -145,28 +146,24 @@ void handleCh(UiContext& context, int ch, int servFd){
 		// Remove the last of the input
 		inputBuf.pop_back();
 
-		if (x <= 0){
-
+		if (x == 0 && y > 0){
 			// If at left edge
-			wmove(inWindow, y - 1, col - 1);
-			waddch(inWindow, ' ');
-
 			y--;
-			wmove(inWindow, y, col - 1);
 			x = col - 1;
 
 		} else {
-			// Normal deletion
-			wmove(inWindow, y, x - 1);
-			waddch(inWindow, ' ');
-			wmove(inWindow, y, x - 1);
 			x--;
 		}
+
+		wmove(inWindow, y, x);
+
+		wdelch(inWindow);
 		wrefresh(inWindow);
+		return;
 	}
 
 	// Handle enter
-	if (ch == '\n'){
+	if (ch == '\n' || ch == KEY_ENTER){
 		if (inputBuf.empty()){
 			return;
 		}
@@ -206,27 +203,29 @@ void handleCh(UiContext& context, int ch, int servFd){
 		
 	}
 
-	if (inputBuf.size() >= maxChar){
-		// Can't add no more
+	if (inputBuf.size() >= maxChar || (ch < 32 || ch >= 127)){
+		// Can't add no more or not a real char
 		return;
 
-	} else if (x >= col - 1){
+	} 
+
+	if (x >= col - 1){
 
 		// If hit the end of the line
 		waddch(inWindow, ch);
 		wmove(inWindow, y + 1, 0);
-		x = 0;
-		y++;
+		inputBuf.push_back(ch);
 
 	} else {
 
 		// Normal movement
 		waddch(inWindow, ch);
 		wmove(inWindow, y, x + 1);
-		x++;
+		inputBuf.push_back(ch);
 	}
-	wrefresh(inWindow);
 
+	wrefresh(inWindow);
+	return;
 }
 
 vector<chtype> formatMessage(string& message, string& username){
@@ -310,54 +309,25 @@ void appendToWindow(Win& window, vector<chtype> chTypeVec, int prescroll){
 }
 
 void updateUserWindow(UiContext& context){
-	Win window = *context.userWin;
-
-	WINDOW* win = window.textWin;
+	//mvprintw(0, 0, "FIRST IN THE LIST");
+	//mvprintw(1, 0, "%s", userConns.front().c_str());
+	WINDOW* win = context.userWin->textWin;
 
 	werase(win);
 
 	int row, col;
 	getmaxyx(win, row, col);
 
-	wmove(win, 0, 0); // Move to the top of the textWin
 	curs_set(0);
 
-	int y, x; // Current y and x pos
+	int y = 0;
 
-	getyx(win, y, x);
-
-
-	// Scroll down
-	wscrl(win, -1);
-
-	for (string& str : userConns){
-		for (char& ch : str){
-
-			// If you get to the end of the screen
-			if (x >= col - 1 || ch == '\0'){
-
-				// Place char
-				if (ch != '\0'){
-					window.screenBuf.push_back(ch);
-					waddch(win, ch);
-				}
-
-				// Go one row lower
-				x = 0;
-				y = row + 1;
-				wmove(win, y, x);
-
-
-			} else {
-
-				// Normal placement
-				window.screenBuf.push_back(ch);
-				waddch(win, ch);
-				wmove(win, y, x + 1);
-				x++;
-			}
-
+	for (const string& str : userConns){
+		if (y >= row){
+			break;
 		}
+
+		mvwprintw(win, y++, 0, "%s", str.c_str());
 	}
 	wrefresh(win);
 }
