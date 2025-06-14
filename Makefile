@@ -1,5 +1,5 @@
 CC      := g++
-CFLAGS  := -Wall -g -fPIC -pedantic -pthread
+CFLAGS  := -Wall -g -fPIC -pedantic
 
 PROTO_SRC := protocol.cpp
 
@@ -27,7 +27,7 @@ client: $(CLIENT_BIN)
 server: $(SERVER_BIN)
 
 $(CLIENT_BIN): $(CLIENT_SRCS) $(CLIENT_HDRS)
-	$(CC) $(CFLAGS) -o $@ $(CLIENT_SRCS) -pthread -lncursesw
+	$(CC) $(CFLAGS) -o $@ $(CLIENT_SRCS) -lncurses
 
 $(SERVER_BIN): $(SERVER_SRCS) $(SERVER_HDRS)
 	$(CC) $(CFLAGS) -o $@ $(SERVER_SRCS)

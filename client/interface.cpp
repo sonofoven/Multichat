@@ -327,7 +327,9 @@ void updateUserWindow(UiContext& context){
 			break;
 		}
 
-		mvwprintw(win, y++, 0, "%s", str.c_str());
+		wattron(win, A_BOLD);
+		mvwprintw(win, y++, 0, "[%s]", str.c_str());
+		wattroff(win, A_BOLD);
 	}
 	wrefresh(win);
 }

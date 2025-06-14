@@ -72,6 +72,7 @@ void clientServerMessage(ClientServMsg& pkt, clientConn& sender){
 
 
 void dropClient(int fd){
+	cout << "Attempting drop" << endl;
 	// Find client conn from fd
 	clientConn* cliPtr = lockFindCli(fd);
 
@@ -79,8 +80,8 @@ void dropClient(int fd){
 		killClient(fd);
 	}
 	
-	// If client registered w/ username
-	if (usernameExists(cliPtr->username) != ""){
+	// If client registered w/ a non-null username, inform others
+	if (cliPtr->username != "" && usernameExists(cliPtr->username) == ""){
 
 		// Inform log
 		cout << "Dropping user: " << cliPtr->username << endl;

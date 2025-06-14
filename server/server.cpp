@@ -39,11 +39,9 @@ int main(){
 
 	while (1){
 		// Get # of events captured instantaneously
-
         int eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
         if (eventCount == -1) {
             if (errno == EINTR) {
-                // our handler set g_quit ⇒ break out
                 break;
             } else if (errno != EINTR) {
 				cerr << "epoll wait" << endl;
@@ -327,6 +325,7 @@ int protocolParser(Packet* pkt, clientConn& sender){
 	}
 	return exitCode;
 }
+
 
 void acceptLoop(int listenFd){
 	int clientFd;

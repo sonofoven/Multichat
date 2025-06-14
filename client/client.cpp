@@ -33,7 +33,6 @@ int main() {
 
 	cout << "Connection Validated" << endl;
 
-
 	// Set up epoll for both server and key input
 
 	epollFd = -1;

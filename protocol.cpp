@@ -138,7 +138,7 @@ void ServerValidate::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
 	pushBack(buffer, able);
-	if (able == true){
+	if (able == true || !userList.empty()){
 		pushListBack(buffer, userList);
 	}
 }
@@ -149,8 +149,8 @@ ServerValidate::ServerValidate(bool a, unordered_map<string, int>& userMap){
 
 	able = a;
 	if (able == true){ // Only add the map if the conn is valid
-		list<string> userList;
 		for (auto i : userMap){
+			length += i.first.size() + 1;
 			userList.push_back(i.first);
 		}
 	}

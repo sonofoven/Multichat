@@ -114,6 +114,7 @@ bool recvOneVal(int servFd){
 	ServerValidate* serverVal = static_cast<ServerValidate*>(pkt);
 
 	bool retVal = serverVal->able;
+	userConns = move(serverVal->userList);
 
 	// Remove the packet from the read queue
 	readBuf.clear();
@@ -273,7 +274,7 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 	// Informs the user about client disconnect
 	string username(pkt.username);
 
-	userConns.remove(username);
+	userConns.push_back(username);
 
 	// Sort in inverse alphabetical order (this is because how its printed)
 	userConns.sort(greater<string>());

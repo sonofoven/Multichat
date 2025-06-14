@@ -4,7 +4,6 @@
 #include <unistd.h>
 
 #include <cstring>
-#include <iostream>
 #include <vector>
 #include <list>
 #include <queue>
@@ -27,7 +26,7 @@ using namespace std;
 struct connInfo{
 	string addr = "127.0.0.1";
 	uint16_t port = 8080;
-	string username = "Jimmy";
+	string username = "Kimmy";
 };
 
 // List of users connected to server
