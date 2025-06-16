@@ -278,7 +278,7 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 
 	// Sort in inverse alphabetical order (this is because how its printed)
 	userConns.sort(greater<string>());
-	vector<chtype> formattedStr = formatConMessage(pkt.username);
+	vector<chtype> formattedStr = formatConMessage(pkt.timestamp, pkt.username);
 	
 	appendToWindow(*context.msgWin, formattedStr, 1);
 
@@ -288,7 +288,7 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 }
 
 void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context){
-	vector<chtype> formattedStr = formatMessage(pkt.msg, pkt.username);
+	vector<chtype> formattedStr = formatMessage(pkt.timestamp, pkt.msg, pkt.username);
 
 	appendToWindow(*context.msgWin, formattedStr, 1);
 }
@@ -302,7 +302,7 @@ void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
 	// Sort in inverse alphabetical order (this is because how its printed)
 	userConns.sort(greater<string>());
 
-	vector<chtype> formattedStr = formatDisMessage(pkt.username);
+	vector<chtype> formattedStr = formatDisMessage(pkt.timestamp, pkt.username);
 
 	appendToWindow(*context.msgWin, formattedStr, 1);
 

@@ -1,6 +1,5 @@
 #include "client.hpp"
 
-
 UiContext interfaceStart(){
 	static Win users, input, messages;
 
@@ -135,7 +134,7 @@ void handleCh(UiContext& context, int ch, int servFd){
 	getyx(inWindow, y, x);
 
 	// Handle Backspace
-	if (ch == KEY_BACKSPACE || ch == 263){ 
+	if (ch == KEY_BACKSPACE){ 
 
 		// Backspace
 		if (inputBuf.empty()){
@@ -163,7 +162,7 @@ void handleCh(UiContext& context, int ch, int servFd){
 	}
 
 	// Handle enter
-	if (ch == '\n' || ch == KEY_ENTER){
+	if (ch == KEY_ENTER){
 		if (inputBuf.empty()){
 			return;
 		}
@@ -174,7 +173,7 @@ void handleCh(UiContext& context, int ch, int servFd){
 		wrefresh(inWindow);
 		
 		// Format string and output it
-		vector<chtype> formatStr = formatMessage(inputBuf, clientInfo.username);
+		vector<chtype> formatStr = formatMessage(time(NULL), inputBuf, clientInfo.username);
 		appendToWindow(*context.msgWin, formatStr, 1);
 		wrefresh(context.msgWin->textWin);
 
@@ -228,9 +227,12 @@ void handleCh(UiContext& context, int ch, int servFd){
 	return;
 }
 
-vector<chtype> formatMessage(string& message, string& username){
+vector<chtype> formatMessage(time_t time, string& message, string& username){
 	vector<chtype> outBuf;
 
+	pushBackStr(formatTime(time), outBuf, A_DIM);
+
+	outBuf.push_back((chtype)' ' | A_BOLD);
 	outBuf.push_back((chtype)'[' | A_BOLD);
 
 	// Append username to the beginning of the message in bold
@@ -250,9 +252,11 @@ vector<chtype> formatMessage(string& message, string& username){
 	return outBuf;
 }
 
-vector<chtype> formatDisMessage(string& username){
+vector<chtype> formatDisMessage(time_t time, string& username){
 	vector<chtype> outBuf;
+	pushBackStr(formatTime(time), outBuf, A_DIM);
 
+	outBuf.push_back((chtype)' ' | A_BOLD);
 	pushBackStr("<--    ", outBuf, A_DIM);
 
 	pushBackStr(username, outBuf, A_DIM);
@@ -262,9 +266,11 @@ vector<chtype> formatDisMessage(string& username){
 	return outBuf;
 }
 
-vector<chtype> formatConMessage(string& username){
+vector<chtype> formatConMessage(time_t time, string& username){
 	vector<chtype> outBuf;
+	pushBackStr(formatTime(time), outBuf, A_DIM);
 
+	outBuf.push_back((chtype)' ' | A_BOLD);
 	pushBackStr("<--    ", outBuf, A_DIM);
 
 	pushBackStr(username, outBuf, A_DIM);
@@ -274,6 +280,70 @@ vector<chtype> formatConMessage(string& username){
 	return outBuf;
 
 }
+
+string formatTime(time_t timestamp){
+	tm ts, ct;
+	tm* stampTime = localtime_r(&timestamp, &ts);
+	
+	time_t curTime = time(NULL);
+	tm* currentTime = localtime_r(&curTime, &ct);
+
+	char outBuf[64];
+	string str;
+
+	if (currentTime->tm_year != stampTime->tm_year){
+		// Different year
+		strftime(outBuf, sizeof(outBuf), "%b %Y", stampTime);
+		str += outBuf;
+
+	} else if (currentTime->tm_mon != stampTime->tm_mon){
+		// Different month
+		strftime(outBuf, sizeof(outBuf), " %b", stampTime);
+		str += to_string(stampTime->tm_mday) + dateStr(stampTime->tm_mday) + outBuf;
+
+	} else if (currentTime->tm_mday != stampTime->tm_mday && (currentTime->tm_mday - stampTime->tm_mday) > 6){
+		// Different day, different week
+		strftime(outBuf, sizeof(outBuf), "%I:%M%p %e", stampTime);
+		str += outBuf + dateStr(stampTime->tm_mday);
+
+	} else if (currentTime->tm_mday != stampTime->tm_mday){
+		// Different day, same week
+		strftime(outBuf, sizeof(outBuf), "%I:%M%p %a", stampTime);
+		str += outBuf;
+
+	} else {
+		// Same day
+		strftime(outBuf, sizeof(outBuf), "%I:%M %p", stampTime);
+		str += outBuf;
+	}
+	
+	return str;
+
+}
+
+string dateStr(int day){
+	string ending;
+
+	if (day % 100 >= 11 && day % 100 <= 13){
+		ending = "th";
+	} else {
+		switch (day % 10){
+			case 1:
+				ending = "st";
+				break;
+			case 2:
+				ending = "nd";
+				break;
+			case 3:
+				ending = "rd";
+				break;
+			default:
+				ending = "th";
+		}
+	}
+	return ending;
+}
+
 
 
 void appendToWindow(Win& window, vector<chtype> chTypeVec, int prescroll){

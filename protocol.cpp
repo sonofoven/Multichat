@@ -212,7 +212,6 @@ ServerBroadMsg::ServerBroadMsg(string& usr, string& message){
 
 	username = usr;
 	
-	// We don't care about the message anymore
 	msg = message;
 }
 

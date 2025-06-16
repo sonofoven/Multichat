@@ -26,7 +26,7 @@ using namespace std;
 struct connInfo{
 	string addr = "127.0.0.1";
 	uint16_t port = 8080;
-	string username = "Kimmy";
+	string username = "Jimmy";
 };
 
 // List of users connected to server
@@ -80,11 +80,16 @@ Win createUserWin();
 Win createMsgWin();
 Win createInputWin();
 
-// Formatting funcs
-vector<chtype> formatMessage(string& message, string& username);
-vector<chtype> formatDisMessage(string& username);
-vector<chtype> formatConMessage(string& username);
 
+
+// Formatting funcs
+vector<chtype> formatMessage(time_t time, string& message, string& username);
+vector<chtype> formatDisMessage(time_t time, string& username);
+vector<chtype> formatConMessage(time_t time, string& username);
+
+
+string formatTime(time_t timestamp);
+string dateStr(int day);
 
 string getWindowInput(Win& window, UiContext& context);
 void appendToWindow(Win& window, vector<chtype> inputVec, int prescroll);
