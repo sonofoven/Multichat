@@ -162,7 +162,7 @@ void handleCh(UiContext& context, int ch, int servFd){
 	}
 
 	// Handle enter
-	if (ch == KEY_ENTER){
+	if (ch == '\n' || ch == KEY_ENTER){
 		if (inputBuf.empty()){
 			return;
 		}
@@ -282,38 +282,37 @@ vector<chtype> formatConMessage(time_t time, string& username){
 }
 
 string formatTime(time_t timestamp){
-	tm ts, ct;
-	tm* stampTime = localtime_r(&timestamp, &ts);
+	tm stampTime = *localtime(&timestamp);
 	
 	time_t curTime = time(NULL);
-	tm* currentTime = localtime_r(&curTime, &ct);
+	tm currentTime = *localtime(&curTime);
 
 	char outBuf[64];
 	string str;
 
-	if (currentTime->tm_year != stampTime->tm_year){
+	if (currentTime.tm_year != stampTime.tm_year){
 		// Different year
-		strftime(outBuf, sizeof(outBuf), "%b %Y", stampTime);
+		strftime(outBuf, sizeof(outBuf), "%b %Y", &stampTime);
 		str += outBuf;
 
-	} else if (currentTime->tm_mon != stampTime->tm_mon){
+	} else if (currentTime.tm_mon != stampTime.tm_mon){
 		// Different month
-		strftime(outBuf, sizeof(outBuf), " %b", stampTime);
-		str += to_string(stampTime->tm_mday) + dateStr(stampTime->tm_mday) + outBuf;
+		strftime(outBuf, sizeof(outBuf), " %b", &stampTime);
+		str += to_string(stampTime.tm_mday) + dateStr(stampTime.tm_mday) + outBuf;
 
-	} else if (currentTime->tm_mday != stampTime->tm_mday && (currentTime->tm_mday - stampTime->tm_mday) > 6){
+	} else if (currentTime.tm_mday != stampTime.tm_mday && (currentTime.tm_mday - stampTime.tm_mday) > 6){
 		// Different day, different week
-		strftime(outBuf, sizeof(outBuf), "%I:%M%p %e", stampTime);
-		str += outBuf + dateStr(stampTime->tm_mday);
+		strftime(outBuf, sizeof(outBuf), "%I:%M%p %e", &stampTime);
+		str += outBuf + dateStr(stampTime.tm_mday);
 
-	} else if (currentTime->tm_mday != stampTime->tm_mday){
+	} else if (currentTime.tm_mday != stampTime.tm_mday){
 		// Different day, same week
-		strftime(outBuf, sizeof(outBuf), "%I:%M%p %a", stampTime);
+		strftime(outBuf, sizeof(outBuf), "%I:%M%p %a", &stampTime);
 		str += outBuf;
 
 	} else {
 		// Same day
-		strftime(outBuf, sizeof(outBuf), "%I:%M %p", stampTime);
+		strftime(outBuf, sizeof(outBuf), "%I:%M%p", &stampTime);
 		str += outBuf;
 	}
 	

@@ -26,7 +26,7 @@ using namespace std;
 struct connInfo{
 	string addr = "127.0.0.1";
 	uint16_t port = 8080;
-	string username = "Jimmy";
+	string username = "Timmy";
 };
 
 // List of users connected to server
