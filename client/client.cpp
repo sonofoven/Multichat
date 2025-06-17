@@ -1,4 +1,5 @@
 #include "client.hpp"
+#include "interface.hpp"
 
 list<string> userConns = {};
 vector<uint8_t> readBuf;
@@ -24,6 +25,10 @@ int main() {
 	// If connection -> check validation
 
 	// If bad validation -> prompt message & kick out
+	//setupForm();
+	//while(1){
+	//}
+
 	int servFd = startUp();
 
 	if (servFd < 0){

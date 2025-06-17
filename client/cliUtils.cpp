@@ -1,4 +1,6 @@
 #include "client.hpp"
+#include "interface.hpp"
+
 
 int startUp(){
 	int servFd = networkStart();
