@@ -25,18 +25,18 @@ int main() {
 	// If connection -> check validation
 
 	// If bad validation -> prompt message & kick out
-	//setupForm();
-	//while(1){
-	//}
+
+	interfaceStart();
 
 	int servFd = startUp();
 
 	if (servFd < 0){
+		endwin();
 		cout << "Connection Not Possible" << endl;
 		exit(1);
 	}
 
-	cout << "Connection Validated" << endl;
+	//cout << "Connection Validated" << endl;
 
 	// Set up epoll for both server and key input
 
@@ -50,7 +50,7 @@ int main() {
 		exit(1);
 	}
 
-	UiContext uiContext = interfaceStart();
+	UiContext uiContext = setupWindows();
 
 	fcntl(servFd, F_SETFL, O_NONBLOCK);
 	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);

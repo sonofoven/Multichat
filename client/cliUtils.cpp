@@ -312,3 +312,33 @@ void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
 	updateUserWindow(context);
 
 }
+
+
+bool fileCreate(){
+	const char* home = getenv("HOME");
+	path configDir = path(home) / ".config" / "multiChat";
+	create_directories(configDir);
+	path configFile = configDir / "config";
+
+	ofstream config(configFile, ios::trunc);
+
+	if (!config){
+		return false;
+	}
+
+	config << "address:=" << clientInfo.addr << '\n';
+	config << "port:=" << clientInfo.port << '\n';
+	config << "username:=" << clientInfo.username << '\n';
+	config.close();
+	return true;
+}
+
+bool fileVerify(){
+	ifstream config("$HOME/.config/multiChat/config");
+	if (config.is_open()){
+		return true;
+
+	} else {
+		return false;
+	}
+}

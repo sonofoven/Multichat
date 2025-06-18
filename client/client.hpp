@@ -12,14 +12,17 @@
 #include <string>
 #include <algorithm>
 #include <functional>
+#include <filesystem>
 #include <thread>
 #include <ctime>
+#include <fstream>
 #include "../protocol.hpp"
 
 #define HALIGN 2
 #define VALIGN 1
 
 using namespace std;
+using namespace std::filesystem;
 
 // For storing connection information
 struct connInfo{
@@ -27,11 +30,11 @@ struct connInfo{
 	uint16_t port = 8080;
 	string username = "Yimmy";
 };
+extern connInfo clientInfo;
 
 // List of users connected to server
 extern list<string> userConns; 
 
-extern connInfo clientInfo;
 extern vector<uint8_t> readBuf;
 extern vector<uint8_t> writeBuf;
 extern string inputBuf;
@@ -57,5 +60,7 @@ int startUp();
 	// Inits the client and does the handshake with the server
 
 void sendOneConn(int servFd);
-
 bool recvOneVal(int servFd);
+
+bool fileCreate();
+bool fileVerify();

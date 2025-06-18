@@ -1,14 +1,15 @@
 #include "interface.hpp"
 
-UiContext interfaceStart(){
-	static Win users, input, messages;
-
+void interfaceStart(){
 	initscr();
-	
 	noecho();
 	cbreak(); 
 	curs_set(0);
 	refresh();
+}
+
+UiContext setupWindows(){
+	static Win users, input, messages;
 
 	input = createInputWin();
 	messages = createMsgWin();

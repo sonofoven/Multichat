@@ -2,11 +2,6 @@
 
 #include <ncurses.h>
 #include <form.h>
-#include <string>
-#include <vector>
-#include <ctime>
-#include <iostream>
-#include <sys/epoll.h>
 #include "client.hpp"
 
 using namespace std;
@@ -38,7 +33,8 @@ struct UiContext{
 };
 
 // Setup
-UiContext interfaceStart();
+void interfaceStart();
+UiContext setupWindows();
 void setupForm();
 
 // Formatting tools
