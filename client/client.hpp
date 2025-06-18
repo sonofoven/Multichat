@@ -12,6 +12,7 @@
 #include <string>
 #include <algorithm>
 #include <functional>
+#include <optional>
 #include <filesystem>
 #include <thread>
 #include <ctime>
@@ -26,9 +27,9 @@ using namespace std::filesystem;
 
 // For storing connection information
 struct connInfo{
-	string addr = "127.0.0.1";
-	uint16_t port = 8080;
-	string username = "Yimmy";
+	string addr;
+	uint16_t port;
+	string username;
 };
 extern connInfo clientInfo;
 
@@ -53,14 +54,16 @@ void serverConnect(ServerConnect& pkt, UiContext& context);
 void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context);
 void serverDisconnect(ServerDisconnect& pkt, UiContext& context);
 
-int networkStart();
-	// Returns socket # if good
-
+// Server startup & client negotiation
 int startUp();
-	// Inits the client and does the handshake with the server
-
+int networkStart();
 void sendOneConn(int servFd);
 bool recvOneVal(int servFd);
 
+// Config creation/loading/checking
+path getConfDir();
 bool fileCreate();
 bool fileVerify();
+bool checkCliInfo();
+bool validateIpv4(string str);
+optional<vector<string>> octetTokenize(string str);

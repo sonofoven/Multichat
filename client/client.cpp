@@ -25,6 +25,9 @@ int main() {
 	// If connection -> check validation
 
 	// If bad validation -> prompt message & kick out
+	if (!fileVerify()){
+		exit(1);
+	}
 
 	interfaceStart();
 
