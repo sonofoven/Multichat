@@ -45,15 +45,16 @@ public:
 
 // fd to clientConnectionMap
 extern unordered_map<int, clientConn> clientMap;
-extern mutex clientMapMtx;
-
-// username to fd
 extern unordered_map<string, int> userMap;
-
-// 
+extern mutex clientMapMtx;
 extern int epollFd;
+extern int logFd;
 
-//int* listenFdPtr;
+extern queue<Packet> logQueue;
+extern mutex logMtx;
+extern condition_var queueCv;
+
+void logLoop(int logFd);
 
 int makeListenSocket(sockaddr_in address);
 	// Returns a listen socket given an empty addr

@@ -2,7 +2,6 @@
 
 unordered_map<int, clientConn> clientMap = {};
 mutex clientMapMtx;
-
 unordered_map<string, int> userMap = {};
 
 int epollFd;
