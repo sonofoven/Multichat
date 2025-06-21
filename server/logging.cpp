@@ -51,6 +51,11 @@ void logLoop(int logFd){
 	}
 }
 
+string logFileName(){
+	time_t timestamp = time(NULL);
+
+}
+
 void addToFile(string str){
 
 }

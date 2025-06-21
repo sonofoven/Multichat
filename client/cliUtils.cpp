@@ -367,7 +367,7 @@ bool fileVerify(){
 
 			try {
 				int portInt = stoi(line.substr(portP.length()));
-				if (portInt > 65536){
+				if (portInt > 65536 || portInt < 0){
 					throw 1;
 				}
 				clientInfo.port = (uint16_t)portInt;

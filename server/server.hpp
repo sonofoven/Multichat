@@ -23,6 +23,7 @@
 #define MAX_BUF_SIZE 65536
 
 using namespace std;
+using namespace std::filesystem;
 
 class clientConn {
 public:
