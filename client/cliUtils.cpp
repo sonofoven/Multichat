@@ -278,7 +278,6 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 
 	userConns.push_back(username);
 
-	// Sort in inverse alphabetical order (this is because how its printed)
 	userConns.sort(greater<string>());
 	vector<chtype> formattedStr = formatConMessage(pkt.timestamp, pkt.username);
 	
@@ -301,7 +300,7 @@ void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
 
 	userConns.remove(username);
 
-	// Sort in inverse alphabetical order (this is because how its printed)
+	// Sort in alphabetical order (this is because how its printed)
 	userConns.sort(greater<string>());
 
 	vector<chtype> formattedStr = formatDisMessage(pkt.timestamp, pkt.username);

@@ -9,18 +9,22 @@
 #include <vector>
 #include <algorithm>
 #include <array>
-
+#include <regex>
+#include <filesystem>
 #include <cstring>
 #include <iostream>
+#include <fstream>
 #include <thread>
 #include <mutex>
 #include <atomic>
 #include <csignal>
+#include <condition_variable>
 
 #include "../protocol.hpp"
 
 #define BACKLOG_MAX 20
 #define MAX_BUF_SIZE 65536
+#define LOG_DAY_MAX 4
 
 using namespace std;
 using namespace std::filesystem;
@@ -49,13 +53,11 @@ extern unordered_map<int, clientConn> clientMap;
 extern unordered_map<string, int> userMap;
 extern mutex clientMapMtx;
 extern int epollFd;
-extern int logFd;
 
-extern queue<Packet> logQueue;
+extern queue<unique_ptr<Packet>> logQueue;
 extern mutex logMtx;
-extern condition_var queueCv;
+extern condition_variable queueCv;
 
-void logLoop(int logFd);
 
 int makeListenSocket(sockaddr_in address);
 	// Returns a listen socket given an empty addr
@@ -124,3 +126,15 @@ string usernameExists(string& username);
 bool valConnMsg(string& username, clientConn& sender);
 
 void serializeToAllButSender(Packet& pkt, clientConn& sender);
+
+
+//// Logging
+
+void logLoop();
+list<path> detectLogFiles();
+void addToLog(string str, list<path>& logFiles);
+path logFilePath();
+path getLogDir();
+
+void appendToLog(unique_ptr<Packet> pkt);
+void weenLogFiles(list<path>& logFiles);

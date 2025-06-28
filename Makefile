@@ -1,4 +1,4 @@
-CC      := g++
+CC	  := g++
 CFLAGS  := -Wall -g -fPIC -pedantic
 
 PROTO_SRC := protocol.cpp
@@ -6,16 +6,16 @@ PROTO_SRC := protocol.cpp
 CLIENT_DIR := client
 SERVER_DIR := server
 
-CLIENT_SRCS := $(CLIENT_DIR)/client.cpp 
-			   $(CLIENT_DIR)/interface.cpp 
-			   $(CLIENT_DIR)/cliUtils.cpp 
-			   $(CLIENT_DIR)/form.cpp 
-			   $(PROTO_SRC)
+CLIENT_SRCS := $(CLIENT_DIR)/client.cpp \
+               $(CLIENT_DIR)/interface.cpp \
+               $(CLIENT_DIR)/cliUtils.cpp \
+               $(CLIENT_DIR)/form.cpp \
+               $(PROTO_SRC)
 
-SERVER_SRCS := $(SERVER_DIR)/server.cpp 
-			   $(SERVER_DIR)/servUtils.cpp 
-			   $(SERVER_DIR)/logging.cpp 
-			   $(PROTO_SRC)
+SERVER_SRCS := $(SERVER_DIR)/server.cpp \
+               $(SERVER_DIR)/servUtils.cpp \
+               $(SERVER_DIR)/logging.cpp \
+               $(PROTO_SRC)
 
 CLIENT_HDRS := protocol.hpp $(CLIENT_DIR)/client.hpp $(CLIENT_DIR)/interface.hpp
 SERVER_HDRS := protocol.hpp $(SERVER_DIR)/server.hpp

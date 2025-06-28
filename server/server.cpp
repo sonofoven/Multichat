@@ -3,8 +3,11 @@
 unordered_map<int, clientConn> clientMap = {};
 mutex clientMapMtx;
 unordered_map<string, int> userMap = {};
-
 int epollFd;
+
+queue<unique_ptr<Packet>> logQueue;
+mutex logMtx;
+condition_variable queueCv;
 
 int main(){
 
@@ -35,6 +38,9 @@ int main(){
 	// Create a thread to constantly accept new conns
 	thread listenT(acceptLoop, listenFd);
 	listenT.detach();
+
+	thread logT(logLoop);
+	logT.detach();
 
 	while (1){
 		// Get # of events captured instantaneously

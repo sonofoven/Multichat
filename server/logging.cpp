@@ -1,12 +1,14 @@
 #include "server.hpp"
 
-void logLoop(int logFd){
-	list<string> logFiles = ;
+void logLoop(){
+	list<path> logFiles = detectLogFiles();
+	logFiles.sort(greater<path>());
+	weenLogFiles(logFiles);
 	while(1){
 		unique_lock lock(logMtx);
 
 		// Locks up here and releases the mutex
-		while (!queue.empty()){
+		while (logQueue.empty()){
 			queueCv.wait(lock);
 		}
 
@@ -15,28 +17,25 @@ void logLoop(int logFd){
 		lock.unlock();
 		
 		while (!localQueue.empty()){
-			unique_ptr<Packet> pkt = localQueue.front();
+			unique_ptr<Packet> pkt = move(localQueue.front());
 			
 			vector<uint8_t> logMsg;
 			switch (pkt->opcode){
 
 				case SMG_CONNECT: {
-					(ServerConnect*)pkt.get();
-					ServerConnect msg = *pkt;
-					msg.serialize(logMsg);
-					break;
-				}
-
-				case SMG_BROADMSG: {
-					(ServerDisconnect*)pkt.get();
-					ServerDisconnect msg = *pkt;
+					ServerConnect msg = *(ServerConnect*)pkt.get();
 					msg.serialize(logMsg);
 					break;
 				}
 
 				case SMG_DISCONNECT: {
-					(ServerBroadMsg*)pkt.get();
-					ServerBroadMsg msg = *pkt;
+					ServerDisconnect msg = *(ServerDisconnect*)pkt.get();
+					msg.serialize(logMsg);
+					break;
+				}
+
+				case SMG_BROADMSG: {
+					ServerBroadMsg msg = *(ServerBroadMsg*)pkt.get();
 					msg.serialize(logMsg);
 					break;
 				}
@@ -44,22 +43,92 @@ void logLoop(int logFd){
 				default: {
 					break;
 				}
-			
+			}
 
+			string logStr(logMsg.begin(), logMsg.end());
+			addToLog(logStr, logFiles);
+			
 			localQueue.pop();
 		}
 	}
 }
 
-string logFileName(){
+list<path> detectLogFiles(){
+	// Get the list of fitting logfiles in log dir
+	regex pattern(R"(^\d{4}_\d{2}_\d{2}_multiChat\.log$)");
+	list<path> logFiles;
+	
+	for (const auto & entry : directory_iterator(getLogDir())){
+		if (entry.is_regular_file()){
+			if (regex_match(entry.path().filename().string(), pattern)){
+				logFiles.push_back(entry.path());
+			}
+		}
+	}
+
+	return logFiles;
+}
+
+void addToLog(string str, list<path>& logFiles){
+	// Add to the current or next log file if none exist
+
+	path logFile = logFilePath();
+	bool exist = exists(logFile);
+
+
+	// Open log file
+	ofstream log(logFile, ios::app);
+	if (!log){
+		cerr << "Couldn't open log file: " << logFile << endl;
+	}
+
+	// Append serialized packet
+	log << str << endl;
+	log.close();
+
+	logFiles.push_front(logFile);
+
+	if (!exist){
+		weenLogFiles(logFiles);
+	}
+	
+	return;
+}
+
+void weenLogFiles(list<path>& logFiles){
+	// Remove the last log
+	while (logFiles.size() > LOG_DAY_MAX){
+		if (remove(logFiles.back())){
+			logFiles.pop_back();
+		} else {
+			cerr << "Couldn't remove log: " << logFiles.back() << endl;
+			break;
+		}
+	}
+
+	return;
+}
+
+path logFilePath(){
+	// Generate file path for the log file based on date
 	time_t timestamp = time(NULL);
+	tm stampTime = *localtime(&timestamp);
 
+	char outBuf[64];
+	strftime(outBuf, sizeof(outBuf), "%Y_%m_%d_multiChat.log", &stampTime);
+	path filePath = getLogDir() / outBuf; 
+
+	return filePath;
 }
 
-void addToFile(string str){
-
+path getLogDir(){
+	path logDir = "/var/log/multiChat";
+	create_directories(logDir);
+	return logDir;
 }
 
-list<string> detectLogFiles(){
-
+void appendToLog(unique_ptr<Packet> pkt){
+	lock_guard lock(logMtx);
+	logQueue.push(move(pkt));
+	queueCv.notify_one();
 }

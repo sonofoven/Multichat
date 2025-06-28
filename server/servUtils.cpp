@@ -40,6 +40,9 @@ void clientConnect(ClientConnect& pkt, clientConn& sender){
 
 		// Send server connected msg to every other client
 		serializeToAllButSender(responseAll, sender);
+		
+		unique_ptr<ServerConnect> upkt = make_unique<ServerConnect>(responseAll);
+		appendToLog(move(upkt));
 	}
 }
 
@@ -62,6 +65,9 @@ void clientBroadMsg(ClientBroadMsg& pkt, clientConn& sender){
 
 	// Serialize it to everyone but sender
 	serializeToAllButSender(responseAll, sender);
+
+	unique_ptr<ServerBroadMsg> upkt = make_unique<ServerBroadMsg>(responseAll);
+	appendToLog(move(upkt));
 }
 
 void clientServerMessage(ClientServMsg& pkt, clientConn& sender){
@@ -90,6 +96,9 @@ void dropClient(int fd){
 		ServerDisconnect responseAll = ServerDisconnect(cliPtr->username);
 		// Serialize to all
 		serializeToAllButSender(responseAll, *cliPtr);
+
+		unique_ptr<ServerDisconnect> upkt = make_unique<ServerDisconnect>(responseAll);
+		appendToLog(move(upkt));
 	}
 
 	// Kill client
