@@ -58,6 +58,7 @@ list<path> detectLogFiles(){
 	regex pattern(R"(^\d{4}_\d{2}_\d{2}_multiChat\.log$)");
 	list<path> logFiles;
 	
+	shared_lock<shared_mutex> lock(fileMtx);
 	for (const auto & entry : directory_iterator(getLogDir())){
 		if (entry.is_regular_file()){
 			if (regex_match(entry.path().filename().string(), pattern)){
@@ -71,10 +72,10 @@ list<path> detectLogFiles(){
 
 void addToLog(string str, list<path>& logFiles){
 	// Add to the current or next log file if none exist
-
 	path logFile = logFilePath();
-	bool exist = exists(logFile);
 
+	unique_lock<shared_mutex> lock(fileMtx);
+	bool exist = exists(logFile);
 
 	// Open log file
 	ofstream log(logFile, ios::app);
@@ -85,6 +86,7 @@ void addToLog(string str, list<path>& logFiles){
 	// Append serialized packet
 	log << str << endl;
 	log.close();
+
 
 	logFiles.push_front(logFile);
 
@@ -97,6 +99,7 @@ void addToLog(string str, list<path>& logFiles){
 
 void weenLogFiles(list<path>& logFiles){
 	// Remove the last log
+	unique_lock<shared_mutex> lock(fileMtx);
 	while (logFiles.size() > LOG_DAY_MAX){
 		if (remove(logFiles.back())){
 			logFiles.pop_back();
@@ -132,3 +135,49 @@ void appendToLog(unique_ptr<Packet> pkt){
 	logQueue.push(move(pkt));
 	queueCv.notify_one();
 }
+
+void sendBackLogFiles(clientConn& client){
+	// Find logs
+	list<path> logFiles = detectLogFiles();
+
+	// Sort them (reverse order)
+	logFiles.sort(less<path>());
+
+	shared_lock<shared_mutex> lock(fileMtx);
+	// Iterate log file
+	for (const path & logFile : logFiles){
+		if (!exists(logFile)){
+			continue;
+		}
+
+		ifstream log(logFile);
+		if (!log){
+			cerr << "Couldn't open log file: " << logFile << endl;
+		}
+
+		string line;
+
+		cout << "Serving logs to: " << client.username << endl;
+		while (getline(log, line)){
+			uint8_t* data = (uint8_t*)line.c_str();
+			Packet* linePtr = instancePacketFromData(data);
+
+			switch (linePtr->opcode){
+				case SMG_BROADMSG: {
+
+					ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
+					servPacket.serialize(client.writeBuf);
+
+					break;
+				}
+
+				default: {
+					cout << "Retrieving unsupported/unrecognized opcode" << endl;
+				}
+			}
+		}
+
+		log.close();
+	}
+}
+

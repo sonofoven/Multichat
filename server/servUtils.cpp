@@ -41,14 +41,15 @@ void clientConnect(ClientConnect& pkt, clientConn& sender){
 		// Send server connected msg to every other client
 		serializeToAllButSender(responseAll, sender);
 		
-		unique_ptr<ServerConnect> upkt = make_unique<ServerConnect>(responseAll);
-		appendToLog(move(upkt));
+		//unique_ptr<ServerConnect> upkt = make_unique<ServerConnect>(responseAll);
+		//appendToLog(move(upkt));
+
+		sendBackLogFiles(sender);
 	}
 }
 
 void clientBroadMsg(ClientBroadMsg& pkt, clientConn& sender){
 	// Send server broad msg to every other client
-
 
 	// If the client is trying to impersonate someone or 
 	// try to send a message w/out connecting first kill them
@@ -97,8 +98,8 @@ void dropClient(int fd){
 		// Serialize to all
 		serializeToAllButSender(responseAll, *cliPtr);
 
-		unique_ptr<ServerDisconnect> upkt = make_unique<ServerDisconnect>(responseAll);
-		appendToLog(move(upkt));
+		//unique_ptr<ServerDisconnect> upkt = make_unique<ServerDisconnect>(responseAll);
+		//appendToLog(move(upkt));
 	}
 
 	// Kill client

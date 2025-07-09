@@ -8,7 +8,6 @@ connInfo clientInfo;
 vector<uint8_t> writeBuf;
 string inputBuf;
 
-
 int epollFd;
 
 int main() {

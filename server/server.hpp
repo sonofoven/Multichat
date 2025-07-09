@@ -16,6 +16,7 @@
 #include <fstream>
 #include <thread>
 #include <mutex>
+#include <shared_mutex>
 #include <atomic>
 #include <csignal>
 #include <condition_variable>
@@ -55,8 +56,9 @@ extern mutex clientMapMtx;
 extern int epollFd;
 
 extern queue<unique_ptr<Packet>> logQueue;
-extern mutex logMtx;
+extern mutex logMtx; // To keep queue on track
 extern condition_variable queueCv;
+extern shared_mutex fileMtx; // To keep queue on track
 
 
 int makeListenSocket(sockaddr_in address);
@@ -138,3 +140,4 @@ path getLogDir();
 
 void appendToLog(unique_ptr<Packet> pkt);
 void weenLogFiles(list<path>& logFiles);
+void sendBackLogFiles(clientConn& client);

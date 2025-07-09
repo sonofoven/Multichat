@@ -9,6 +9,8 @@ queue<unique_ptr<Packet>> logQueue;
 mutex logMtx;
 condition_variable queueCv;
 
+shared_mutex fileMtx;
+
 int main(){
 
 	//signal(SIGINT, killServer); 
@@ -346,7 +348,10 @@ void acceptLoop(int listenFd){
 			lock_guard lock(clientMapMtx);
 
 			// Add client fd to list of connected clients
-			clientMap.emplace(clientFd, clientConn(clientFd));
+			clientConn newClient = clientConn(clientFd);
+
+			clientMap.emplace(clientFd, newClient);
+
 
 			// Add connection fd to epoll marking list
 			addFdToEpoll(clientFd);
