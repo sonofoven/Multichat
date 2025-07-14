@@ -227,3 +227,15 @@ void killServer(int code){
 
 	exit(1);
 }
+
+string getServerName(){
+	char* envVar = getenv("MULTICHAT_NAME");
+	size_t length = strlen(envVar);
+
+	if (length > MAX_NAME_CHARS || length <= 0 || envVar == NULL){
+		cout << "Server name not properly set, defaulting to \"Multichat\"" << endl;
+		return "Multichat";
+	}
+	string name(envVar);
+	return name;
+}

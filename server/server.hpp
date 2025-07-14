@@ -26,6 +26,8 @@
 #define BACKLOG_MAX 20
 #define MAX_BUF_SIZE 65536
 #define LOG_DAY_MAX 4
+#define MAX_NAME_CHARS 25
+#define VERSION "1.0"
 
 using namespace std;
 using namespace std::filesystem;
@@ -83,6 +85,8 @@ void acceptLoop(int listenFd);
 int protocolParser(Packet* packet, clientConn& sender);
 
 size_t parsePacketLen(uint8_t* data);
+
+string getServerName();
 
 
 int drainReadPipe(int fd, clientConn& client);

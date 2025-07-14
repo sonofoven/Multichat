@@ -12,7 +12,7 @@ UiContext setupWindows(){
 	static Win users, input, messages;
 
 	input = createInputWin();
-	messages = createMsgWin();
+	messages = createMsgWin("| Timmy's Dungeon |");
 	users = createUserWin();
 
 	UiContext uiContext = UiContext(&users, &messages, &input);
@@ -45,6 +45,9 @@ Win createUserWin() {
 	int width = COLS / 6;
 	int startY = 0;
 	int startX = 0;
+	bool boxOn = true;
+	bool scrollOn = true;
+	string title = "| Users |";
 
 	Win window;
 	
@@ -52,25 +55,33 @@ Win createUserWin() {
 								  width, 
 								  startY, 
 								  startX, 
-								  true, 
-								  false);
+								  boxOn, 
+								  !scrollOn);
 
 	window.textWin = createWindow(height - (2*VALIGN), 
 								  width - (2*HALIGN), 
 								  startY + VALIGN, 
 								  startX + HALIGN,
-								  false,
-								  true);
+								  !boxOn,
+								  scrollOn);
+
+	
+	int leftPad = (width - title.length())/2;
+	mvwprintw(window.bordWin, 0, leftPad, title.c_str());
+
+	wrefresh(window.bordWin);
 
 	return window;
 }
 
 
-Win createMsgWin(){
+Win createMsgWin(string title){
 	int height = LINES - (LINES /6);
 	int width = (COLS * 5) / 6;
 	int startY = 0;
 	int startX = COLS / 6;
+	bool boxOn = true;
+	bool scrollOn = true;
 
 	Win window;
 
@@ -78,15 +89,20 @@ Win createMsgWin(){
 								  width, 
 								  startY, 
 								  startX,
-								  true,
-								  false);
+								  boxOn, 
+								  !scrollOn);
 
 	window.textWin = createWindow(height - (2*VALIGN), 
 							width - (2*HALIGN), 
 							startY + VALIGN, 
 							startX + HALIGN,
-							false,
-							true);
+							!boxOn,
+							scrollOn);
+
+	int leftPad = (width - title.length())/2;
+	mvwprintw(window.bordWin, 0, leftPad, title.c_str());
+
+	wrefresh(window.bordWin);
 
 	return window;
 }
@@ -379,8 +395,6 @@ void appendToWindow(Win& window, vector<chtype> chTypeVec, int prescroll){
 }
 
 void updateUserWindow(UiContext& context){
-	//mvprintw(0, 0, "FIRST IN THE LIST");
-	//mvprintw(1, 0, "%s", userConns.front().c_str());
 	WINDOW* win = context.userWin->textWin;
 
 	werase(win);

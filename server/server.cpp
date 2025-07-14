@@ -12,6 +12,7 @@ condition_variable queueCv;
 shared_mutex fileMtx;
 
 int main(){
+	cout << "Multichat v" << VERSION << endl;
 
 	//signal(SIGINT, killServer); 
 	registerPackets();

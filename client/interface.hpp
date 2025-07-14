@@ -48,14 +48,14 @@ string dateStr(int day);
 
 // Window creation
 Win createUserWin();
-Win createMsgWin();
+Win createMsgWin(string title);
 Win createInputWin();
 WINDOW* createWindow(int height, 
 					 int width, 
 					 int starty, 
 					 int startx, 
 					 bool boxOn, 
-					 bool scroll);
+					 bool scrollOn);
 
 // Window I/O
 string getWindowInput(Win& window, UiContext& context);

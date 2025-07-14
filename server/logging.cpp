@@ -77,7 +77,6 @@ void addToLog(string str, list<path>& logFiles){
 	unique_lock<shared_mutex> lock(fileMtx);
 	bool exist = exists(logFile);
 
-	// Open log file
 	ofstream log(logFile, ios::app);
 	if (!log){
 		cerr << "Couldn't open log file: " << logFile << endl;
@@ -99,7 +98,6 @@ void addToLog(string str, list<path>& logFiles){
 
 void weenLogFiles(list<path>& logFiles){
 	// Remove the last log
-	unique_lock<shared_mutex> lock(fileMtx);
 	while (logFiles.size() > LOG_DAY_MAX){
 		if (remove(logFiles.back())){
 			logFiles.pop_back();
@@ -172,7 +170,7 @@ void sendBackLogFiles(clientConn& client){
 				}
 
 				default: {
-					cout << "Retrieving unsupported/unrecognized opcode" << endl;
+					//cout << "Retrieving unsupported/unrecognized opcode" << endl;
 				}
 			}
 		}

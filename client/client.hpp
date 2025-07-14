@@ -21,6 +21,7 @@
 
 #define HALIGN 2
 #define VALIGN 1
+#define VERSION "1.0"
 
 using namespace std;
 using namespace std::filesystem;
