@@ -10,9 +10,14 @@ mutex logMtx;
 condition_variable queueCv;
 
 shared_mutex fileMtx;
+string serverName;
 
 int main(){
 	cout << "Multichat v" << VERSION << endl;
+
+	serverName = getServerName();
+	cout << "Server name is: " << serverName << endl;
+	
 
 	//signal(SIGINT, killServer); 
 	registerPackets();

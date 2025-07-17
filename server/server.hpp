@@ -61,6 +61,7 @@ extern queue<unique_ptr<Packet>> logQueue;
 extern mutex logMtx; // To keep queue on track
 extern condition_variable queueCv;
 extern shared_mutex fileMtx; // To keep queue on track
+extern string serverName;
 
 
 int makeListenSocket(sockaddr_in address);
