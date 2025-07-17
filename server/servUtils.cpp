@@ -8,7 +8,7 @@ void clientConnect(ClientConnect& pkt, clientConn& sender){
 		// Rejection
 
 		// Create the rejection response to client
-		ServerValidate response = ServerValidate(false, userMap);
+		ServerValidate response = ServerValidate(false, serverName, userMap);
 
 		// Send rejection response to client
 		response.serialize(sender.writeBuf);
@@ -228,24 +228,22 @@ void killServer(int code){
 	exit(1);
 }
 
-string getServerName(){
-	char* envVar = getenv("MULTICHAT_NAME");
+string getServerName(int argc, char* argv[]){
 	string name;
-
-	if (envVar == NULL){
-		cerr << "Server name not set, defaulting to \"Multichat\"" << endl;
+	if (argc != 2){
+		cerr << "Wrong number of args" << endl;
 		name = "Multichat";
 		return name;
 	}
-	cout << envVar <<endl;
 
-	size_t length = strlen(envVar);
+	char* potName = argv[1];
+	size_t length = strlen(potName);
 
 	if (length > MAX_NAME_CHARS || length <= 0){
 		cerr << "Server name length is bad, defaulting to \"Multichat\"" << endl;
 		name = "Multichat";
 	} else {
-		name = envVar;
+		name = potName;
 	}
 
 	return name;

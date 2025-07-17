@@ -41,6 +41,7 @@ extern vector<uint8_t> readBuf;
 extern vector<uint8_t> writeBuf;
 extern string inputBuf;
 extern int epollFd;
+extern string serverName;
 
 struct UiContext;
 

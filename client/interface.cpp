@@ -12,7 +12,7 @@ UiContext setupWindows(){
 	static Win users, input, messages;
 
 	input = createInputWin();
-	messages = createMsgWin("| Timmy's Dungeon |");
+	messages = createMsgWin(serverName);
 	users = createUserWin();
 
 	UiContext uiContext = UiContext(&users, &messages, &input);
@@ -100,6 +100,7 @@ Win createMsgWin(string title){
 							scrollOn);
 
 	int leftPad = (width - title.length())/2;
+	title = "| "+ title + " |";
 	mvwprintw(window.bordWin, 0, leftPad, title.c_str());
 
 	wrefresh(window.bordWin);

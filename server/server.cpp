@@ -12,10 +12,10 @@ condition_variable queueCv;
 shared_mutex fileMtx;
 string serverName;
 
-int main(){
+int main(int argc, char* argv[]){
 	cout << "Multichat v" << VERSION << endl;
 
-	serverName = getServerName();
+	serverName = getServerName(argc, argv);
 	cout << "Server name is: " << serverName << endl;
 	
 
@@ -72,9 +72,7 @@ int main(){
 			// Client disconnected/connection drop
 			if (event & (EPOLLHUP | EPOLLERR)){
 				dropClient(fd);
-				continue;
-			}
-
+				continue; }
 			clientConn* clientPtr = lockFindCli(fd);
 
 			bool fatal = false;

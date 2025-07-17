@@ -109,7 +109,7 @@ void ServerValidate::parse(const uint8_t* data){
 	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
 
 	able = *(bool*)(data + headerLen);
-	servName = (char*)(data + headerLen + sizeof(able));
+	servName = string((char*)(data + headerLen + sizeof(able)));
 
 	// Add all the strings if client is able to connect
 	if (able == true){
@@ -138,15 +138,15 @@ void ServerValidate::parse(const uint8_t* data){
 void ServerValidate::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
-	pushStrBack(buffer, servName);
 	pushBack(buffer, able);
+	pushStrBack(buffer, servName);
 	if (able == true || !userList.empty()){
 		pushListBack(buffer, userList);
 	}
 }
 
 ServerValidate::ServerValidate(bool a, string name, unordered_map<string, int>& userMap){
-	length = headerLen + sizeof(a) + servName.size() + 1;
+	length = headerLen + sizeof(a) + name.size() + 1;
 	opcode = SMG_VALIDATE;
 
 	able = a;

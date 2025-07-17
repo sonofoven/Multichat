@@ -87,7 +87,7 @@ int protocolParser(Packet* packet, clientConn& sender);
 
 size_t parsePacketLen(uint8_t* data);
 
-string getServerName();
+string getServerName(int argc, char* argv[]);
 
 
 int drainReadPipe(int fd, clientConn& client);

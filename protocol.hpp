@@ -99,7 +99,7 @@ public:
     void serialize(vector<uint8_t>& buffer) override;
 
 	ServerValidate();
-	ServerValidate(bool a, const string& servName,unordered_map<string,int>& userMap);
+	ServerValidate(bool a, string servName, unordered_map<string,int>& userMap);
 };
 
 class ServerConnect : public Packet { ///

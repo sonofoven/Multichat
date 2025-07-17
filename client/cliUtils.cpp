@@ -116,6 +116,7 @@ bool recvOneVal(int servFd){
 	ServerValidate* serverVal = static_cast<ServerValidate*>(pkt);
 
 	bool retVal = serverVal->able;
+	serverName = move(serverVal->servName);
 	userConns = move(serverVal->userList);
 
 	// Remove the packet from the read queue
@@ -256,7 +257,7 @@ int protocolParser(Packet* pkt, UiContext& context){
 }
 
 void serverValidate(ServerValidate& pkt, UiContext& context){
-	// YOU SHOULD NEVER GET THIS WHILE RUNNING
+	// YOU SHOULD NEVER GET THIS WHILE RUNNING only in startup
 	// You can use this in the future to occasionally send out sync's
 
 	// Check if got back good boy mark
