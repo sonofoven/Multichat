@@ -28,7 +28,7 @@ void clientConnect(ClientConnect& pkt, clientConn& sender){
 		cout << "Adding username: " << username << endl;
 
 		// Create the accept response to client
-		ServerValidate response = ServerValidate(true, userMap);
+		ServerValidate response = ServerValidate(true, serverName, userMap);
 
 		// Send server val with true val to sender
 		response.serialize(sender.writeBuf);

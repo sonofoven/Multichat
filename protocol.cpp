@@ -109,11 +109,12 @@ void ServerValidate::parse(const uint8_t* data){
 	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
 
 	able = *(bool*)(data + headerLen);
+	servName = (char*)(data + headerLen + sizeof(able));
 
 	// Add all the strings if client is able to connect
 	if (able == true){
 		// Set the start point of username list
-		char* curPtr = (char*)data + headerLen + sizeof(able);
+		char* curPtr = (char*)data + headerLen + sizeof(able) + servName.size() + 1;
 		char* endLoc = (char*)data + length;
 		void* distChk;
 
@@ -137,17 +138,19 @@ void ServerValidate::parse(const uint8_t* data){
 void ServerValidate::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
+	pushStrBack(buffer, servName);
 	pushBack(buffer, able);
 	if (able == true || !userList.empty()){
 		pushListBack(buffer, userList);
 	}
 }
 
-ServerValidate::ServerValidate(bool a, unordered_map<string, int>& userMap){
-	length = headerLen + sizeof(a);
+ServerValidate::ServerValidate(bool a, string name, unordered_map<string, int>& userMap){
+	length = headerLen + sizeof(a) + servName.size() + 1;
 	opcode = SMG_VALIDATE;
 
 	able = a;
+	servName = name;
 	if (able == true){ // Only add the map if the conn is valid
 		for (auto i : userMap){
 			length += i.first.size() + 1;
