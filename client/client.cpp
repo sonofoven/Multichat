@@ -13,7 +13,6 @@ int epollFd;
 
 int main() {
 	cout << "Multichat v" << VERSION << endl;
-	registerPackets();
 
 	// Check if setting file exists
 

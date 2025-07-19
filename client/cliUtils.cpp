@@ -121,6 +121,7 @@ bool recvOneVal(int servFd){
 
 	// Remove the packet from the read queue
 	readBuf.clear();
+	delete pkt;
 
 	return retVal;
 }
@@ -156,6 +157,7 @@ void handleRead(int servFd, UiContext& context){
 
 			// Switch depending on opcode
 			protocolParser(pkt, context);
+			delete pkt;
 
 			// Remove the packet from the read queue
 			readBuf.erase(readBuf.begin(), readBuf.begin() + fullPacketLen);

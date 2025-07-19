@@ -315,13 +315,14 @@ string formatTime(time_t timestamp){
 
 	} else if (currentTime.tm_mon != stampTime.tm_mon){
 		// Different month
-		strftime(outBuf, sizeof(outBuf), " %b", &stampTime);
-		str += to_string(stampTime.tm_mday) + dateStr(stampTime.tm_mday) + outBuf;
+		strftime(outBuf, sizeof(outBuf), "%b ", &stampTime);
+		str += outBuf + to_string(stampTime.tm_mday) + dateStr(stampTime.tm_mday);
 
 	} else if (currentTime.tm_mday != stampTime.tm_mday && (currentTime.tm_mday - stampTime.tm_mday) > 6){
 		// Different day, different week
-		strftime(outBuf, sizeof(outBuf), "%I:%M%p %e", &stampTime);
-		str += outBuf + dateStr(stampTime.tm_mday);
+		str += to_string(stampTime.tm_mday) + dateStr(stampTime.tm_mday);
+		strftime(outBuf, sizeof(outBuf), " %I:%M%p", &stampTime);
+		str += outBuf;
 
 	} else if (currentTime.tm_mday != stampTime.tm_mday){
 		// Different day, same week

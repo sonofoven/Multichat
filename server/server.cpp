@@ -20,7 +20,6 @@ int main(int argc, char* argv[]){
 	
 
 	//signal(SIGINT, killServer); 
-	registerPackets();
 
 	signal(SIGINT, killServer);
 
@@ -210,6 +209,8 @@ int handleRead(clientConn& client){
 			// Parse it into the right packet type and handle it
 			protocolParser(pkt, client);
 
+			delete pkt;
+
 			// If the buffer is empty and we are adding to it
 			// Only arm if writebuf was empty before we insert
 			if (wasEmpty && !writeBuf.empty()){
@@ -326,6 +327,7 @@ int protocolParser(Packet* pkt, clientConn& sender){
 			ClientServMsg* clientPacket = static_cast<ClientServMsg*>(pkt);
 
 			clientServerMessage(*clientPacket, sender);
+
 			break;
 		}
 
@@ -334,6 +336,7 @@ int protocolParser(Packet* pkt, clientConn& sender){
 			exitCode = -1;
 		}
 	}
+
 	return exitCode;
 }
 

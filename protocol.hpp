@@ -147,13 +147,8 @@ void pushStringBack(vector<uint8_t>& buffer, string username);
 void pushLenBack(vector<uint8_t>& buffer, string message);
 void pushListBack(vector<uint8_t>& buffer, list<string>& userList);
 
-// factory table
-using PacketFactory = Packet* (*)();
-extern PacketFactory packetFactories[NUM_OF_OPCODES];
-void registerPackets();
 Packet* instancePacketFromData(const uint8_t* data);
 
 size_t parsePacketLen(uint8_t* data);
-
 void epollModify(int epollFd, int fd, int ops, int func);
 

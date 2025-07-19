@@ -247,49 +247,54 @@ ServerDisconnect::ServerDisconnect(string& usr){
 
 ServerDisconnect::ServerDisconnect(){}
 
-// Pointer to a func that takes no args and return type is Packet*
 
-using PacketFactory = Packet* (*)();  
-
-Packet* createCConnPacket() { return new ClientConnect(); }
-Packet* createCBroadPacket() { return new ClientBroadMsg(); }
-Packet* createCServPacket() { return new ClientServMsg(); }
-
-Packet* createSValPacket() { return new ServerValidate(); }
-Packet* createSConnPacket() { return new ServerConnect(); }
-Packet* createSBroadPacket() { return new ServerBroadMsg(); }
-Packet* createSDisPacket() { return new ServerDisconnect(); }
-
-PacketFactory packetFactories[NUM_OF_OPCODES] = { 0 };
-
-void registerPackets() {
-	packetFactories[CMG_CONNECT] = createCConnPacket;
-	packetFactories[CMG_BROADMSG] = createCBroadPacket;
-	packetFactories[CMG_SERVMSG] = createCServPacket;
-
-	packetFactories[SMG_VALIDATE] = createSValPacket;
-	packetFactories[SMG_CONNECT] = createSConnPacket;
-	packetFactories[SMG_BROADMSG] = createSBroadPacket;
-	packetFactories[SMG_DISCONNECT] = createSDisPacket;
-
-}
-
-
+// Instance the packet in the heap
 Packet* instancePacketFromData(const uint8_t* data){
 	uint16_t opcode = le16toh(*(uint16_t*)(data + sizeof(uint16_t)));
 
-	if (opcode >= NUM_OF_OPCODES || packetFactories[opcode] == nullptr){
+	if (opcode >= NUM_OF_OPCODES || opcode < 0){
 		return nullptr;
 	}
 
-	PacketFactory factory = packetFactories[opcode]; // Set up factory depending on opcode;
+	Packet* pkt = nullptr;
 
-	Packet* pkt = factory(); // Make new packet based on opcode set factory
+	switch (opcode){
+		case CMG_CONNECT: {
+			pkt = new ClientConnect();
+			break;
+		}
+		case CMG_BROADMSG: {
+			pkt = new ClientBroadMsg();
+			break;
+		}
+		case CMG_SERVMSG: {
+			pkt = new ClientServMsg();
+			break;
+		}
+		case SMG_VALIDATE: {
+			pkt = new ServerValidate();
+			break;
+		}
+		case SMG_CONNECT: {
+			pkt = new ServerConnect();
+			break;
+		}
+
+		case SMG_BROADMSG: {
+			pkt = new ServerBroadMsg();
+			break;
+		}
+
+		case SMG_DISCONNECT: {
+			pkt = new ServerDisconnect();
+			break;
+		}
+		default: {
+			return nullptr;
+		}
+	}
 
 	pkt->parse(data);
-
-	// The real type is still "hidden" as Packet* and will have to be cast as its proper class
-
 	return pkt;
 }
 
