@@ -60,7 +60,7 @@ extern int epollFd;
 extern queue<unique_ptr<Packet>> logQueue;
 extern mutex logMtx; // To keep queue on track
 extern condition_variable queueCv;
-extern shared_mutex fileMtx; // To keep queue on track
+extern shared_mutex fileMtx; // To control the file access
 extern string serverName;
 
 

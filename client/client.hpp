@@ -43,6 +43,11 @@ extern string inputBuf;
 extern int epollFd;
 extern string serverName;
 
+//Logging
+extern queue<unique_ptr<Packet>> logQueue;
+extern mutex logMtx; // Control the logging queue
+extern shared_mutex fileMtx; // Control the file access
+
 struct UiContext;
 
 int protocolParser(Packet* pkt, UiContext& context);

@@ -10,6 +10,7 @@ CLIENT_SRCS := $(CLIENT_DIR)/client.cpp \
                $(CLIENT_DIR)/interface.cpp \
                $(CLIENT_DIR)/cliUtils.cpp \
                $(CLIENT_DIR)/form.cpp \
+               $(CLIENT_DIR)/logging.cpp \
                $(PROTO_SRC)
 
 SERVER_SRCS := $(SERVER_DIR)/server.cpp \
