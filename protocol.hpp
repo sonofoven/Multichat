@@ -56,6 +56,7 @@ public:
 
 class ClientConnect : public Packet { ///
 public:
+	time_t timestamp;
     string username;
 
     void parse(const uint8_t* data) override;

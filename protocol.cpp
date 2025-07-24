@@ -32,20 +32,23 @@ void pushListBack(vector<uint8_t>& buffer, list<string>& userList){
 void ClientConnect::parse(const uint8_t* data) {
 	length = le16toh(*(uint16_t*)data);
 	opcode = le16toh(*(uint16_t*)(data + sizeof(length)));
+	timestamp = le64toh(*(time_t*)(data + headerLen));
 
-	username = (char*)(data + headerLen);
+	username = (char*)(data + headerLen + sizeof(time_t));
 }
 
 void ClientConnect::serialize(vector<uint8_t>& buffer) {
 	pushBack(buffer, htole16(length));
 	pushBack(buffer, htole16(opcode));
+	pushBack(buffer, htole64(timestamp));
 	pushStrBack(buffer, username);
 }
 
 ClientConnect::ClientConnect(string& usr){
 	// + 1 for null byte
-	length = headerLen + usr.size() + 1;
+	length = headerLen + usr.size() + sizeof(time_t) + 1;
 	opcode = CMG_CONNECT;
+	time(&timestamp);
 
 	username = usr;
 }
