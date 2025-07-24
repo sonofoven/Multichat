@@ -9,6 +9,11 @@ vector<uint8_t> writeBuf;
 string inputBuf;
 string serverName;
 
+mutex logMtx;
+shared_mutex fileMtx;
+queue<unique_ptr<Packet>> logQueue;
+condition_variable queueCv;
+
 int epollFd;
 
 int main() {
@@ -26,6 +31,7 @@ int main() {
 
 	// If bad validation -> prompt message & kick out
 	if (!fileVerify()){
+		cout << "File not found" << endl;
 		exit(1);
 	}
 
@@ -33,11 +39,15 @@ int main() {
 
 	int servFd = startUp();
 
+	thread logT(logLoop);
+	logT.detach();
+
 	if (servFd < 0){
 		endwin();
 		cout << "Connection Not Possible" << endl;
 		exit(1);
 	}
+
 
 	//cout << "Connection Validated" << endl;
 

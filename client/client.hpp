@@ -17,11 +17,17 @@
 #include <thread>
 #include <ctime>
 #include <fstream>
+#include <mutex>
+#include <shared_mutex>
+#include <regex>
+#include <condition_variable>
 #include "../protocol.hpp"
 
 #define HALIGN 2
 #define VALIGN 1
 #define VERSION "1.0"
+#define LOG_DAY_MAX 7
+#define STORAGE_DIR ".multiChat"
 
 using namespace std;
 using namespace std::filesystem;
@@ -47,6 +53,17 @@ extern string serverName;
 extern queue<unique_ptr<Packet>> logQueue;
 extern mutex logMtx; // Control the logging queue
 extern shared_mutex fileMtx; // Control the file access
+extern condition_variable queueCv;
+
+void logLoop();
+list<path> detectLogFiles();
+void addToLog(string str, list<path>& logFiles);
+void weenLogFiles(list<path>& logFiles);
+path logFilePath();
+path getLogDir();
+void appendToLog(unique_ptr<Packet> ptr);
+void restoreHistory();
+
 
 struct UiContext;
 

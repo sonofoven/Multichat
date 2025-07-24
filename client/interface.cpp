@@ -199,6 +199,12 @@ void handleCh(UiContext& context, int ch, int servFd){
 		ClientBroadMsg pkt = ClientBroadMsg(inputBuf);
 		pkt.serialize(writeBuf);
 
+		// Send a modded packet to the log
+		ServerBroadMsg logPkt = ServerBroadMsg(clientInfo.username, inputBuf);
+		unique_ptr<ServerBroadMsg> upkt = make_unique<ServerBroadMsg>(logPkt);
+		appendToLog(move(upkt));
+
+
 		// If initial send didn't work, mark fd for output checking
 		ssize_t sent = write(servFd, writeBuf.data(), writeBuf.size());
 		if (sent > 0){

@@ -29,7 +29,6 @@ int main(int argc, char* argv[]){
 	epollFd = -1;
 	epoll_event events[MAX_EVENTS];
 
-
 	// Create a listening socket
 	listenFd = makeListenSocket(address);
 

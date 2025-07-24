@@ -293,6 +293,9 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 
 void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context){
 	vector<chtype> formattedStr = formatMessage(pkt.timestamp, pkt.msg, pkt.username);
+	
+	unique_ptr<ServerBroadMsg> upkt = make_unique<ServerBroadMsg>(pkt);
+	appendToLog(move(upkt));
 
 	appendToWindow(*context.msgWin, formattedStr, 1);
 }
@@ -318,7 +321,7 @@ void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
 path getConfDir(){
 	const char* home = getenv("HOME");
 	// Not a check but if you have this unset, you have bigger problems
-	path configDir = path(home) / ".config" / "multiChat";
+	path configDir = path(home) / STORAGE_DIR;
 	create_directories(configDir);
 	path configFile = configDir / "config";
 
