@@ -62,7 +62,7 @@ void weenLogFiles(list<path>& logFiles);
 path logFilePath();
 path getLogDir();
 void appendToLog(unique_ptr<Packet> ptr);
-void restoreHistory();
+time_t getLatestLoggedMsgTime();
 
 
 struct UiContext;
@@ -91,3 +91,4 @@ bool fileVerify();
 bool checkCliInfo();
 bool validateIpv4(string str);
 optional<vector<string>> octetTokenize(string str);
+

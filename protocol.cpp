@@ -44,11 +44,11 @@ void ClientConnect::serialize(vector<uint8_t>& buffer) {
 	pushStrBack(buffer, username);
 }
 
-ClientConnect::ClientConnect(string& usr){
+ClientConnect::ClientConnect(string& usr, time_t msgTime){
 	// + 1 for null byte
 	length = headerLen + usr.size() + sizeof(time_t) + 1;
 	opcode = CMG_CONNECT;
-	time(&timestamp);
+	timestamp = msgTime;
 
 	username = usr;
 }

@@ -145,4 +145,4 @@ path getLogDir();
 
 void appendToLog(unique_ptr<Packet> pkt);
 void weenLogFiles(list<path>& logFiles);
-void sendBackLogFiles(clientConn& client);
+void sendBackLogFiles(clientConn& client, time_t timestamp);

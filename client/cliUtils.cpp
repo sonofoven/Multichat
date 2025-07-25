@@ -58,7 +58,7 @@ int networkStart(){
 
 
 void sendOneConn(int servFd){
-	ClientConnect pkt = ClientConnect(clientInfo.username);
+	ClientConnect pkt = ClientConnect(clientInfo.username, getLatestLoggedMsgTime());
 	pkt.serialize(writeBuf);
 
 	// Write to fd
@@ -270,7 +270,7 @@ void serverValidate(ServerValidate& pkt, UiContext& context){
 
 	// Get and update userconn list
 
-	// This coult be an issue with the move
+	// This could be an issue with the move
 	userConns = move(pkt.userList);
 	updateUserWindow(context);
 }
@@ -479,3 +479,5 @@ optional<vector<string>> octetTokenize(string str){
 
 	return outBuf;
 }
+
+

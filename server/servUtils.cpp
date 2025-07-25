@@ -44,7 +44,7 @@ void clientConnect(ClientConnect& pkt, clientConn& sender){
 		//unique_ptr<ServerConnect> upkt = make_unique<ServerConnect>(responseAll);
 		//appendToLog(move(upkt));
 
-		sendBackLogFiles(sender);
+		sendBackLogFiles(sender, pkt.timestamp);
 	}
 }
 

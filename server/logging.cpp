@@ -134,7 +134,7 @@ void appendToLog(unique_ptr<Packet> pkt){
 	queueCv.notify_one();
 }
 
-void sendBackLogFiles(clientConn& client){
+void sendBackLogFiles(clientConn& client, time_t timestamp){
 	// Find logs
 	list<path> logFiles = detectLogFiles();
 
@@ -162,9 +162,12 @@ void sendBackLogFiles(clientConn& client){
 
 			switch (linePtr->opcode){
 				case SMG_BROADMSG: {
-
 					ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
-					servPacket.serialize(client.writeBuf);
+
+					// Send if have more current message than latest client message
+					if (servPacket.timestamp > timestamp){
+						servPacket.serialize(client.writeBuf);
+					}
 
 					break;
 				}

@@ -30,6 +30,7 @@ int main() {
 	// If connection -> check validation
 
 	// If bad validation -> prompt message & kick out
+
 	if (!fileVerify()){
 		cout << "File not found" << endl;
 		exit(1);
@@ -38,6 +39,7 @@ int main() {
 	interfaceStart();
 
 	int servFd = startUp();
+
 
 	thread logT(logLoop);
 	logT.detach();
@@ -49,10 +51,8 @@ int main() {
 	}
 
 
-	//cout << "Connection Validated" << endl;
 
 	// Set up epoll for both server and key input
-
 	epollFd = -1;
 	epoll_event events[MAX_EVENTS];
 
@@ -64,6 +64,8 @@ int main() {
 	}
 
 	UiContext uiContext = setupWindows();
+
+	restoreHistory(uiContext);
 
 	fcntl(servFd, F_SETFL, O_NONBLOCK);
 	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
@@ -96,13 +98,11 @@ int main() {
 					close(servFd);
 					endwin();
 					exit(1);
-
 				}
 
 				if (event & EPOLLOUT){
 					// Write event
 					handleWrite(servFd);
-
 				}
 
 				if (event & EPOLLIN){

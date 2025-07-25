@@ -1,4 +1,5 @@
 #include "client.hpp"
+#include "interface.hpp"
 
 void logLoop(){
 	list<path> logFiles = detectLogFiles();
@@ -124,9 +125,13 @@ void appendToLog(unique_ptr<Packet> pkt){
 	queueCv.notify_one();
 }
 
-void restoreHistory(){
+void restoreHistory(UiContext& context){
 	// Find logs
 	list<path> logFiles = detectLogFiles();
+
+	if (logFiles.empty()){
+		return;
+	}
 
 	// Sort them (reverse order)
 	logFiles.sort(less<path>());
@@ -139,26 +144,58 @@ void restoreHistory(){
 		}
 
 		ifstream log(logFile);
+		if (!log.is_open()){
+			continue;
+		}
+
 		string line;
 
 		while (getline(log, line)){
 			uint8_t* data = (uint8_t*)line.c_str();
 			Packet* linePtr = instancePacketFromData(data);
 
-			switch (linePtr->opcode){
-				case SMG_BROADMSG: {
+			ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
 
-					ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
-					//servPacket.serialize(writeBuf);
-
-					break;
-				}
-
-				default: {
-				}
-			}
+			vector<chtype> formattedStr = formatMessage(servPacket.timestamp, servPacket.msg, servPacket.username);
+			appendToWindow(*context.msgWin, formattedStr, 1);
 		}
 
 		log.close();
 	}
+}
+
+time_t getLatestLoggedMsgTime(){
+	// Find logs
+	list<path> logFiles = detectLogFiles();
+	if (logFiles.empty()){
+		return 0;
+	}
+	logFiles.sort(greater<path>());
+
+	path logPath = logFiles.front();
+
+	if (!exists(logPath)){
+		return 0;
+	}
+
+	shared_lock<shared_mutex> lock(fileMtx);
+	ifstream log(logPath);
+
+	if (!log.is_open()){
+		return 0;
+	}
+
+	string line, lastLine;
+
+	while (getline(log, line)){
+		if (!line.empty()){
+			lastLine = line;
+		}
+	}
+
+	uint8_t* data = (uint8_t*)lastLine.c_str();
+	Packet* linePtr = instancePacketFromData(data);
+
+	ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
+	return servPacket.timestamp;
 }

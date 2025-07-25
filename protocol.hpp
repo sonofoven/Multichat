@@ -63,7 +63,7 @@ public:
     void serialize(vector<uint8_t>& buffer) override;
 
 	ClientConnect();
-	ClientConnect(string& usr);
+	ClientConnect(string& usr, time_t msgTime);
 };
 
 class ClientBroadMsg : public Packet { ///

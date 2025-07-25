@@ -63,3 +63,5 @@ void appendToWindow(Win& window, vector<chtype> inputVec, int prescroll);
 void updateUserWindow(UiContext& context);
 void handleCh(UiContext& context, int ch, int servFd);
 inline char getBaseChar(chtype ch);
+void restoreHistory(UiContext& context);
+
