@@ -113,7 +113,7 @@ path logFilePath(){
 
 path getLogDir(){
 	const char* home = getenv("HOME");
-	path logDir = path(home) / STORAGE_DIR / "logs";
+	path logDir = path(home) / STORAGE_DIR / "logs" / clientInfo.addr;
 	create_directories(logDir);
 
 	return logDir;
