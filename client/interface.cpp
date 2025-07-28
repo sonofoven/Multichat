@@ -9,13 +9,14 @@ void interfaceStart(){
 }
 
 UiContext setupWindows(){
-	static Win users, input, messages;
+	int rows, cols;
+	getmaxyx(stdscr, rows, cols);
 
-	input = createInputWin();
-	messages = createMsgWin(serverName);
-	users = createUserWin();
+	Win* input = createInputWin(rows, cols);
+	Win* messages = createMsgWin(serverName, rows, cols);
+	Win* users = createUserWin(rows, cols);
 
-	UiContext uiContext = UiContext(&users, &messages, &input);
+	UiContext uiContext = UiContext(users, messages, input);
 	updateUserWindow(uiContext);
 
 	return uiContext;
@@ -40,25 +41,25 @@ WINDOW* createWindow(int height, int width, int starty, int startx, bool boxOn, 
 }
 
 
-Win createUserWin() {
-	int height = LINES;
-	int width = COLS / 6;
+Win* createUserWin(int lines, int cols) {
+	int height = lines;
+	int width = cols / 6;
 	int startY = 0;
 	int startX = 0;
 	bool boxOn = true;
 	bool scrollOn = true;
 	string title = "| Users |";
 
-	Win window;
+	Win* window = new Win();
 	
-	window.bordWin = createWindow(height, 
+	window->bordWin = createWindow(height, 
 								  width, 
 								  startY, 
 								  startX, 
 								  boxOn, 
 								  !scrollOn);
 
-	window.textWin = createWindow(height - (2*VALIGN), 
+	window->textWin = createWindow(height - (2*VALIGN), 
 								  width - (2*HALIGN), 
 								  startY + VALIGN, 
 								  startX + HALIGN,
@@ -67,32 +68,33 @@ Win createUserWin() {
 
 	
 	int leftPad = (width - title.length())/2;
-	mvwprintw(window.bordWin, 0, leftPad, title.c_str());
+	mvwprintw(window->bordWin, 0, leftPad, title.c_str());
 
-	wrefresh(window.bordWin);
+	wrefresh(window->bordWin);
 
 	return window;
 }
 
 
-Win createMsgWin(string title){
-	int height = LINES - (LINES /6);
-	int width = (COLS * 5) / 6;
+Win* createMsgWin(string title, int lines, int cols){
+	int height = lines - (lines /6);
+	int userWidth = cols/6;
+	int width = cols - userWidth;
 	int startY = 0;
-	int startX = COLS / 6;
+	int startX = cols / 6;
 	bool boxOn = true;
 	bool scrollOn = true;
 
-	Win window;
+	Win* window = new Win();
 
-	window.bordWin = createWindow(height, 
+	window->bordWin = createWindow(height, 
 								  width, 
 								  startY, 
 								  startX,
 								  boxOn, 
 								  !scrollOn);
 
-	window.textWin = createWindow(height - (2*VALIGN), 
+	window->textWin = createWindow(height - (2*VALIGN), 
 							width - (2*HALIGN), 
 							startY + VALIGN, 
 							startX + HALIGN,
@@ -101,40 +103,147 @@ Win createMsgWin(string title){
 
 	int leftPad = (width - title.length())/2;
 	title = "| "+ title + " |";
-	mvwprintw(window.bordWin, 0, leftPad, title.c_str());
+	mvwprintw(window->bordWin, 0, leftPad, title.c_str());
 
-	wrefresh(window.bordWin);
+	wrefresh(window->bordWin);
 
 	return window;
 }
 
-Win createInputWin(){
-	int height = LINES / 6;
-	int width = (COLS * 5) / 6;
-	int startY = LINES - (LINES /6);
-	int startX = COLS / 6;
+Win* createInputWin(int lines, int cols){
+	int height = lines / 6;
+	int userWidth = cols/6;
+	int width = cols - userWidth;
+	int startY = lines - (lines /6);
+	int startX = cols / 6;
+	bool boxOn = true;
+	bool scrollOn = true;
 
-	Win window;
+	Win* window = new Win();
 	
-	window.bordWin = createWindow(height, 
+	window->bordWin = createWindow(height, 
 								  width, 
 								  startY, 
 								  startX,
-								  true,
-								  false);
+								  boxOn,
+								  !scrollOn);
 
-	window.textWin = createWindow(height - (2*VALIGN), 
+	window->textWin = createWindow(height - (2*VALIGN), 
 								  width - (2*HALIGN), 
 								  startY + VALIGN, 
 								  startX + HALIGN,
-								  false,
-								  true);
+								  !boxOn,
+								  scrollOn);
 
-	nodelay(window.textWin, TRUE);
-	keypad(window.textWin, TRUE);
+	nodelay(window->textWin, TRUE);
+	keypad(window->textWin, TRUE);
 
 	return window;
 }
+
+
+void redrawInputWin(Win* window, int lines, int cols){
+	delwin(window->bordWin);
+	delwin(window->textWin);
+
+	int userWidth = cols/6;
+	int boxHeight = lines / 6;
+	int boxWidth = cols-userWidth;
+	int boxStartY = lines - boxHeight;
+	int boxStartX = cols  / 6;
+
+	int textHeight = boxHeight - (2 * VALIGN);
+	int textWidth = boxWidth  - (2 * HALIGN);
+	int textStartY = boxStartY + VALIGN;
+	int textStartX = boxStartX + HALIGN;
+
+	window->bordWin = createWindow(
+		boxHeight, boxWidth, boxStartY, boxStartX,
+		true, false
+	);
+	window->textWin = createWindow(
+		textHeight, textWidth, textStartY, textStartX,
+		false, true
+	);
+
+
+	nodelay(window->textWin, TRUE);
+	keypad(window->textWin, TRUE);
+
+	wrefresh(window->bordWin);
+	// Append text to textWin
+	wrefresh(window->textWin);
+}
+
+
+void redrawUserWin(Win* window, int lines, int cols){
+	delwin(window->bordWin);
+	delwin(window->textWin);
+
+	int boxHeight = lines;
+	int boxWidth = cols / 6;
+	int boxStartY = 0;
+	int boxStartX = 0;
+
+	int textHeight = boxHeight - (2 * VALIGN);
+	int textWidth = boxWidth  - (2 * HALIGN);
+	int textStartY = VALIGN;
+	int textStartX = HALIGN;
+
+	window->bordWin = createWindow(
+		boxHeight, boxWidth, boxStartY, boxStartX,
+		true, false
+	);
+	window->textWin = createWindow(
+		textHeight, textWidth, textStartY, textStartX,
+		false, true
+	);
+
+
+	string title = "| Users |";
+	int leftPad = (boxWidth - title.length()) / 2;
+	mvwprintw(window->bordWin, 0, leftPad, "%s", title.c_str());
+
+	wrefresh(window->bordWin);
+	// Append text to textWin
+	wrefresh(window->textWin);
+}
+
+
+void redrawMsgWin(Win* window, int lines, int cols){
+	delwin(window->bordWin);
+	delwin(window->textWin);
+	
+	int userWidth = cols/6;
+	int boxHeight = lines - (lines / 6);
+	int boxWidth = cols-userWidth;
+	int boxStartY = 0;
+	int boxStartX = cols / 6;
+
+	int textHeight = boxHeight - (2 * VALIGN);
+	int textWidth = boxWidth  - (2 * HALIGN);
+	int textStartY = VALIGN;
+	int textStartX = boxStartX + HALIGN;
+
+	window->bordWin = createWindow(
+		boxHeight, boxWidth, boxStartY, boxStartX,
+		true, false
+	);
+	window->textWin = createWindow(
+		textHeight, textWidth, textStartY, textStartX,
+		false, true
+	);
+
+
+	string title = "| " + serverName + " |";
+	int leftPad = (boxWidth - title.length()) / 2;
+	mvwprintw(window->bordWin, 0, leftPad, "%s", title.c_str());
+
+	wrefresh(window->bordWin);
+	// Append text to textWin
+	wrefresh(window->textWin);
+}
+
 
 void handleCh(UiContext& context, int ch, int servFd){
 	refresh();
@@ -281,11 +390,11 @@ vector<chtype> formatDisMessage(time_t time, string& username){
 	pushBackStr(formatTime(time), outBuf, A_DIM);
 
 	outBuf.push_back((chtype)' ' | A_BOLD);
-	pushBackStr("<--    ", outBuf, A_DIM);
+	pushBackStr("<--	", outBuf, A_DIM);
 
 	pushBackStr(username, outBuf, A_DIM);
 
-	pushBackStr(" has disconnected    -->", outBuf, A_DIM);
+	pushBackStr(" has disconnected	-->", outBuf, A_DIM);
 
 	return outBuf;
 }
@@ -295,11 +404,11 @@ vector<chtype> formatConMessage(time_t time, string& username){
 	pushBackStr(formatTime(time), outBuf, A_DIM);
 
 	outBuf.push_back((chtype)' ' | A_BOLD);
-	pushBackStr("<--    ", outBuf, A_DIM);
+	pushBackStr("<--	", outBuf, A_DIM);
 
 	pushBackStr(username, outBuf, A_DIM);
 
-	pushBackStr(" has connected    -->", outBuf, A_DIM);
+	pushBackStr(" has connected	-->", outBuf, A_DIM);
 
 	return outBuf;
 
@@ -372,7 +481,7 @@ string dateStr(int day){
 
 void appendToWindow(Win& window, vector<chtype> chTypeVec, int prescroll){
 
-    WINDOW* win = window.textWin;
+	WINDOW* win = window.textWin;
 
 	int row, col;
 	getmaxyx(win, row, col);
@@ -395,11 +504,11 @@ void appendToWindow(Win& window, vector<chtype> chTypeVec, int prescroll){
 	}
 
 	for (chtype& ch : chTypeVec){
-        window.screenBuf.push_back(ch);
+		window.screenBuf.push_back(ch);
 		waddch(win, ch);
-    }
+	}
 
-    wrefresh(win);
+	wrefresh(win);
 }
 
 void updateUserWindow(UiContext& context){
@@ -436,4 +545,20 @@ void pushBackStr(string str, vector<chtype>& outBuf, attr_t attr){
 	for(char& ch : str){
 		outBuf.push_back((chtype)ch | attr);
 	}
+}
+
+void redrawUi(UiContext& context, int lines, int cols){
+	//if (lines < MIN_LINES || cols < MIN_COLS){
+	//	// Display brief warning message
+	//	windowDisplayed = false;
+	//	return;
+	//}
+	erase();
+	refresh();
+
+	redrawInputWin(context.inputWin, lines, cols);
+	redrawUserWin(context.userWin, lines, cols);
+	redrawMsgWin(context.msgWin, lines, cols);
+
+	windowDisplayed = true;
 }

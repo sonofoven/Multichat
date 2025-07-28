@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <csignal>
 #include <cstring>
 #include <vector>
 #include <list>
@@ -18,6 +19,7 @@
 #include <ctime>
 #include <fstream>
 #include <mutex>
+#include <atomic>
 #include <shared_mutex>
 #include <regex>
 #include <condition_variable>
@@ -28,6 +30,8 @@
 #define VERSION "1.0"
 #define LOG_DAY_MAX 7
 #define STORAGE_DIR ".multiChat"
+#define MIN_LINES 50
+#define MIN_COLS 100
 
 using namespace std;
 using namespace std::filesystem;
@@ -40,6 +44,7 @@ struct connInfo{
 };
 extern connInfo clientInfo;
 
+
 // List of users connected to server
 extern list<string> userConns; 
 
@@ -49,11 +54,13 @@ extern string inputBuf;
 extern int epollFd;
 extern string serverName;
 
-//Logging
+// Logging
 extern queue<unique_ptr<Packet>> logQueue;
 extern mutex logMtx; // Control the logging queue
 extern shared_mutex fileMtx; // Control the file access
 extern condition_variable queueCv;
+extern atomic<bool> redrawQueued;
+extern atomic<bool> windowDisplayed;
 
 void logLoop();
 list<path> detectLogFiles();
@@ -65,6 +72,7 @@ void appendToLog(unique_ptr<Packet> ptr);
 time_t getLatestLoggedMsgTime();
 
 
+// UI / Window IO
 struct UiContext;
 
 int protocolParser(Packet* pkt, UiContext& context);
@@ -77,6 +85,7 @@ void serverValidate(ServerValidate& pkt, UiContext& context);
 void serverConnect(ServerConnect& pkt, UiContext& context);
 void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context);
 void serverDisconnect(ServerDisconnect& pkt, UiContext& context);
+void redrawUi(UiContext& context, int lines, int cols);
 
 // Server startup & client negotiation
 int startUp();
@@ -92,3 +101,5 @@ bool checkCliInfo();
 bool validateIpv4(string str);
 optional<vector<string>> octetTokenize(string str);
 
+// Signal Handling
+void sigwinchHandler(int sig);

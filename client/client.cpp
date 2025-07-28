@@ -13,10 +13,18 @@ mutex logMtx;
 shared_mutex fileMtx;
 queue<unique_ptr<Packet>> logQueue;
 condition_variable queueCv;
-
 int epollFd;
 
+atomic<bool> redrawQueued = false;
+atomic<bool> windowDisplayed = false;
+
+
 int main() {
+	struct sigaction sa {};
+	sa.sa_handler = sigwinchHandler;
+	sa.sa_flags = SA_RESTART;
+	sigaction(SIGWINCH, &sa, nullptr);
+
 	cout << "Multichat v" << VERSION << endl;
 
 	// Check if setting file exists
@@ -40,7 +48,6 @@ int main() {
 
 	int servFd = startUp();
 
-
 	thread logT(logLoop);
 	logT.detach();
 
@@ -49,7 +56,6 @@ int main() {
 		cout << "Connection Not Possible" << endl;
 		exit(1);
 	}
-
 
 
 	// Set up epoll for both server and key input
@@ -64,6 +70,7 @@ int main() {
 	}
 
 	UiContext uiContext = setupWindows();
+	windowDisplayed = true;
 
 	restoreHistory(uiContext);
 
@@ -74,10 +81,24 @@ int main() {
 
 	while (1){
         int eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
+
+		if (redrawQueued.exchange(false)){
+			endwin();
+			clearok(stdscr, TRUE);
+			refresh();
+
+			int rows, cols;
+			getmaxyx(stdscr, rows, cols);
+			resizeterm(rows, cols);
+			redrawUi(uiContext, rows, cols);
+			refresh();
+			continue; // Remove this later
+		}
+
         if (eventCount == -1) {
             if (errno == EINTR) {
-                break;
-            } else if (errno != EINTR) {
+				continue;
+            } else {
 				cerr << "epoll wait" << endl;
                 break;
             }

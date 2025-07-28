@@ -481,3 +481,6 @@ optional<vector<string>> octetTokenize(string str){
 }
 
 
+void sigwinchHandler(int sig){
+	redrawQueued = true;
+}

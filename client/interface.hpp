@@ -11,11 +11,16 @@ struct Win{
 	WINDOW* bordWin;		
 	WINDOW* textWin;		 
 	vector<chtype> screenBuf;
+	chtype* firstVisibleChar;
+	chtype* lastVisibleChar;
 
 	Win() :
 		bordWin(nullptr),
 		textWin(nullptr),
-		screenBuf() {}
+		screenBuf(),
+		firstVisibleChar(nullptr),
+		lastVisibleChar(nullptr) {}
+
 };
 
 struct UiContext{
@@ -47,9 +52,9 @@ string dateStr(int day);
 
 
 // Window creation
-Win createUserWin();
-Win createMsgWin(string title);
-Win createInputWin();
+Win* createUserWin(int lines, int cols);
+Win* createMsgWin(string title, int lines, int cols);
+Win* createInputWin(int lines, int cols);
 WINDOW* createWindow(int height, 
 					 int width, 
 					 int starty, 
@@ -64,4 +69,9 @@ void updateUserWindow(UiContext& context);
 void handleCh(UiContext& context, int ch, int servFd);
 inline char getBaseChar(chtype ch);
 void restoreHistory(UiContext& context);
+void scrollWindow(UiContext& context, int direction);
 
+// Scrolling and redrawing
+void redrawInputWin(Win* window, int lines, int cols);
+void redrawUserWin(Win* window, int lines, int cols);
+void redrawMsgWin(Win* window, int lines, int cols);
