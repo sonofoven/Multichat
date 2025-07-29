@@ -445,7 +445,7 @@ string formatTime(time_t timestamp){
 
 	} else if (currentTime.tm_mday != stampTime.tm_mday){
 		// Different day, same week
-		strftime(outBuf, sizeof(outBuf), "%I:%M%p %a", &stampTime);
+		strftime(outBuf, sizeof(outBuf), "%a %I:%M%p", &stampTime);
 		str += outBuf;
 
 	} else {
@@ -578,13 +578,19 @@ void pushBackStr(string str, vector<chtype>& outBuf, attr_t attr){
 }
 
 void redrawUi(UiContext& context, int lines, int cols){
-	//if (lines < MIN_LINES || cols < MIN_COLS){
-	//	// Display brief warning message
-	//	windowDisplayed = false;
-	//	return;
-	//}
 	erase();
 	refresh();
+
+	if (lines < MIN_LINES || cols < MIN_COLS){
+		// Display brief warning message
+		const char* winErrMsg = "Window size is too small";
+		const size_t strLength = strlen(winErrMsg);
+		mvprintw((lines - strLength)/2, cols/2, winErrMsg);
+		refresh();
+		
+		windowDisplayed = false;
+		return;
+	}
 
 	redrawInputWin(context.inputWin, lines, cols);
 	redrawUserWin(context.userWin, lines, cols);
