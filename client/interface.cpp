@@ -172,6 +172,7 @@ void redrawInputWin(Win* window, int lines, int cols){
 
 	wrefresh(window->bordWin);
 	// Append text to textWin
+	restoreStringToWin(window);
 	wrefresh(window->textWin);
 }
 
@@ -205,6 +206,7 @@ void redrawUserWin(Win* window, int lines, int cols){
 	mvwprintw(window->bordWin, 0, leftPad, "%s", title.c_str());
 
 	wrefresh(window->bordWin);
+
 	// Append text to textWin
 	wrefresh(window->textWin);
 }
@@ -240,7 +242,8 @@ void redrawMsgWin(Win* window, int lines, int cols){
 	mvwprintw(window->bordWin, 0, leftPad, "%s", title.c_str());
 
 	wrefresh(window->bordWin);
-	// Append text to textWin
+
+	restoreTextToWin(window);
 	wrefresh(window->textWin);
 }
 
@@ -250,6 +253,7 @@ void handleCh(UiContext& context, int ch, int servFd){
 
 	Win& inWin = *context.inputWin;
 	WINDOW* inWindow = inWin.textWin;
+
 
 	int row, col;
 	getmaxyx(inWindow, row, col);
@@ -503,6 +507,9 @@ void appendToWindow(Win& window, vector<chtype> chTypeVec, int prescroll){
 		// Adding to the end of what I already have
 	}
 
+	// Mark beginning of line
+	window.screenBuf.push_back('\0');
+
 	for (chtype& ch : chTypeVec){
 		window.screenBuf.push_back(ch);
 		waddch(win, ch);
@@ -510,6 +517,29 @@ void appendToWindow(Win& window, vector<chtype> chTypeVec, int prescroll){
 
 	wrefresh(win);
 }
+
+void restoreTextToWin(Win* window){
+	
+	int row, col;
+	getmaxyx(window->textWin, row, col);
+
+	for (chtype & ch : window->screenBuf){
+		if (ch == '\0'){
+			wscrl(window->textWin, 1);
+			wmove(window->textWin, row - 1, 0);
+		} else {
+			waddch(window->textWin, ch);
+		}
+	}
+}
+
+void restoreStringToWin(Win* window){
+	werase(window->textWin);
+	for (char & ch : inputBuf){
+		waddch(window->textWin, (chtype)ch);
+	}
+}
+
 
 void updateUserWindow(UiContext& context){
 	WINDOW* win = context.userWin->textWin;
@@ -559,6 +589,7 @@ void redrawUi(UiContext& context, int lines, int cols){
 	redrawInputWin(context.inputWin, lines, cols);
 	redrawUserWin(context.userWin, lines, cols);
 	redrawMsgWin(context.msgWin, lines, cols);
+	updateUserWindow(context);
 
 	windowDisplayed = true;
 }

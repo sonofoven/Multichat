@@ -75,3 +75,6 @@ void scrollWindow(UiContext& context, int direction);
 void redrawInputWin(Win* window, int lines, int cols);
 void redrawUserWin(Win* window, int lines, int cols);
 void redrawMsgWin(Win* window, int lines, int cols);
+
+void restoreStringToWin(Win* window);
+void restoreTextToWin(Win* window);
