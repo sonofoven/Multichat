@@ -30,8 +30,8 @@
 #define VERSION "1.0"
 #define LOG_DAY_MAX 7
 #define STORAGE_DIR ".multiChat"
-#define MIN_LINES 50
-#define MIN_COLS 100
+#define MIN_LINES 25
+#define MIN_COLS 65
 
 using namespace std;
 using namespace std::filesystem;

@@ -284,7 +284,7 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 	userConns.sort(greater<string>());
 	vector<chtype> formattedStr = formatConMessage(pkt.timestamp, pkt.username);
 	
-	appendToWindow(*context.msgWin, formattedStr, 1);
+	appendMsgWin(context, formattedStr);
 
 	// Update the users window
 	updateUserWindow(context);
@@ -297,7 +297,7 @@ void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context){
 	unique_ptr<ServerBroadMsg> upkt = make_unique<ServerBroadMsg>(pkt);
 	appendToLog(move(upkt));
 
-	appendToWindow(*context.msgWin, formattedStr, 1);
+	appendMsgWin(context, formattedStr);
 }
 
 void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
@@ -311,7 +311,7 @@ void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
 
 	vector<chtype> formattedStr = formatDisMessage(pkt.timestamp, pkt.username);
 
-	appendToWindow(*context.msgWin, formattedStr, 1);
+	appendMsgWin(context, formattedStr);
 
 	// Update the users window
 	updateUserWindow(context);

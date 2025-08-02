@@ -305,7 +305,7 @@ void handleCh(UiContext& context, int ch, int servFd){
 		
 		// Format string and output it
 		vector<chtype> formatStr = formatMessage(time(NULL), inputBuf, clientInfo.username);
-		appendToWindow(*context.msgWin, formatStr, 1);
+		appendMsgWin(context, formatStr);
 		wrefresh(context.msgWin->textWin);
 
 		// Append packet to writeBuf
@@ -483,8 +483,12 @@ string dateStr(int day){
 
 
 
-void appendToWindow(Win& window, vector<chtype> chTypeVec, int prescroll){
+void appendMsgWin(UiContext& context, vector<chtype> chTypeVec){
+	if (!context.uiDisplayed){
+		return;
+	}
 
+	Win window = *(context.msgWin);
 	WINDOW* win = window.textWin;
 
 	int row, col;
@@ -492,22 +496,12 @@ void appendToWindow(Win& window, vector<chtype> chTypeVec, int prescroll){
 
 	curs_set(0);
 
-	// Scroll an amount before adding
-	wscrl(win, prescroll);
+	// Adding to the bottom
+	wscrl(win, 1);
+	wmove(win, row - 1, 0);
 
-	if (prescroll > 0){
-		// Adding to the bottom
-		wmove(win, row - 1, 0);
 
-	} else if (prescroll < 0){
-		// Adding to the top of win
-		wmove(win, 0, 0);
-
-	} else {
-		// Adding to the end of what I already have
-	}
-
-	// Mark beginning of line
+	// Mark beginning of line in mem
 	window.screenBuf.push_back('\0');
 
 	for (chtype& ch : chTypeVec){
@@ -542,6 +536,11 @@ void restoreStringToWin(Win* window){
 
 
 void updateUserWindow(UiContext& context){
+	if (!context.uiDisplayed){
+		return;
+	}
+
+
 	WINDOW* win = context.userWin->textWin;
 
 	werase(win);
@@ -588,7 +587,7 @@ void redrawUi(UiContext& context, int lines, int cols){
 		mvprintw((lines - strLength)/2, cols/2, winErrMsg);
 		refresh();
 		
-		windowDisplayed = false;
+		context.uiDisplayed = false;
 		return;
 	}
 
@@ -596,6 +595,5 @@ void redrawUi(UiContext& context, int lines, int cols){
 	redrawUserWin(context.userWin, lines, cols);
 	redrawMsgWin(context.msgWin, lines, cols);
 	updateUserWindow(context);
-
-	windowDisplayed = true;
+	context.uiDisplayed = true;
 }

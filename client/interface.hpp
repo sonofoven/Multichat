@@ -27,6 +27,7 @@ struct UiContext{
 	Win* userWin;
 	Win* msgWin;
 	Win* inputWin;
+	bool uiDisplayed;
 
 	UiContext(Win* u, 
 			  Win* m, 
@@ -34,7 +35,9 @@ struct UiContext{
 			  : 
 			  userWin(u), 
 			  msgWin(m), 
-			  inputWin(i) {}
+			  inputWin(i),
+			  uiDisplayed(true) {}
+
 };
 
 // Setup
@@ -64,7 +67,7 @@ WINDOW* createWindow(int height,
 
 // Window I/O
 string getWindowInput(Win& window, UiContext& context);
-void appendToWindow(Win& window, vector<chtype> inputVec, int prescroll);
+void appendMsgWin(UiContext& context, vector<chtype> inputVec);
 void updateUserWindow(UiContext& context);
 void handleCh(UiContext& context, int ch, int servFd);
 inline char getBaseChar(chtype ch);

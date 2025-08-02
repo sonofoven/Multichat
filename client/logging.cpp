@@ -157,7 +157,7 @@ void restoreHistory(UiContext& context){
 			ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
 
 			vector<chtype> formattedStr = formatMessage(servPacket.timestamp, servPacket.msg, servPacket.username);
-			appendToWindow(*context.msgWin, formattedStr, 1);
+			appendMsgWin(context, formattedStr);
 		}
 
 		log.close();

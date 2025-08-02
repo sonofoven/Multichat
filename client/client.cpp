@@ -16,7 +16,6 @@ condition_variable queueCv;
 int epollFd;
 
 atomic<bool> redrawQueued = false;
-atomic<bool> windowDisplayed = false;
 
 
 int main() {
@@ -70,7 +69,6 @@ int main() {
 	}
 
 	UiContext uiContext = setupWindows();
-	windowDisplayed = true;
 
 	restoreHistory(uiContext);
 
@@ -131,7 +129,7 @@ int main() {
 					handleRead(servFd, uiContext);
 				}
 
-			} else {
+			} else if (uiContext.uiDisplayed) {
 				// If something happened w/ keyboard input
 				int ch;
 
