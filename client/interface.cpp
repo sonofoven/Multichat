@@ -488,7 +488,7 @@ void appendMsgWin(UiContext& context, vector<chtype> chTypeVec){
 		return;
 	}
 
-	Win window = *(context.msgWin);
+	Win& window = *(context.msgWin);
 	WINDOW* win = window.textWin;
 
 	int row, col;
