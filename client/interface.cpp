@@ -611,9 +611,12 @@ void redrawUi(UiContext& context, int lines, int cols){
 	context.uiDisplayed = true;
 }
 
-int calcLineCount(vector<chtype> screenBuf, int lines, int cols){
+int calcLineCount(vector<chtype> screenBuf, WINDOW* win){
 	int lineCount = 0;
 	int chCount = 0;
+
+	int rows, cols;
+	getmaxyx(win, rows, cols);
 	
 	for (chtype & ch : screenBuf){
 		if (chCount >= cols || ch == '\0'){
@@ -626,21 +629,84 @@ int calcLineCount(vector<chtype> screenBuf, int lines, int cols){
 	return lineCount;
 }
 
-void scrollUp(UiContext& context, int lines, int cols){
-	WINDOW* win = context.msgWin->textWin;
-	wscrl(win, 1);
-	wrefresh(win);
-}
-
-void scrollDown(UiContext& context, int lines, int cols){
-	WINDOW* win = context.msgWin->textWin;
-	wscrl(win, -1);
-	wrefresh(win);
+void scrollBottom(UiContext& context){
 }
 
 void restoreTextScrolled(UiContext& context){
 }
 
-void scrollBottom(UiContext& context){
+void scrollUp(UiContext& context){
+	WINDOW* win = context.msgWin->textWin;
+	wscrl(win, 1);
+	wrefresh(win);
 }
 
+void scrollDown(UiContext& context){
+	WINDOW* win = context.msgWin->textWin;
+	wscrl(win, -1);
+	wrefresh(win);
+}
+
+int linesAbove(chtype* pos, Win* win){
+	// Gets line count above position
+	int lineCount = 0;
+	int chCount = 0;
+
+	int rows, cols;
+	getmaxyx(win->textWin, rows, cols);
+
+	chtype* begin = &(win->screenBuf.data());
+
+	for (chtype* ptr = begin; ptr < pos; ptr++){
+		if (chCount >= cols || *ptr == '\0'){
+			lineCount++;
+			chCount = 0;
+		} else {
+			chCount++;
+		}
+	}
+
+	return lineCount;
+}
+
+int linesBelow(chtype* pos, Win* win){
+	// Gets line count below position
+	int lineCount = 0;
+	int chCount = 0;
+
+	int rows, cols;
+	getmaxyx(win->textWin, rows, cols);
+
+	vector<chtype>& screenBuf = win->screenBuf;
+	chtype* end = &(screenBuf.data()) + screenBuf.size();
+
+	for (chtype* ptr = end; ptr > pos; ptr--){
+		
+
+		if (chCount >= cols || *ptr == '\0'){
+			lineCount++;
+			chCount = 0;
+		} else {
+			chCount++;
+		}
+	}
+
+	return lineCount;
+}
+
+chtype* prevLine(chtype* pos, Win* window){
+	// Gets line above from mem
+	// Pos should be start of current line
+	
+
+}
+
+chtype* nextLine(chtype* pos, Win* window){
+	// Gets line below from mem
+
+}
+
+void prependMsgWin(UiContext& context, vector<chtype> formatStr){
+	// Put string on the top
+
+}

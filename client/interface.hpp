@@ -22,7 +22,6 @@ struct Win{
 		firstVisibleChar(&screenBuf),
 		lastVisibleChar(&screenBuf),
 		scrollPos(&screenBuf) {}
-
 };
 
 struct UiContext{
@@ -30,6 +29,7 @@ struct UiContext{
 	Win* msgWin;
 	Win* inputWin;
 	bool uiDisplayed;
+	bool alignedOnBottom;
 
 	UiContext(Win* u, 
 			  Win* m, 
@@ -74,15 +74,25 @@ void updateUserWindow(UiContext& context);
 void handleCh(UiContext& context, int ch, int servFd);
 inline char getBaseChar(chtype ch);
 void restoreHistory(UiContext& context);
-int calcLineCount(vector<chtype> screenBuf, int lines, int cols);
-void scrollUp(UiContext& context, int lines, int cols);
-void scrollDown(UiContext& context, int lines, int cols);
-void scrollBottom(UiContext& context, int lines, int cols);
 
-// Scrolling and redrawing
+// Redrawing
 void redrawInputWin(Win* window, int lines, int cols);
 void redrawUserWin(Win* window, int lines, int cols);
 void redrawMsgWin(Win* window, int lines, int cols);
 
 void restoreStringToWin(Win* window);
 void restoreTextToWin(Win* window);
+void restoreTextScrolled(UiContext& context);
+
+// Scrolling
+int calcLineCount(vector<chtype> screenBuf, WINDOW* win);
+void scrollBottom(UiContext& context);
+void scrollUp(UiContext& context);
+void scrollDown(UiContext& context);
+
+int linesAbove(chtype* pos, Win* win);
+int linesBelow(chtype* pos, Win* win);
+chtype* prevLine(chtype* pos, Win* window);
+chtype* nextLine(chtype* pos, Win* window);
+
+void prependMsgWin(UiContext& context, vector<chtype> formatStr);
