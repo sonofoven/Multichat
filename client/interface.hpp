@@ -13,13 +13,15 @@ struct Win{
 	vector<chtype> screenBuf;
 	chtype* firstVisibleChar;
 	chtype* lastVisibleChar;
+	chtype* scrollPos;
 
 	Win() :
 		bordWin(nullptr),
 		textWin(nullptr),
 		screenBuf(),
-		firstVisibleChar(nullptr),
-		lastVisibleChar(nullptr) {}
+		firstVisibleChar(&screenBuf),
+		lastVisibleChar(&screenBuf),
+		scrollPos(&screenBuf) {}
 
 };
 
@@ -72,7 +74,10 @@ void updateUserWindow(UiContext& context);
 void handleCh(UiContext& context, int ch, int servFd);
 inline char getBaseChar(chtype ch);
 void restoreHistory(UiContext& context);
-void scrollWindow(UiContext& context, int direction);
+int calcLineCount(vector<chtype> screenBuf, int lines, int cols);
+void scrollUp(UiContext& context, int lines, int cols);
+void scrollDown(UiContext& context, int lines, int cols);
+void scrollBottom(UiContext& context, int lines, int cols);
 
 // Scrolling and redrawing
 void redrawInputWin(Win* window, int lines, int cols);

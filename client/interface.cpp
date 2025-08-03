@@ -243,7 +243,12 @@ void redrawMsgWin(Win* window, int lines, int cols){
 
 	wrefresh(window->bordWin);
 
-	restoreTextToWin(window);
+
+	if (calcLineCount(window.screenBuf, textHeight, textWidth) <= textHeight){
+		restoreTextToWin(window);
+	} else {
+		restoreTextScrolled(UiContext, textHeight, textWidth);
+	}
 	wrefresh(window->textWin);
 }
 
@@ -263,6 +268,14 @@ void handleCh(UiContext& context, int ch, int servFd){
 
 	int y, x; // Current y and x pos
 	getyx(inWindow, y, x);
+
+	if (ch == KEY_UP){
+		scrollUp(context, row, col);
+	}
+
+	if (ch == KEY_DOWN){
+		scrollDown(context, row, col);
+	}
 
 	// Handle Backspace
 	if (ch == KEY_BACKSPACE){ 
@@ -597,3 +610,37 @@ void redrawUi(UiContext& context, int lines, int cols){
 	updateUserWindow(context);
 	context.uiDisplayed = true;
 }
+
+int calcLineCount(vector<chtype> screenBuf, int lines, int cols){
+	int lineCount = 0;
+	int chCount = 0;
+	
+	for (chtype & ch : screenBuf){
+		if (chCount >= cols || ch == '\0'){
+			lineCount++;
+			chCount = 0;
+		} else {
+			chCount++;
+		}
+	}
+	return lineCount;
+}
+
+void scrollUp(UiContext& context, int lines, int cols){
+	WINDOW* win = context.msgWin->textWin;
+	wscrl(win, 1);
+	wrefresh(win);
+}
+
+void scrollDown(UiContext& context, int lines, int cols){
+	WINDOW* win = context.msgWin->textWin;
+	wscrl(win, -1);
+	wrefresh(win);
+}
+
+void restoreTextScrolled(UiContext& context){
+}
+
+void scrollBottom(UiContext& context){
+}
+
