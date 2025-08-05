@@ -8,20 +8,18 @@ using namespace std;
 
 // Window/UI structs
 struct Win{
-	WINDOW* bordWin;		
-	WINDOW* textWin;		 
+	WINDOW* bordWin;	   
+	WINDOW* textWin;	   
 	vector<chtype> screenBuf;
-	chtype* firstVisibleChar;
-	chtype* lastVisibleChar;
-	chtype* scrollPos;
+	int firstVisLineIdx;
+	int lastVisLineIdx;
 
 	Win() :
 		bordWin(nullptr),
 		textWin(nullptr),
 		screenBuf(),
-		firstVisibleChar(&screenBuf),
-		lastVisibleChar(&screenBuf),
-		scrollPos(&screenBuf) {}
+		firstVisLineIdx(0),
+		lastVisLineIdx(0) {}
 };
 
 struct UiContext{
@@ -38,7 +36,8 @@ struct UiContext{
 			  userWin(u), 
 			  msgWin(m), 
 			  inputWin(i),
-			  uiDisplayed(true) {}
+			  uiDisplayed(true), 
+			  alignedOnBottom(true){}
 
 };
 
@@ -85,14 +84,15 @@ void restoreTextToWin(Win* window);
 void restoreTextScrolled(UiContext& context);
 
 // Scrolling
-int calcLineCount(vector<chtype> screenBuf, WINDOW* win);
+int calcLineCount(vector<chtype>& screenBuf, WINDOW* win);
 void scrollBottom(UiContext& context);
 void scrollUp(UiContext& context);
 void scrollDown(UiContext& context);
 
-int linesAbove(chtype* pos, Win* win);
-int linesBelow(chtype* pos, Win* win);
-chtype* prevLine(chtype* pos, Win* window);
-chtype* nextLine(chtype* pos, Win* window);
-
-void prependMsgWin(UiContext& context, vector<chtype> formatStr);
+int linesAbove(int pos, Win* win);
+int linesBelow(int pos, Win* win);
+int prevLine(int pos, Win* window);
+int nextLine(int pos, Win* window);
+void addLine(UiContext& context, int startPos, int dir);
+int getTopLine(int botLine, Win* win);
+int getBotLine(int topLine, Win* win);
