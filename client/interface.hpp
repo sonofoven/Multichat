@@ -11,15 +11,15 @@ struct Win{
 	WINDOW* bordWin;	   
 	WINDOW* textWin;	   
 	vector<chtype> screenBuf;
-	int firstVisLineIdx;
-	int lastVisLineIdx;
+	int firstVisChIdx;
+	int lastVisChIdx;
 
 	Win() :
 		bordWin(nullptr),
 		textWin(nullptr),
 		screenBuf(),
-		firstVisLineIdx(0),
-		lastVisLineIdx(0) {}
+		firstVisChIdx(0),
+		lastVisChIdx(0) {}
 };
 
 struct UiContext{
@@ -91,8 +91,8 @@ void scrollDown(UiContext& context);
 
 int linesAbove(int pos, Win* win);
 int linesBelow(int pos, Win* win);
-int prevLine(int pos, Win* window);
-int nextLine(int pos, Win* window);
+int prevLinesAway(int pos, Win* window, int lineOffset);
+int nextLinesAway(int pos, Win* window, int lineOffset);
 void addLine(UiContext& context, int startPos, int dir);
-int getTopLine(int botLine, Win* win);
-int getBotLine(int topLine, Win* win);
+int getTopCh(int botLine, Win* win);
+int getBotCh(int topLine, Win* win);

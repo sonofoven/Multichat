@@ -495,37 +495,6 @@ string dateStr(int day){
 	return ending;
 }
 
-
-
-void appendMsgWin(UiContext& context, vector<chtype> chTypeVec){
-	if (!context.uiDisplayed){
-		return;
-	}
-
-	Win& window = *(context.msgWin);
-	WINDOW* win = window.textWin;
-
-	int row, col;
-	getmaxyx(win, row, col);
-
-	curs_set(0);
-
-	// Adding to the bottom
-	wscrl(win, 1);
-	wmove(win, row - 1, 0);
-
-
-	// Mark beginning of line in mem
-	window.screenBuf.push_back('\0');
-
-	for (chtype& ch : chTypeVec){
-		window.screenBuf.push_back(ch);
-		waddch(win, ch);
-	}
-
-	wrefresh(win);
-}
-
 void restoreTextToWin(Win* window){
 	
 	int row, col;
@@ -611,6 +580,47 @@ void redrawUi(UiContext& context, int lines, int cols){
 	context.uiDisplayed = true;
 }
 
+void appendMsgWin(UiContext& context, vector<chtype> chTypeVec){
+	if (!context.uiDisplayed){
+		return;
+	}
+
+	Win& window = *(context.msgWin);
+	WINDOW* win = window.textWin;
+
+	// Mark beginning of line in mem
+	window.screenBuf.push_back('\0');
+	for (chtype& ch : chTypeVec){
+		window.screenBuf.push_back(ch);
+	}
+
+	if (!context.alignedOnBottom){
+		return;
+	}
+
+	int rows, cols;
+	getmaxyx(win, rows, cols);
+
+	curs_set(0);
+
+	int visLines = calcLineCount(window.screenBuf, win);
+	int addedLines = calcLineCount(chTypeVec, win);
+
+	context.msgWin->lastVisChIdx = window.screenBuf.size() - 1 + chTypeVec.size();
+	context.msgWin->firstVisChIdx = getTopCh(context.msgWin->lastVisChIdx, context.msgWin);
+
+
+	// Adding to the bottom
+	wscrl(win, 1);
+	wmove(win, rows - 1, 0);
+
+	for (chtype& ch : chTypeVec){
+		waddch(win, ch);
+	}
+
+	wrefresh(win);
+}
+
 int calcLineCount(vector<chtype>& screenBuf, WINDOW* win){
 	int lineCount = 0;
 	int chCount = 0;
@@ -625,6 +635,7 @@ int calcLineCount(vector<chtype>& screenBuf, WINDOW* win){
 			chCount++;
 		}
 	}
+
 	return lineCount;
 }
 
@@ -636,9 +647,9 @@ void restoreTextScrolled(UiContext& context){
 
 void scrollUp(UiContext& context){
 	WINDOW* win = context.msgWin->textWin;
-	int firstLineIndex = context.msgWin->firstVisLineIdx;
+	int firstLineIndex = context.msgWin->firstVisChIdx;
 
-	int newLineIdx = prevLine(firstLineIndex, context.msgWin);
+	int newLineIdx = prevLinesAway(firstLineIndex, context.msgWin, 1);
 
 	if (newLineIdx < 0){
 		return;
@@ -647,18 +658,18 @@ void scrollUp(UiContext& context){
 	addLine(context, newLineIdx, -1);
 
 	// Assign new first char
-	context.msgWin->firstVisLineIdx = newLineIdx;
+	context.msgWin->firstVisChIdx = newLineIdx;
 	// Assign new last char
-	context.msgWin->lastVisLineIdx = getBotLine(newLineIdx, context.msgWin);
+	context.msgWin->lastVisChIdx = getBotCh(newLineIdx, context.msgWin);
 
 	wrefresh(win);
 }
 
 void scrollDown(UiContext& context){
 	WINDOW* win = context.msgWin->textWin;
-	int lastLineIndex = context.msgWin->lastVisLineIdx;
+	int lastLineIndex = context.msgWin->lastVisChIdx;
 
-	int newLineIdx = nextLine(lastLineIndex, context.msgWin);
+	int newLineIdx = nextLinesAway(lastLineIndex, context.msgWin, 1);
 
 	if (newLineIdx < 0){
 		return;
@@ -666,11 +677,11 @@ void scrollDown(UiContext& context){
 
 	addLine(context, newLineIdx, 1);
 
-	// Assign new first line
-	context.msgWin->firstVisLineIdx = getTopLine(newLineIdx, context.msgWin);
+	// Assign new first char
+	context.msgWin->firstVisChIdx = getTopCh(newLineIdx, context.msgWin);
 
-	// Assign new last line
-	context.msgWin->lastVisLineIdx = newLineIdx;
+	// Assign new last char
+	context.msgWin->lastVisChIdx = newLineIdx;
 
 	wrefresh(win);
 }
@@ -715,55 +726,66 @@ int linesBelow(int pos, Win* win){
 	return lineCount;
 }
 
-int prevLine(int pos, Win* win){
-	// Gets line above from mem
-	// Pos should be start of current line
+
+int prevLinesAway(int pos, Win* win, int lineOffset){
+	// pos is always start of the line
+	int lineCount = -1;
 	int chCount = 0;
 
 	int cols = getmaxx(win->textWin);
 
 	int begin = 0;
-	if (pos <= begin){
+	if (pos <= begin || lineOffset < 1){
 		// No previous lines
 		return -1;
 	}
 
 	for (int idx = pos - 1; idx > begin; idx--){
 		if (chCount >= cols || win->screenBuf[idx] == '\0'){
-			return idx;
+			lineCount++;
+			chCount = 0;
 		} else {
 			chCount++;
+		}
+
+		if (lineCount >= lineOffset){
+			return idx;
 		}
 	}
 
 	return -1;
 }
 
-int nextLine(int pos, Win* win){
-	// Gets line below from mem
+int nextLinesAway(int pos, Win* win, int lineOffset){
+	// pos is always start of the line
+	int lineCount = -1;
 	int chCount = 0;
 
 	int cols = getmaxx(win->textWin);
 
 	int end = win->screenBuf.size() - 1;
-
-	if (pos >= end){
+	if (pos >= end || lineOffset < 1){
 		// No next lines
 		return -1;
 	}
 
-	for (int idx = pos + 1; idx < (int)win->screenBuf.size(); idx++){
+	for (int idx = pos + 1; idx < (int)end; idx++){
 		if (chCount >= cols || win->screenBuf[idx] == '\0'){
-			return idx;
+			lineCount++;
+			chCount = 0;
 		} else {
 			chCount++;
+		}
+
+		if (lineCount >= lineOffset){
+			return idx;
 		}
 	}
 
 	return -1;
 }
 
-int getTopLine(int botLineIndex, Win* win){
+int getTopCh(int botChIdx, Win* win){
 	int rows, cols;
 	getmaxyx(win->textWin, rows, cols);
 
@@ -771,7 +793,7 @@ int getTopLine(int botLineIndex, Win* win){
 	int chCount = 0;
 
 	int begin = 0;
-	int idx = botLineIndex;
+	int idx = botChIdx;
 
 	for (; lineCount < rows && idx > begin; idx--){
 		if (chCount >= cols || win->screenBuf[idx] == '\0'){
@@ -784,7 +806,7 @@ int getTopLine(int botLineIndex, Win* win){
 	return idx;
 }
 
-int getBotLine(int topLineIndex, Win* win){
+int getBotCh(int topChIdx, Win* win){
 	int rows, cols;
 	getmaxyx(win->textWin, rows, cols);
 
@@ -792,8 +814,8 @@ int getBotLine(int topLineIndex, Win* win){
 	int chCount = 0;
 
 	int end = win->screenBuf.size() - 1;
-	int idx = topLineIndex;
-	for (; lineCount < rows && idx < end; idx++){
+	int idx = topChIdx;
+	for (; lineCount <= rows && idx < end; idx++){
 		if (chCount >= cols || win->screenBuf[idx] == '\0'){
 			lineCount++;
 			chCount = 0;
@@ -801,6 +823,12 @@ int getBotLine(int topLineIndex, Win* win){
 			chCount++;
 		}
 	}
+
+	if (lineCount == rows + 1 && idx != end){
+		// If went past the screen, go back one
+		--idx;
+	}
+
 	return idx;
 }
 
