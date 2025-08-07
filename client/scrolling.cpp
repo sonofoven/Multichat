@@ -45,7 +45,7 @@ int calcLineCount(vector<chtype>& screenBuf, WINDOW* win){
 	int cols = getmaxx(win);
 	
 	for (chtype & ch : screenBuf){
-		if (chCount >= cols || ch == '\0'){
+		if (chCount > cols - 1 || ch == '\0'){
 			lineCount++;
 			chCount = 0;
 		} else {
@@ -67,6 +67,7 @@ void scrollUp(UiContext& context){
 	int firstLineIndex = context.msgWin->firstVisChIdx;
 
 	int newLineIdx = prevLinesAway(firstLineIndex, context.msgWin, 1);
+
 
 	curs_set(0);
 	if (newLineIdx < 0){
@@ -98,7 +99,6 @@ void scrollDown(UiContext& context){
 
 	// Assign new first char
 	context.msgWin->firstVisChIdx = getTopCh(newLineIdx, context.msgWin);
-
 	// Assign new last char
 	context.msgWin->lastVisChIdx = newLineIdx;
 
@@ -114,7 +114,7 @@ int linesAbove(int pos, Win* win){
 
 	int begin = 0;
 	for (int idx = begin; idx < pos; idx++){
-		if (chCount >= cols || win->screenBuf[idx] == '\0'){
+		if (chCount > cols - 1 || win->screenBuf[idx] == '\0'){
 			lineCount++;
 			chCount = 0;
 		} else {
@@ -134,7 +134,7 @@ int linesBelow(int pos, Win* win){
 
 	int end = win->screenBuf.size() - 1;
 	for (int idx = end; idx > pos; idx--){
-		if (chCount >= cols || win->screenBuf[idx] == '\0'){
+		if (chCount > cols - 1 || win->screenBuf[idx] == '\0'){
 			lineCount++;
 			chCount = 0;
 		} else {
@@ -145,21 +145,48 @@ int linesBelow(int pos, Win* win){
 	return lineCount;
 }
 
-
 int prevLinesAway(int pos, Win* win, int lineOffset){
-	int lineCount = -1;
 	int chCount = 0;
 
 	int cols = getmaxx(win->textWin);
 
 	int begin = 0;
+	int end = win->screenBuf.size() - 1;
 	if (pos <= begin || lineOffset < 1){
 		// No previous lines
 		return -1;
 	}
 
-	for (int idx = pos ; idx >= begin; idx--){
-		if (chCount >= cols || win->screenBuf[idx] == '\0'){
+	// Remember the count EXCLUDES the line pos is on
+	int idx = pos;
+	if (win->screenBuf[pos] != '\0'){
+		// Rewind back to the next official line
+		while (idx <= end && win->screenBuf[idx] != '\0'){
+			idx++;
+		}
+
+		// Go forward, counting lines
+		for (; idx >= begin && idx > pos; idx--){
+			if (chCount > cols - 1 || win->screenBuf[idx] == '\0'){
+				chCount = 0;
+			} else {
+				chCount++;
+			}
+		}
+	}
+
+	int lineCount;
+	if (chCount == 0){
+		// Pos is a new line (go to next line
+		idx--;
+		lineCount = 0;
+	} else {
+		// Pos is within current line
+		lineCount = -1;
+	}
+
+	for (; idx >= begin; idx--){
+		if (chCount > cols - 1 || win->screenBuf[idx] == '\0'){
 			lineCount++;
 			chCount = 0;
 		} else {
@@ -174,20 +201,49 @@ int prevLinesAway(int pos, Win* win, int lineOffset){
 	return -1;
 }
 
+
 int nextLinesAway(int pos, Win* win, int lineOffset){
-	int lineCount = -1;
 	int chCount = 0;
 
 	int cols = getmaxx(win->textWin);
 
 	int end = win->screenBuf.size() - 1;
+	int begin = 0;
 	if (pos >= end || lineOffset < 1){
 		// No next lines
 		return -1;
 	}
 
-	for (int idx = pos; idx <= end; idx++){
-		if (chCount >= cols || win->screenBuf[idx] == '\0'){
+	// Remember the count EXCLUDES the line pos is on
+	int idx = pos;
+	if (win->screenBuf[pos] != '\0'){
+		// Rewind back to the next official line
+		while (idx >= begin && win->screenBuf[idx] != '\0'){
+			idx--;
+		}
+
+		// Go forward, counting lines
+		for (; idx <= end && idx < pos; idx++){
+			if (chCount > cols - 1 || win->screenBuf[idx] == '\0'){
+				chCount = 0;
+			} else {
+				chCount++;
+			}
+		}
+	}
+
+	int lineCount;
+	if (chCount == 0){
+		// Pos is a new line (go to next line
+		idx++;
+		lineCount = 0;
+	} else {
+		// Pos is within current line
+		lineCount = -1;
+	}
+
+	for (; idx <= end; idx++){
+		if (chCount > cols - 1 || win->screenBuf[idx] == '\0'){
 			lineCount++;
 			chCount = 0;
 		} else {
@@ -242,11 +298,16 @@ void addLine(UiContext& context, int startPos, int dir){
 
 	int chCount = 0;
 	for (int idx = startPos; idx < end; idx++){
-		if (window.screenBuf[idx] == '\0' || chCount >= cols){
-			return;
+		chCount++;
+		if (window.screenBuf[idx] == '\0' || chCount > cols - 1){
+			cerr << "LINE HEREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << endl;
+			break;
 		}
 		waddch(win, window.screenBuf[idx]);
-		chCount++;
+
+		int row, col;
+		getyx(win, row,col);
+		cerr << (window.screenBuf[idx] & A_CHARTEXT) << " @ " << idx << ": " << row << ", " << col << endl;
 	}
 	wrefresh(win);
 }
