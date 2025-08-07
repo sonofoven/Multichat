@@ -603,10 +603,7 @@ void appendMsgWin(UiContext& context, vector<chtype> chTypeVec){
 
 	curs_set(0);
 
-	int visLines = calcLineCount(window.screenBuf, win);
-	int addedLines = calcLineCount(chTypeVec, win);
-
-	context.msgWin->lastVisChIdx = window.screenBuf.size() - 1 + chTypeVec.size();
+	context.msgWin->lastVisChIdx = window.screenBuf.size() - 1;
 	context.msgWin->firstVisChIdx = getTopCh(context.msgWin->lastVisChIdx, context.msgWin);
 
 
@@ -651,11 +648,12 @@ void scrollUp(UiContext& context){
 
 	int newLineIdx = prevLinesAway(firstLineIndex, context.msgWin, 1);
 
+	curs_set(0);
 	if (newLineIdx < 0){
 		return;
 	}
 
-	addLine(context, newLineIdx, -1);
+	addLine(context, newLineIdx, 1);
 
 	// Assign new first char
 	context.msgWin->firstVisChIdx = newLineIdx;
@@ -671,11 +669,12 @@ void scrollDown(UiContext& context){
 
 	int newLineIdx = nextLinesAway(lastLineIndex, context.msgWin, 1);
 
+	curs_set(0);
 	if (newLineIdx < 0){
 		return;
 	}
 
-	addLine(context, newLineIdx, 1);
+	addLine(context, newLineIdx, -1);
 
 	// Assign new first char
 	context.msgWin->firstVisChIdx = getTopCh(newLineIdx, context.msgWin);
@@ -728,7 +727,6 @@ int linesBelow(int pos, Win* win){
 
 
 int prevLinesAway(int pos, Win* win, int lineOffset){
-	// pos is always start of the line
 	int lineCount = -1;
 	int chCount = 0;
 
@@ -740,7 +738,7 @@ int prevLinesAway(int pos, Win* win, int lineOffset){
 		return -1;
 	}
 
-	for (int idx = pos - 1; idx > begin; idx--){
+	for (int idx = pos ; idx >= begin; idx--){
 		if (chCount >= cols || win->screenBuf[idx] == '\0'){
 			lineCount++;
 			chCount = 0;
@@ -757,7 +755,6 @@ int prevLinesAway(int pos, Win* win, int lineOffset){
 }
 
 int nextLinesAway(int pos, Win* win, int lineOffset){
-	// pos is always start of the line
 	int lineCount = -1;
 	int chCount = 0;
 
@@ -769,7 +766,7 @@ int nextLinesAway(int pos, Win* win, int lineOffset){
 		return -1;
 	}
 
-	for (int idx = pos + 1; idx < (int)end; idx++){
+	for (int idx = pos; idx <= end; idx++){
 		if (chCount >= cols || win->screenBuf[idx] == '\0'){
 			lineCount++;
 			chCount = 0;
@@ -785,51 +782,16 @@ int nextLinesAway(int pos, Win* win, int lineOffset){
 	return -1;
 }
 
-int getTopCh(int botChIdx, Win* win){
-	int rows, cols;
-	getmaxyx(win->textWin, rows, cols);
-
-	int lineCount = 0;
-	int chCount = 0;
-
-	int begin = 0;
-	int idx = botChIdx;
-
-	for (; lineCount < rows && idx > begin; idx--){
-		if (chCount >= cols || win->screenBuf[idx] == '\0'){
-			lineCount++;
-			chCount = 0;
-		} else {
-			chCount++;
-		}
-	}
-	return idx;
+int getTopCh(int botChIdx, Win* win) {
+	int rows = getmaxy(win->textWin);
+	int topIdx = prevLinesAway(botChIdx, win, rows - 1);
+	return (topIdx >= 0 ? topIdx : 0);
 }
 
-int getBotCh(int topChIdx, Win* win){
-	int rows, cols;
-	getmaxyx(win->textWin, rows, cols);
-
-	int lineCount = 0;
-	int chCount = 0;
-
-	int end = win->screenBuf.size() - 1;
-	int idx = topChIdx;
-	for (; lineCount <= rows && idx < end; idx++){
-		if (chCount >= cols || win->screenBuf[idx] == '\0'){
-			lineCount++;
-			chCount = 0;
-		} else {
-			chCount++;
-		}
-	}
-
-	if (lineCount == rows + 1 && idx != end){
-		// If went past the screen, go back one
-		--idx;
-	}
-
-	return idx;
+int getBotCh(int topChIdx, Win* win) {
+	int rows = getmaxy(win->textWin);
+	int botIdx = nextLinesAway(topChIdx, win, rows - 1);
+	return (botIdx >= 0 ? botIdx : 0);
 }
 
 void addLine(UiContext& context, int startPos, int dir){
@@ -855,7 +817,7 @@ void addLine(UiContext& context, int startPos, int dir){
 	}
 
 	if (window.screenBuf[startPos] == '\0'){
-		++startPos;
+		startPos++;
 	}
 
 	int chCount = 0;

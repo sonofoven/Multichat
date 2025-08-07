@@ -159,22 +159,11 @@ void sendBackLogFiles(clientConn& client, time_t timestamp){
 		while (getline(log, line)){
 			uint8_t* data = (uint8_t*)line.c_str();
 			Packet* linePtr = instancePacketFromData(data);
+			ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
 
-			switch (linePtr->opcode){
-				case SMG_BROADMSG: {
-					ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
-
-					// Send if have more current message than latest client message
-					if (servPacket.timestamp > timestamp){
-						servPacket.serialize(client.writeBuf);
-					}
-
-					break;
-				}
-
-				default: {
-					//cout << "Retrieving unsupported/unrecognized opcode" << endl;
-				}
+			// Send if have more current message than latest client message
+			if (servPacket.timestamp > timestamp){
+				servPacket.serialize(client.writeBuf);
 			}
 		}
 
