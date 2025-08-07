@@ -11,6 +11,7 @@ CLIENT_SRCS := $(CLIENT_DIR)/client.cpp \
                $(CLIENT_DIR)/cliUtils.cpp \
                $(CLIENT_DIR)/form.cpp \
                $(CLIENT_DIR)/logging.cpp \
+               $(CLIENT_DIR)/scrolling.cpp \
                $(PROTO_SRC)
 
 SERVER_SRCS := $(SERVER_DIR)/server.cpp \
@@ -27,7 +28,7 @@ SERVER_BIN := $(SERVER_DIR)/server
 LINK_CLIENT := cli
 LINK_SERVER := serv
 
-.PHONY: all client server clean link
+.PHONY: all client server clean link rmCliLogs rmServLogs cleanAll
 
 all: clean client server link
 
@@ -45,5 +46,14 @@ link:
 	ln -sf $(abspath $(CLIENT_BIN)) $(LINK_CLIENT)
 	ln -sf $(abspath $(SERVER_BIN)) $(LINK_SERVER)
 
-clean:
+cleanAll: clean rmCliLogs rmServLogs
+
+clean: 
 	rm -f $(CLIENT_BIN) $(SERVER_BIN) $(LINK_CLIENT) $(LINK_SERVER)
+
+rmCliLogs:
+	rm -rf $(HOME)/.multiChat/logs
+
+rmServLogs:
+	rm -rf /var/log/multiChat
+
