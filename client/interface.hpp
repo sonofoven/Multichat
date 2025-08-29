@@ -4,33 +4,58 @@
 #include <form.h>
 #include "client.hpp"
 
+#define MAX_MSG_BUF 200
+#define INIT_PAD_HEIGHT 200
+#define MAX_PAD_HEIGHT 2000
+
+
 using namespace std;
+
+
+struct formMsg {
+	vector<chtype> header;
+	vector<chtype> message;
+
+	formMsg() :
+		header(),
+		message() {
+			message.reserve(MAXMSG);
+		}
+};
 
 // Window/UI structs
 struct Win{
 	WINDOW* bordWin;	   
 	WINDOW* textWin;	   
-	vector<chtype> screenBuf;
-	int firstVisChIdx;
-	int lastVisChIdx;
 
 	Win() :
 		bordWin(nullptr),
-		textWin(nullptr),
-		screenBuf(),
-		firstVisChIdx(0),
-		lastVisChIdx(0) {}
+		textWin(nullptr) {}
+};
+
+struct MsgWin : Win{
+	vector<unique_ptr<formMsg>> msgBuf;
+	int topLine;
+	int visLines;
+	int visCols;
+
+	MsgWin() :
+		msgBuf(),
+		topLine(0) {
+			msgBuf.reserve(MAX_MSG_BUF);
+
+		}
 };
 
 struct UiContext{
 	Win* userWin;
-	Win* msgWin;
+	MsgWin* msgWin;
 	Win* inputWin;
 	bool uiDisplayed;
 	bool alignedOnBottom;
 
 	UiContext(Win* u, 
-			  Win* m, 
+			  MsgWin* m, 
 			  Win* i) 
 			  : 
 			  userWin(u), 
@@ -43,21 +68,21 @@ struct UiContext{
 
 // Setup
 void interfaceStart();
-UiContext setupWindows();
+UiContext setupWindows(); //m//*
 void setupForm();
 
 // Formatting tools
 void pushBackStr(string str, vector<chtype>& outBuf, attr_t attr);
-vector<chtype> formatMessage(time_t time, string& message, string& username);
-vector<chtype> formatDisMessage(time_t time, string& username);
-vector<chtype> formatConMessage(time_t time, string& username);
+unique_ptr<formMsg> formatMessage(time_t time, string& message, string& username); //m//
+unique_ptr<formMsg> formatDisMessage(time_t time, string& username); //m//
+unique_ptr<formMsg> formatConMessage(time_t time, string& username); //m//
 string formatTime(time_t timestamp);
 string dateStr(int day);
 
 
 // Window creation
 Win* createUserWin(int lines, int cols);
-Win* createMsgWin(string title, int lines, int cols);
+MsgWin* createMsgWin(string title, int lines, int cols); //m//*
 Win* createInputWin(int lines, int cols);
 WINDOW* createWindow(int height, 
 					 int width, 
@@ -68,31 +93,18 @@ WINDOW* createWindow(int height,
 
 // Window I/O
 string getWindowInput(Win& window, UiContext& context);
-void appendMsgWin(UiContext& context, vector<chtype> inputVec);
+void appendMsgWin(UiContext& context, vector<chtype> inputVec); //m//
 void updateUserWindow(UiContext& context);
 void handleCh(UiContext& context, int ch, int servFd);
 inline char getBaseChar(chtype ch);
-void restoreHistory(UiContext& context);
+void restoreHistory(UiContext& context); //m//
 
 // Redrawing
 void redrawInputWin(Win* window, int lines, int cols);
 void redrawUserWin(Win* window, int lines, int cols);
-void redrawMsgWin(Win* window, int lines, int cols);
-
-void restoreStringToWin(Win* window);
-void restoreTextToWin(Win* window);
-void restoreTextScrolled(UiContext& context);
+void redrawMsgWin(Win* window, int lines, int cols); //m//
 
 // Scrolling
-int calcLineCount(vector<chtype>& screenBuf, WINDOW* win);
 void scrollBottom(UiContext& context);
 void scrollUp(UiContext& context);
 void scrollDown(UiContext& context);
-
-int linesAbove(int pos, Win* win);
-int linesBelow(int pos, Win* win);
-int prevLinesAway(int pos, Win* window, int lineOffset);
-int nextLinesAway(int pos, Win* window, int lineOffset);
-void addLine(UiContext& context, int startPos, int dir);
-int getTopCh(int botLine, Win* win);
-int getBotCh(int topLine, Win* win);

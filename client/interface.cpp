@@ -13,7 +13,7 @@ UiContext setupWindows(){
 	getmaxyx(stdscr, rows, cols);
 
 	Win* input = createInputWin(rows, cols);
-	Win* messages = createMsgWin(serverName, rows, cols);
+	MsgWin* messages = createMsgWin(serverName, rows, cols);
 	Win* users = createUserWin(rows, cols);
 
 	UiContext uiContext = UiContext(users, messages, input);
@@ -76,7 +76,7 @@ Win* createUserWin(int lines, int cols) {
 }
 
 
-Win* createMsgWin(string title, int lines, int cols){
+MsgWin* createMsgWin(string title, int lines, int cols){
 	int height = lines - (lines /6);
 	int userWidth = cols/6;
 	int width = cols - userWidth;
@@ -85,7 +85,7 @@ Win* createMsgWin(string title, int lines, int cols){
 	bool boxOn = true;
 	bool scrollOn = true;
 
-	Win* window = new Win();
+	MsgWin* window = new Win();
 
 	window->bordWin = createWindow(height, 
 								  width, 
@@ -94,18 +94,21 @@ Win* createMsgWin(string title, int lines, int cols){
 								  boxOn, 
 								  !scrollOn);
 
-	window->textWin = createWindow(height - (2*VALIGN), 
-							width - (2*HALIGN), 
-							startY + VALIGN, 
-							startX + HALIGN,
-							!boxOn,
-							scrollOn);
+	window->textWin = subpad(window->bordWin, 
+							 INIT_PAD_HEIGHT, 
+							 width - (2*HALIGN),
+							 startY + VALIGN,
+							 startX + HALIGN);
 
-	int leftPad = (width - title.length())/2;
+	window->visLines = height - (2*VALIGN);
+	window->visCols = width - (2*HALIGN);
+
+	int leftPadding = (width - title.length())/2;
 	title = "| "+ title + " |";
-	mvwprintw(window->bordWin, 0, leftPad, title.c_str());
+	mvwprintw(window->bordWin, 0, leftPadding, title.c_str());
 
 	wrefresh(window->bordWin);
+	prefresh(window->textWin, visLines, visCols);
 
 	return window;
 }
@@ -172,7 +175,10 @@ void redrawInputWin(Win* window, int lines, int cols){
 
 	wrefresh(window->bordWin);
 	// Append text to textWin
-	restoreStringToWin(window);
+	werase(window->textWin);
+	for (char & ch : inputBuf){
+		waddch(window->textWin, (chtype)ch);
+	}
 	wrefresh(window->textWin);
 }
 
@@ -213,44 +219,6 @@ void redrawUserWin(Win* window, int lines, int cols){
 
 
 void redrawMsgWin(Win* window, int lines, int cols){
-	delwin(window->bordWin);
-	delwin(window->textWin);
-	
-	int userWidth = cols/6;
-	int boxHeight = lines - (lines / 6);
-	int boxWidth = cols-userWidth;
-	int boxStartY = 0;
-	int boxStartX = cols / 6;
-
-	int textHeight = boxHeight - (2 * VALIGN);
-	int textWidth = boxWidth  - (2 * HALIGN);
-	int textStartY = VALIGN;
-	int textStartX = boxStartX + HALIGN;
-
-	window->bordWin = createWindow(
-		boxHeight, boxWidth, boxStartY, boxStartX,
-		true, false
-	);
-	window->textWin = createWindow(
-		textHeight, textWidth, textStartY, textStartX,
-		false, true
-	);
-
-
-	string title = "| " + serverName + " |";
-	int leftPad = (boxWidth - title.length()) / 2;
-	mvwprintw(window->bordWin, 0, leftPad, "%s", title.c_str());
-
-	wrefresh(window->bordWin);
-
-
-	if (calcLineCount(window->screenBuf, window->textWin) <= textHeight){
-		// If the text takes up the same # of lines, do a normal restore
-		restoreTextToWin(window);
-	} else {
-		//restoreTextScrolled(UiContext, textHeight, textWidth);
-	}
-	wrefresh(window->textWin);
 }
 
 
@@ -493,28 +461,6 @@ string dateStr(int day){
 		}
 	}
 	return ending;
-}
-
-void restoreTextToWin(Win* window){
-	
-	int row, col;
-	getmaxyx(window->textWin, row, col);
-
-	for (chtype & ch : window->screenBuf){
-		if (ch == '\0'){
-			wscrl(window->textWin, 1);
-			wmove(window->textWin, row - 1, 0);
-		} else {
-			waddch(window->textWin, ch);
-		}
-	}
-}
-
-void restoreStringToWin(Win* window){
-	werase(window->textWin);
-	for (char & ch : inputBuf){
-		waddch(window->textWin, (chtype)ch);
-	}
 }
 
 
