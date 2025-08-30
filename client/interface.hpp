@@ -35,15 +35,18 @@ struct Win{
 
 struct MsgWin : Win{
 	vector<unique_ptr<formMsg>> msgBuf;
-	int topLine;
-	int visLines;
-	int visCols;
+	int botIdx;
+	int cursIdx;
+	int cursOffset;
+	int occLines;
 
 	MsgWin() :
 		msgBuf(),
-		topLine(0) {
+		botIdx(0),
+		cursIdx(0),
+		cursOffset(0),
+		occLines(0){
 			msgBuf.reserve(MAX_MSG_BUF);
-
 		}
 };
 
@@ -63,7 +66,6 @@ struct UiContext{
 			  inputWin(i),
 			  uiDisplayed(true), 
 			  alignedOnBottom(true){}
-
 };
 
 // Setup
@@ -73,9 +75,9 @@ void setupForm();
 
 // Formatting tools
 void pushBackStr(string str, vector<chtype>& outBuf, attr_t attr);
-unique_ptr<formMsg> formatMessage(time_t time, string& message, string& username); //m//
-unique_ptr<formMsg> formatDisMessage(time_t time, string& username); //m//
-unique_ptr<formMsg> formatConMessage(time_t time, string& username); //m//
+unique_ptr<formMsg> formatMessage(time_t time, string& message, string& username); //m//*
+unique_ptr<formMsg> formatDisMessage(time_t time, string& username); //m//*
+unique_ptr<formMsg> formatConMessage(time_t time, string& username); //m//*
 string formatTime(time_t timestamp);
 string dateStr(int day);
 
@@ -93,9 +95,10 @@ WINDOW* createWindow(int height,
 
 // Window I/O
 string getWindowInput(Win& window, UiContext& context);
-void appendMsgWin(UiContext& context, vector<chtype> inputVec); //m//
+
+void appendMsgWin(UiContext& context, unique_ptr<formMsg> formStr); //m//
 void updateUserWindow(UiContext& context);
-void handleCh(UiContext& context, int ch, int servFd);
+void handleCh(UiContext& context, int ch, int servFd); //m//
 inline char getBaseChar(chtype ch);
 void restoreHistory(UiContext& context); //m//
 
@@ -105,6 +108,7 @@ void redrawUserWin(Win* window, int lines, int cols);
 void redrawMsgWin(Win* window, int lines, int cols); //m//
 
 // Scrolling
+int lineCount(const unique_ptr<formMsg>& formStr, int maxCols);
 void scrollBottom(UiContext& context);
 void scrollUp(UiContext& context);
 void scrollDown(UiContext& context);

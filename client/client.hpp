@@ -85,7 +85,7 @@ void serverValidate(ServerValidate& pkt, UiContext& context);
 void serverConnect(ServerConnect& pkt, UiContext& context);
 void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context);
 void serverDisconnect(ServerDisconnect& pkt, UiContext& context);
-void redrawUi(UiContext& context, int lines, int cols);
+void redrawUi(UiContext& context, int lines, int cols); //m//*
 
 // Server startup & client negotiation
 int startUp();

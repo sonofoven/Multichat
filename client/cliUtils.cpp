@@ -282,9 +282,9 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 	userConns.push_back(username);
 
 	userConns.sort(greater<string>());
-	vector<chtype> formattedStr = formatConMessage(pkt.timestamp, pkt.username);
+	unique_ptr<formMsg> formattedStr = formatConMessage(pkt.timestamp, pkt.username);
 	
-	appendMsgWin(context, formattedStr);
+	appendMsgWin(context, move(formattedStr));
 
 	// Update the users window
 	updateUserWindow(context);
@@ -292,12 +292,12 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 }
 
 void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context){
-	vector<chtype> formattedStr = formatMessage(pkt.timestamp, pkt.msg, pkt.username);
+	unique_ptr<formMsg> formattedStr = formatMessage(pkt.timestamp, pkt.msg, pkt.username);
 	
 	unique_ptr<ServerBroadMsg> upkt = make_unique<ServerBroadMsg>(pkt);
 	appendToLog(move(upkt));
 
-	appendMsgWin(context, formattedStr);
+	appendMsgWin(context, move(formattedStr));
 }
 
 void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
@@ -309,9 +309,9 @@ void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
 	// Sort in alphabetical order (this is because how its printed)
 	userConns.sort(greater<string>());
 
-	vector<chtype> formattedStr = formatDisMessage(pkt.timestamp, pkt.username);
+	unique_ptr<formMsg> formattedStr = formatDisMessage(pkt.timestamp, pkt.username);
 
-	appendMsgWin(context, formattedStr);
+	appendMsgWin(context, move(formattedStr));
 
 	// Update the users window
 	updateUserWindow(context);

@@ -85,7 +85,7 @@ MsgWin* createMsgWin(string title, int lines, int cols){
 	bool boxOn = true;
 	bool scrollOn = true;
 
-	MsgWin* window = new Win();
+	MsgWin* window = new MsgWin();
 
 	window->bordWin = createWindow(height, 
 								  width, 
@@ -94,21 +94,14 @@ MsgWin* createMsgWin(string title, int lines, int cols){
 								  boxOn, 
 								  !scrollOn);
 
-	window->textWin = subpad(window->bordWin, 
-							 INIT_PAD_HEIGHT, 
-							 width - (2*HALIGN),
-							 startY + VALIGN,
-							 startX + HALIGN);
-
-	window->visLines = height - (2*VALIGN);
-	window->visCols = width - (2*HALIGN);
+	window->textWin = newpad(INIT_PAD_HEIGHT, 
+							 width - (2*HALIGN));
 
 	int leftPadding = (width - title.length())/2;
 	title = "| "+ title + " |";
 	mvwprintw(window->bordWin, 0, leftPadding, title.c_str());
 
 	wrefresh(window->bordWin);
-	prefresh(window->textWin, visLines, visCols);
 
 	return window;
 }
@@ -286,9 +279,8 @@ void handleCh(UiContext& context, int ch, int servFd){
 		wrefresh(inWindow);
 		
 		// Format string and output it
-		vector<chtype> formatStr = formatMessage(time(NULL), inputBuf, clientInfo.username);
-		appendMsgWin(context, formatStr);
-		wrefresh(context.msgWin->textWin);
+		unique_ptr<formMsg> msgPtr = formatMessage(time(NULL), inputBuf, clientInfo.username);
+		appendMsgWin(context, move(msgPtr));
 
 		// Append packet to writeBuf
 		ClientBroadMsg pkt = ClientBroadMsg(inputBuf);
@@ -346,8 +338,10 @@ void handleCh(UiContext& context, int ch, int servFd){
 	return;
 }
 
-vector<chtype> formatMessage(time_t time, string& message, string& username){
-	vector<chtype> outBuf;
+unique_ptr<formMsg> formatMessage(time_t time, string& message, string& username){
+	unique_ptr<formMsg> outMsg = make_unique<formMsg>();
+
+	vector<chtype>& outBuf = outMsg->header;
 
 	pushBackStr(formatTime(time), outBuf, A_DIM);
 
@@ -361,43 +355,51 @@ vector<chtype> formatMessage(time_t time, string& message, string& username){
 
 	outBuf.push_back((chtype)']' | A_BOLD);
 	outBuf.push_back((chtype)' ');
+
+	outBuf = outMsg->message;
 	
 	// Convert uint8_t message to chtype
-
 	for (char& ch : message){
 		outBuf.push_back((chtype)ch);
 	}
 
-	return outBuf;
+	return outMsg;
 }
 
-vector<chtype> formatDisMessage(time_t time, string& username){
-	vector<chtype> outBuf;
+unique_ptr<formMsg> formatDisMessage(time_t time, string& username){
+	unique_ptr<formMsg> outMsg = make_unique<formMsg>();
+
+	vector<chtype>& outBuf = outMsg->header;
 	pushBackStr(formatTime(time), outBuf, A_DIM);
 
 	outBuf.push_back((chtype)' ' | A_BOLD);
+
+	outBuf = outMsg->message;
 	pushBackStr("<--	", outBuf, A_DIM);
 
 	pushBackStr(username, outBuf, A_DIM);
 
 	pushBackStr(" has disconnected	-->", outBuf, A_DIM);
 
-	return outBuf;
+	return outMsg;
 }
 
-vector<chtype> formatConMessage(time_t time, string& username){
-	vector<chtype> outBuf;
+unique_ptr<formMsg> formatConMessage(time_t time, string& username){
+	unique_ptr<formMsg> outMsg = make_unique<formMsg>();
+
+	vector<chtype>& outBuf = outMsg->header;
 	pushBackStr(formatTime(time), outBuf, A_DIM);
 
 	outBuf.push_back((chtype)' ' | A_BOLD);
+
+	outBuf = outMsg->message;
 	pushBackStr("<--	", outBuf, A_DIM);
 
 	pushBackStr(username, outBuf, A_DIM);
 
 	pushBackStr(" has connected	-->", outBuf, A_DIM);
 
-	return outBuf;
-
+	return outMsg;
 }
 
 string formatTime(time_t timestamp){
@@ -498,7 +500,7 @@ inline char getBaseChar(chtype ch){
 }
 
 void pushBackStr(string str, vector<chtype>& outBuf, attr_t attr){
-	for(char& ch : str){
+	for (char& ch : str){
 		outBuf.push_back((chtype)ch | attr);
 	}
 }
