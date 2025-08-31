@@ -97,8 +97,8 @@ MsgWin* createMsgWin(string title, int lines, int cols){
 	window->textWin = newpad(INIT_PAD_HEIGHT, 
 							 width - (2*HALIGN));
 
-	int leftPadding = (width - title.length())/2;
 	title = "| "+ title + " |";
+	int leftPadding = (width - title.length())/2;
 	mvwprintw(window->bordWin, 0, leftPadding, title.c_str());
 
 	wrefresh(window->bordWin);
@@ -341,26 +341,25 @@ void handleCh(UiContext& context, int ch, int servFd){
 unique_ptr<formMsg> formatMessage(time_t time, string& message, string& username){
 	unique_ptr<formMsg> outMsg = make_unique<formMsg>();
 
-	vector<chtype>& outBuf = outMsg->header;
+	vector<chtype>& hdr = outMsg->header;
+	vector<chtype>& msg = outMsg->message;
 
-	pushBackStr(formatTime(time), outBuf, A_DIM);
+	pushBackStr(formatTime(time), hdr, A_DIM);
 
-	outBuf.push_back((chtype)' ' | A_BOLD);
-	outBuf.push_back((chtype)'[' | A_BOLD);
+	hdr.push_back((chtype)' ' | A_BOLD);
+	hdr.push_back((chtype)'[' | A_BOLD);
 
 	// Append username to the beginning of the message in bold
 	for (char& ch : username){
-		outBuf.push_back((chtype)ch | A_BOLD);
+		hdr.push_back((chtype)ch | A_BOLD);
 	}
 
-	outBuf.push_back((chtype)']' | A_BOLD);
-	outBuf.push_back((chtype)' ');
+	hdr.push_back((chtype)']' | A_BOLD);
+	hdr.push_back((chtype)' ');
 
-	outBuf = outMsg->message;
-	
 	// Convert uint8_t message to chtype
 	for (char& ch : message){
-		outBuf.push_back((chtype)ch);
+		msg.push_back((chtype)ch);
 	}
 
 	return outMsg;
@@ -369,17 +368,18 @@ unique_ptr<formMsg> formatMessage(time_t time, string& message, string& username
 unique_ptr<formMsg> formatDisMessage(time_t time, string& username){
 	unique_ptr<formMsg> outMsg = make_unique<formMsg>();
 
-	vector<chtype>& outBuf = outMsg->header;
-	pushBackStr(formatTime(time), outBuf, A_DIM);
+	vector<chtype>& hdr = outMsg->header;
+	vector<chtype>& msg = outMsg->message;
 
-	outBuf.push_back((chtype)' ' | A_BOLD);
+	pushBackStr(formatTime(time), hdr, A_DIM);
 
-	outBuf = outMsg->message;
-	pushBackStr("<--	", outBuf, A_DIM);
+	hdr.push_back((chtype)' ' | A_BOLD);
 
-	pushBackStr(username, outBuf, A_DIM);
+	pushBackStr("<---  ", msg, A_BOLD);
 
-	pushBackStr(" has disconnected	-->", outBuf, A_DIM);
+	pushBackStr(username, msg, A_BOLD);
+
+	pushBackStr(" has disconnected  --->", msg, A_BOLD);
 
 	return outMsg;
 }
@@ -387,17 +387,17 @@ unique_ptr<formMsg> formatDisMessage(time_t time, string& username){
 unique_ptr<formMsg> formatConMessage(time_t time, string& username){
 	unique_ptr<formMsg> outMsg = make_unique<formMsg>();
 
-	vector<chtype>& outBuf = outMsg->header;
-	pushBackStr(formatTime(time), outBuf, A_DIM);
+	vector<chtype>& hdr = outMsg->header;
+	vector<chtype>& msg = outMsg->message;
+	pushBackStr(formatTime(time), hdr, A_DIM);
 
-	outBuf.push_back((chtype)' ' | A_BOLD);
+	hdr.push_back((chtype)' ' | A_BOLD);
 
-	outBuf = outMsg->message;
-	pushBackStr("<--	", outBuf, A_DIM);
+	pushBackStr("<---  ", msg, A_BOLD);
 
-	pushBackStr(username, outBuf, A_DIM);
+	pushBackStr(username, msg, A_BOLD);
 
-	pushBackStr(" has connected	-->", outBuf, A_DIM);
+	pushBackStr(" has connected  --->", msg, A_BOLD);
 
 	return outMsg;
 }

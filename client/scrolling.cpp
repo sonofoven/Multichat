@@ -18,6 +18,8 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg> formStr){
 	int maxCols, maxRows;
 	int row = getcury(pad);
 	getmaxyx(context.msgWin->bordWin, maxRows, maxCols);
+	maxCols -= 1; // Account for border thickness
+	maxRows -= 2;
 
 	curs_set(0);
 
@@ -26,22 +28,22 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg> formStr){
 
 	int lineShift = lineCount(formStr, maxCols);
 	int chCount = 0;
+	int msgSpace = maxCols - (int)formStr->header.size() - (HALIGN * 2);
 
 	//TRIM/SHIFT HERE
 
 	// Print out header
 	for (const chtype& ch : formStr->header){
 		waddch(pad, ch);
-		chCount++;
 	}
 
 	// Print out message justified w/ header
 	for (const chtype& ch : formStr->message){
-		if (chCount >= maxCols){
+		if (chCount > msgSpace){
 			for (int i = 0; i < (int)formStr->header.size(); i++){
 				waddch(pad, ' ');
 			}
-			chCount = formStr->header.size();
+			chCount = 0;
 		}
 		waddch(pad, ch);
 		chCount++;
@@ -61,12 +63,12 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg> formStr){
 	int winTopOffset = (maxRows - window.occLines < 0 ? 0 : maxRows - window.occLines); // Where the pad should show up from the top of win
 
 	prefresh(pad, 
-			 padTopOffset, // Top Left Pad Y
+			 padTopOffset + 1, // Top Left Pad Y
 			 0, // Top Left Pad X
 			 starty + VALIGN + winTopOffset, // TLW Y
-			 0, // TLW X
-			 starty + VALIGN + maxRows, //BRW Y
-			 startx + HALIGN + maxCols); //BRW X
+			 startx + HALIGN, // TLW X
+			 starty + maxRows, //BRW Y
+			 startx + maxCols); //BRW X
 
 	// push message into history
 	window.msgBuf.push_back(move(formStr));
@@ -74,7 +76,7 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg> formStr){
 
 int lineCount(const unique_ptr<formMsg>& formStr, int maxCols){
 	int lineWidth = (maxCols - formStr->header.size());
-	return formStr->message.size() / lineWidth;
+	return (formStr->message.size() / lineWidth) + 1;
 }
 
 void scrollBottom(UiContext& context){
