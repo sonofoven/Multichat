@@ -12,8 +12,6 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg> formStr){
 	int row = getcury(pad);
 	maxCols = getmaxx(context.msgWin->textWin) + 1;
 
-
-
 	curs_set(0);
 
 	// Adding to the bottom
@@ -69,6 +67,10 @@ int lineCount(const unique_ptr<formMsg>& formStr, int maxCols){
 }
 
 void scrollBottom(UiContext& context){
+	MsgWin& window = *(context.msgWin);
+	window.cursOffset = window.occLines;
+	window.cursIdx = window.msgBuf.size() - 1;
+	refreshFromCurs(context);
 }
 
 void scrollUp(UiContext& context){
@@ -83,41 +85,37 @@ void scrollUp(UiContext& context){
 
 	int maxCols = getmaxx(context.msgWin->textWin) + 1;
 	int lineCnt = lineCount(window.msgBuf[window.cursIdx], maxCols);
-	int lineShift = 0;
 
 	if ((window.cursOffset - lineCnt) <= maxRows){
-		lineShift = window.cursOffset - maxRows;
-		window.shiftRemainder = lineCnt - lineShift;
+		window.atTop = true;
+		refreshFromTop(context);
+
 	} else {
-		lineShift = lineCnt;
+		window.cursIdx -= 1;
+		window.cursOffset -= lineCnt;
+		refreshFromCurs(context);
 	}
-
-	window.cursIdx -= 1;
-	window.cursOffset -= lineShift;
-
-	refreshFromCurs(context);
 }
 
 void scrollDown(UiContext& context){
 	MsgWin& window = *(context.msgWin);
 	WINDOW* pad = window.textWin;
 
+	int maxRows = getmaxy(context.msgWin->bordWin) - 2 * VALIGN;
+
 	if (window.occLines <= window.cursOffset){
 		return;
 	}
 
 	int maxCols = getmaxx(context.msgWin->textWin) + 1;
-	int lineCnt = lineCount(window.msgBuf[++window.cursIdx], maxCols);
+	int lineCnt = lineCount(window.msgBuf[window.cursIdx], maxCols);
 
-	//window.cursIdx += 1;
-	window.cursOffset += lineCnt + window.shiftRemainder;
-
-	window.shiftRemainder = 0;
-
-	if (window.cursOffset > window.occLines) {
-		window.cursOffset = window.occLines;
+	if (!window.atTop){
+		lineCnt = lineCount(window.msgBuf[++window.cursIdx], maxCols);
+		window.cursOffset += lineCnt;
 	}
 
+	window.atTop = false;
 	refreshFromCurs(context);
 }
 
@@ -138,6 +136,28 @@ void refreshFromCurs(UiContext& context){
 
 	prefresh(pad, 
 			 padTopOffset, // Top Left Pad Y
+			 0, // Top Left Pad X
+			 starty + VALIGN + winTopOffset, // TLW Y
+			 startx + HALIGN, // TLW X
+			 starty + maxRows, //BRW Y
+			 startx + maxCols); //BRW X
+}
+
+void refreshFromTop(UiContext& context){
+	MsgWin& window = *(context.msgWin);
+	WINDOW* pad = window.textWin;
+	
+	// refresh the right amount
+	// Get position of bordwin
+	int maxRows, maxCols, starty, startx, winTopOffset, padTopOffset;
+
+	maxRows = getmaxy(context.msgWin->bordWin) - 2 * VALIGN;
+	maxCols = getmaxx(context.msgWin->textWin) + 1;
+	getbegyx(context.msgWin->bordWin, starty, startx);
+
+	winTopOffset = (maxRows - window.occLines < 0 ? 0 : maxRows - window.occLines); // Offset from top of win
+	prefresh(pad, 
+			 0, // Top Left Pad Y
 			 0, // Top Left Pad X
 			 starty + VALIGN + winTopOffset, // TLW Y
 			 startx + HALIGN, // TLW X

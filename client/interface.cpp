@@ -309,6 +309,8 @@ void handleCh(UiContext& context, int ch, int servFd){
 		
 		inputBuf.clear();
 
+		scrollBottom(context);
+
 		return;
 		
 	}

@@ -36,17 +36,17 @@ struct Win{
 struct MsgWin : Win{
 	vector<unique_ptr<formMsg>> msgBuf;
 	int cursIdx; // What message is currently on bot of screen
-	int shiftRemainder; // How much message needs to go down til next one (cut off)
 	int cursOffset; // Curs line offset from top
 	int occLines;  // Occupied LINES total
+	bool atTop;
 	//RESTABLISH CURSOFFSET @ REDRAW FROM CURSIDX
 
 	MsgWin() :
 		msgBuf(),
 		cursIdx(-1),
-		shiftRemainder(0),
 		cursOffset(0),
-		occLines(0){
+		occLines(0),
+		atTop(false){
 			msgBuf.reserve(MAX_MSG_BUF);
 		}
 };
@@ -112,3 +112,4 @@ void scrollBottom(UiContext& context);
 void scrollUp(UiContext& context);
 void scrollDown(UiContext& context);
 void refreshFromCurs(UiContext& context);
+void refreshFromTop(UiContext& context);
