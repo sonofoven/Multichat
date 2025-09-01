@@ -35,15 +35,16 @@ struct Win{
 
 struct MsgWin : Win{
 	vector<unique_ptr<formMsg>> msgBuf;
-	int botIdx;
-	int cursIdx;
-	int cursOffset;
-	int occLines;
+	int cursIdx; // What message is currently on bot of screen
+	int shiftRemainder; // How much message needs to go down til next one (cut off)
+	int cursOffset; // Curs line offset from top
+	int occLines;  // Occupied LINES total
+	//RESTABLISH CURSOFFSET @ REDRAW FROM CURSIDX
 
 	MsgWin() :
 		msgBuf(),
-		botIdx(0),
-		cursIdx(0),
+		cursIdx(-1),
+		shiftRemainder(0),
 		cursOffset(0),
 		occLines(0){
 			msgBuf.reserve(MAX_MSG_BUF);
@@ -55,7 +56,6 @@ struct UiContext{
 	MsgWin* msgWin;
 	Win* inputWin;
 	bool uiDisplayed;
-	bool alignedOnBottom;
 
 	UiContext(Win* u, 
 			  MsgWin* m, 
@@ -64,8 +64,7 @@ struct UiContext{
 			  userWin(u), 
 			  msgWin(m), 
 			  inputWin(i),
-			  uiDisplayed(true), 
-			  alignedOnBottom(true){}
+			  uiDisplayed(true){}
 };
 
 // Setup
@@ -96,19 +95,20 @@ WINDOW* createWindow(int height,
 // Window I/O
 string getWindowInput(Win& window, UiContext& context);
 
-void appendMsgWin(UiContext& context, unique_ptr<formMsg> formStr); //m//
+void appendMsgWin(UiContext& context, unique_ptr<formMsg> formStr); //m//*
 void updateUserWindow(UiContext& context);
-void handleCh(UiContext& context, int ch, int servFd); //m//
+void handleCh(UiContext& context, int ch, int servFd); //m//*
 inline char getBaseChar(chtype ch);
-void restoreHistory(UiContext& context); //m//
+void restoreHistory(UiContext& context); //m//*
 
 // Redrawing
 void redrawInputWin(Win* window, int lines, int cols);
 void redrawUserWin(Win* window, int lines, int cols);
-void redrawMsgWin(Win* window, int lines, int cols); //m//
+void redrawMsgWin(Win* window, int lines, int cols); //m//*
 
 // Scrolling
 int lineCount(const unique_ptr<formMsg>& formStr, int maxCols);
 void scrollBottom(UiContext& context);
 void scrollUp(UiContext& context);
 void scrollDown(UiContext& context);
+void refreshFromCurs(UiContext& context);
