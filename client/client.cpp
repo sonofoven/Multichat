@@ -145,3 +145,5 @@ int main() {
 	close(servFd);
 	endwin();
 }
+
+

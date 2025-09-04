@@ -554,17 +554,6 @@ void redrawUi(UiContext& context, int lines, int cols){
 	erase();
 	refresh();
 
-	if (lines < MIN_LINES || cols < MIN_COLS){
-		// Display brief warning message
-		const char* winErrMsg = "Window size is too small";
-		const size_t strLength = strlen(winErrMsg);
-		mvprintw((lines - strLength)/2, cols/2, winErrMsg);
-		refresh();
-		
-		context.uiDisplayed = false;
-		return;
-	}
-
 	redrawInputWin(context.inputWin, lines, cols);
 	redrawUserWin(context.userWin, lines, cols);
 	redrawMsgWin(context, lines, cols);
