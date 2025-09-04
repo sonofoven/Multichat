@@ -1,6 +1,6 @@
 #include "interface.hpp"
 
-void appendMsgWin(UiContext& context, unique_ptr<formMsg> formStr){
+void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw){
 	MsgWin& window = *(context.msgWin);
 	WINDOW* pad = window.textWin;
 
@@ -8,9 +8,9 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg> formStr){
 		window.msgBuf.push_back(move(formStr));
 		return;
 	}
-	int maxCols;
+
 	int row = getcury(pad);
-	maxCols = getmaxx(context.msgWin->textWin) + 1;
+	int maxCols = getmaxx(context.msgWin->textWin) + 1;
 
 	curs_set(0);
 
@@ -48,17 +48,19 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg> formStr){
 	// If cursor is aligned show bottom
 	if (window.occLines == window.cursOffset){
 		// Shift the cursor
-		window.cursIdx += 1;
-		window.cursOffset += lineShift;
-		window.occLines += lineShift;
-
-		refreshFromCurs(context);
-	} else {
-		window.occLines += lineShift;
+		if (!redraw){
+			window.cursIdx += 1;
+			window.cursOffset += lineShift;
+			refreshFromCurs(context);
+		}
 	}
 
+	window.occLines += lineShift;
+
 	// push message into history
-	window.msgBuf.push_back(move(formStr));
+	if (!redraw){
+		window.msgBuf.push_back(move(formStr));
+	}
 }
 
 int lineCount(const unique_ptr<formMsg>& formStr, int maxCols){

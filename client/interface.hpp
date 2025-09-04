@@ -95,7 +95,7 @@ WINDOW* createWindow(int height,
 // Window I/O
 string getWindowInput(Win& window, UiContext& context);
 
-void appendMsgWin(UiContext& context, unique_ptr<formMsg> formStr); //m//*
+void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw); //m//*
 void updateUserWindow(UiContext& context);
 void handleCh(UiContext& context, int ch, int servFd); //m//*
 inline char getBaseChar(chtype ch);

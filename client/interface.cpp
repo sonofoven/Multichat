@@ -211,9 +211,52 @@ void redrawUserWin(Win* window, int lines, int cols){
 }
 
 
-void redrawMsgWin(Win* window, int lines, int cols){
-}
+void redrawMsgWin(UiContext& context, int lines, int cols){
+	MsgWin& window = *(context.msgWin);
 
+	delwin(window.bordWin);
+	delwin(window.textWin);
+
+	int height = lines - (lines /6);
+	int userWidth = cols/6;
+	int width = cols - userWidth;
+	int startY = 0;
+	int startX = cols / 6;
+	bool boxOn = true;
+	bool scrollOn = true;
+	int padWidth = width - (2*HALIGN);
+
+	window.bordWin = createWindow(height, 
+								  width, 
+								  startY, 
+								  startX,
+								  boxOn, 
+								  !scrollOn);
+
+	window.textWin = newpad(INIT_PAD_HEIGHT, 
+							 padWidth);
+
+	string title = "| "+ serverName + " |";
+	int leftPadding = (width - title.length())/2;
+	mvwprintw(window.bordWin, 0, leftPadding, title.c_str());
+	wrefresh(window.bordWin);
+
+	int tempCursIdx = window.cursIdx;
+
+	window.cursOffset = 0;
+	window.occLines = 0;
+
+	for (int i = 0; i < (int)window.msgBuf.size(); i++){
+		// Append
+		appendMsgWin(context, window.msgBuf[i], true);
+		if (i == tempCursIdx){
+			window.cursOffset = window.occLines;
+		}
+	}
+
+	// Refresh
+	refreshFromCurs(context);
+}
 
 void handleCh(UiContext& context, int ch, int servFd){
 	refresh();
@@ -280,7 +323,7 @@ void handleCh(UiContext& context, int ch, int servFd){
 		
 		// Format string and output it
 		unique_ptr<formMsg> msgPtr = formatMessage(time(NULL), inputBuf, clientInfo.username);
-		appendMsgWin(context, move(msgPtr));
+		appendMsgWin(context, msgPtr, false);
 
 		// Append packet to writeBuf
 		ClientBroadMsg pkt = ClientBroadMsg(inputBuf);
@@ -524,7 +567,7 @@ void redrawUi(UiContext& context, int lines, int cols){
 
 	redrawInputWin(context.inputWin, lines, cols);
 	redrawUserWin(context.userWin, lines, cols);
-	redrawMsgWin(context.msgWin, lines, cols);
+	redrawMsgWin(context, lines, cols);
 	updateUserWindow(context);
 	context.uiDisplayed = true;
 }

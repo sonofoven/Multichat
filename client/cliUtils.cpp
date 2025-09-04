@@ -284,7 +284,7 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 	userConns.sort(greater<string>());
 	unique_ptr<formMsg> formattedStr = formatConMessage(pkt.timestamp, pkt.username);
 	
-	appendMsgWin(context, move(formattedStr));
+	appendMsgWin(context, formattedStr, false);
 
 	// Update the users window
 	updateUserWindow(context);
@@ -297,7 +297,7 @@ void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context){
 	unique_ptr<ServerBroadMsg> upkt = make_unique<ServerBroadMsg>(pkt);
 	appendToLog(move(upkt));
 
-	appendMsgWin(context, move(formattedStr));
+	appendMsgWin(context, formattedStr, false);
 }
 
 void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
@@ -311,7 +311,7 @@ void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
 
 	unique_ptr<formMsg> formattedStr = formatDisMessage(pkt.timestamp, pkt.username);
 
-	appendMsgWin(context, move(formattedStr));
+	appendMsgWin(context, formattedStr, false);
 
 	// Update the users window
 	updateUserWindow(context);
