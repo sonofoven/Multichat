@@ -66,10 +66,12 @@ struct MsgWin : Win{
 		cursOffset = 0;
 		occLines = 0;
 
+		int n = (int)msgBuf.size();
 		int tempCursIdx = cursIdx;
+		int start = (n == MAX_MSG_BUF) ? writeIdx : 0;
 
-		for (int i = 0; i < (int)msgBuf.size(); i++){
-			int idx = (writeIdx + i) % MAX_MSG_BUF;
+		for (int i = 0; i < n; i++){
+			int idx = (start + i) % MAX_MSG_BUF;
 			appendMsgWin(context, msgBuf[idx], true);
 			if (idx == tempCursIdx){
 				cursOffset = occLines;
@@ -79,8 +81,7 @@ struct MsgWin : Win{
 
 	void advanceCurs(int lineShift){
 		// Goes forward in time (closer to present)
-		if (cursIdx == writeIdx){
-			// Already at newest
+		if ((cursIdx + 1) % MAX_MSG_BUF  == writeIdx){
 			return;
 		}
 
@@ -90,7 +91,7 @@ struct MsgWin : Win{
 
 	void revertCurs(int lineShift){
 		// Goes back in time (further from present)
-		if ((cursIdx - 1 % MAX_MSG_BUF) == writeIdx){
+		if ((cursIdx - 1) % MAX_MSG_BUF == writeIdx){
 			// Already at oldest
 			return;
 		}
