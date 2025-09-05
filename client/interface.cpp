@@ -94,7 +94,7 @@ MsgWin* createMsgWin(string title, int lines, int cols){
 								  boxOn, 
 								  !scrollOn);
 
-	window->textWin = newpad(INIT_PAD_HEIGHT, 
+	window->textWin = newpad(PAD_HEIGHT, 
 							 width - (2*HALIGN));
 
 	title = "| "+ title + " |";
@@ -233,7 +233,7 @@ void redrawMsgWin(UiContext& context, int lines, int cols){
 								  boxOn, 
 								  !scrollOn);
 
-	window.textWin = newpad(INIT_PAD_HEIGHT, 
+	window.textWin = newpad(PAD_HEIGHT, 
 							 padWidth);
 
 	string title = "| "+ serverName + " |";
@@ -241,18 +241,7 @@ void redrawMsgWin(UiContext& context, int lines, int cols){
 	mvwprintw(window.bordWin, 0, leftPadding, title.c_str());
 	wrefresh(window.bordWin);
 
-	int tempCursIdx = window.cursIdx;
-
-	window.cursOffset = 0;
-	window.occLines = 0;
-
-	for (int i = 0; i < (int)window.msgBuf.size(); i++){
-		// Append
-		appendMsgWin(context, window.msgBuf[i], true);
-		if (i == tempCursIdx){
-			window.cursOffset = window.occLines;
-		}
-	}
+	window.replayMessages(context);
 
 	// Refresh
 	refreshFromCurs(context);

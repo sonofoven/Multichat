@@ -5,7 +5,7 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 	WINDOW* pad = window.textWin;
 
 	if (!context.uiDisplayed){
-		window.msgBuf.push_back(move(formStr));
+		window.addMsg(move(formStr));
 		return;
 	}
 
@@ -49,9 +49,7 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 	if (window.occLines == window.cursOffset){
 		// Shift the cursor
 		if (!redraw){
-			window.cursIdx += 1;
-			window.cursOffset += lineShift;
-			refreshFromCurs(context);
+			window.advanceCurs(lineShift); // double adddddddddddddddddddddddddddddddddddddddddddddddddddddddd
 		}
 	}
 
@@ -59,8 +57,15 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 
 	// push message into history
 	if (!redraw){
-		window.msgBuf.push_back(move(formStr));
+		// Shift cursIdx if at the end of the buffer
+		if (window.cursIdx == window.writeIdx && (int)window.msgBuf.size() >= MAX_MSG_BUF){
+			window.cursIdx = (window.cursIdx + 1) % MAX_MSG_BUF;
+		}
+		window.addMsg(move(formStr));
+
 	}
+
+	refreshFromCurs(context);
 }
 
 int lineCount(const unique_ptr<formMsg>& formStr, int maxCols){

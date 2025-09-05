@@ -4,9 +4,8 @@
 #include <form.h>
 #include "client.hpp"
 
-#define MAX_MSG_BUF 200
-#define INIT_PAD_HEIGHT 200
-#define MAX_PAD_HEIGHT 2000
+#define MAX_MSG_BUF 300
+#define PAD_HEIGHT 2000
 
 
 using namespace std;
@@ -33,13 +32,15 @@ struct Win{
 		textWin(nullptr) {}
 };
 
+void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw); //m//*
+
 struct MsgWin : Win{
 	vector<unique_ptr<formMsg>> msgBuf;
 	int cursIdx; // What message is currently on bot of screen
 	int cursOffset; // Curs line offset from top
 	int occLines;  // Occupied LINES total
+	int writeIdx = 0; // Buffer handling
 	bool atTop;
-	//RESTABLISH CURSOFFSET @ REDRAW FROM CURSIDX
 
 	MsgWin() :
 		msgBuf(),
@@ -49,6 +50,61 @@ struct MsgWin : Win{
 		atTop(false){
 			msgBuf.reserve(MAX_MSG_BUF);
 		}
+
+
+	void addMsg(unique_ptr<formMsg> formStr){
+		if (writeIdx >= (int)msgBuf.size()){
+			msgBuf.push_back(move(formStr));
+		} else {
+			msgBuf[writeIdx] = move(formStr);
+		}
+
+		writeIdx = (writeIdx + 1) % MAX_MSG_BUF;
+	}
+	
+	void replayMessages(UiContext& context){
+		cursOffset = 0;
+		occLines = 0;
+
+		int tempCursIdx = cursIdx;
+
+		for (int i = 0; i < (int)msgBuf.size(); i++){
+			int idx = (writeIdx + i) % MAX_MSG_BUF;
+			appendMsgWin(context, msgBuf[idx], true);
+			if (idx == tempCursIdx){
+				cursOffset = occLines;
+			}
+		}
+	}
+
+	void advanceCurs(int lineShift){
+		// Goes forward in time (closer to present)
+		if (cursIdx == writeIdx){
+			// Already at newest
+			return;
+		}
+
+		cursIdx = (cursIdx + 1) % MAX_MSG_BUF;
+		cursOffset += lineShift;
+	}
+
+	void revertCurs(int lineShift){
+		// Goes back in time (further from present)
+		if ((cursIdx - 1 % MAX_MSG_BUF) == writeIdx){
+			// Already at oldest
+			return;
+		}
+		int idx = (cursIdx - 1) % MAX_MSG_BUF;
+
+		if (idx >= (int)msgBuf.size()){
+			// don't wanna access nonexistent past
+			return;
+		}
+
+		cursIdx = idx;
+
+		cursOffset -= lineShift;
+	}
 };
 
 struct UiContext{
@@ -95,7 +151,6 @@ WINDOW* createWindow(int height,
 // Window I/O
 string getWindowInput(Win& window, UiContext& context);
 
-void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw); //m//*
 void updateUserWindow(UiContext& context);
 void handleCh(UiContext& context, int ch, int servFd); //m//*
 inline char getBaseChar(chtype ch);
