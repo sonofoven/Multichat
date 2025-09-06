@@ -4,7 +4,7 @@
 #include <form.h>
 #include "client.hpp"
 
-#define MAX_MSG_BUF 300
+#define MAX_MSG_BUF 25
 #define PAD_HEIGHT 2000
 
 
@@ -81,21 +81,22 @@ struct MsgWin : Win{
 
 	void advanceCurs(int lineShift){
 		// Goes forward in time (closer to present)
-		if ((cursIdx + 1) % MAX_MSG_BUF  == writeIdx){
+		int idx = (cursIdx + 1) % MAX_MSG_BUF;
+		if (idx == writeIdx){
 			return;
 		}
 
-		cursIdx = (cursIdx + 1) % MAX_MSG_BUF;
+		cursIdx = idx;
 		cursOffset += lineShift;
 	}
 
 	void revertCurs(int lineShift){
 		// Goes back in time (further from present)
-		if ((cursIdx - 1) % MAX_MSG_BUF == writeIdx){
-			// Already at oldest
+		if (cursIdx == writeIdx){
 			return;
 		}
-		int idx = (cursIdx - 1) % MAX_MSG_BUF;
+
+		int idx = (cursIdx > 0) ? cursIdx - 1 : MAX_MSG_BUF - 1;
 
 		if (idx >= (int)msgBuf.size()){
 			// don't wanna access nonexistent past
@@ -103,9 +104,15 @@ struct MsgWin : Win{
 		}
 
 		cursIdx = idx;
-
 		cursOffset -= lineShift;
 	}
+
+	void setToBottom(){
+		int start = (writeIdx > 0) ? writeIdx - 1 : MAX_MSG_BUF - 1; 
+		cursOffset = occLines;
+		cursIdx = start;
+	}
+
 };
 
 struct UiContext{

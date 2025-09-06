@@ -49,7 +49,7 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 	if (window.occLines == window.cursOffset){
 		// Shift the cursor
 		if (!redraw){
-			window.advanceCurs(lineShift); // double adddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+			window.advanceCurs(lineShift); 
 		}
 	}
 
@@ -75,8 +75,7 @@ int lineCount(const unique_ptr<formMsg>& formStr, int maxCols){
 
 void scrollBottom(UiContext& context){
 	MsgWin& window = *(context.msgWin);
-	window.cursOffset = window.occLines;
-	window.cursIdx = window.msgBuf.size() - 1;
+	window.setToBottom();
 	refreshFromCurs(context);
 }
 
@@ -98,8 +97,7 @@ void scrollUp(UiContext& context){
 		refreshFromTop(context);
 
 	} else {
-		window.cursIdx -= 1;
-		window.cursOffset -= lineCnt;
+		window.revertCurs(lineCnt);
 		refreshFromCurs(context);
 	}
 }
@@ -118,8 +116,9 @@ void scrollDown(UiContext& context){
 	int lineCnt = lineCount(window.msgBuf[window.cursIdx], maxCols);
 
 	if (!window.atTop){
-		lineCnt = lineCount(window.msgBuf[++window.cursIdx], maxCols);
-		window.cursOffset += lineCnt;
+		int idx = (window.cursIdx + 1) % MAX_MSG_BUF;
+		lineCnt = lineCount(window.msgBuf[idx], maxCols);
+		window.advanceCurs(lineCnt);
 	}
 
 	window.atTop = false;
