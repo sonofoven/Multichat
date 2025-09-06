@@ -90,7 +90,16 @@ void scrollUp(UiContext& context){
 	}
 
 	int maxCols = getmaxx(context.msgWin->textWin) + 1;
-	int lineCnt = lineCount(window.msgBuf[window.cursIdx], maxCols);
+
+////////////
+	int prev = (window.cursIdx > 0) ? window.cursIdx - 1 : MAX_MSG_BUF - 1;
+	if (prev >= (int)window.msgBuf.size()) {
+		window.atTop = true;
+		refreshFromTop(context);
+		return;
+	}
+
+	int lineCnt = lineCount(window.msgBuf[prev], maxCols);
 
 	if ((window.cursOffset - lineCnt) <= maxRows){
 		window.atTop = true;
@@ -113,11 +122,10 @@ void scrollDown(UiContext& context){
 	}
 
 	int maxCols = getmaxx(context.msgWin->textWin) + 1;
-	int lineCnt = lineCount(window.msgBuf[window.cursIdx], maxCols);
 
 	if (!window.atTop){
 		int idx = (window.cursIdx + 1) % MAX_MSG_BUF;
-		lineCnt = lineCount(window.msgBuf[idx], maxCols);
+		int lineCnt = lineCount(window.msgBuf[idx], maxCols);
 		window.advanceCurs(lineCnt);
 	}
 

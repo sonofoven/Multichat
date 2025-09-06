@@ -77,6 +77,17 @@ struct MsgWin : Win{
 				cursOffset = occLines;
 			}
 		}
+
+
+		///////
+		if (tempCursIdx == writeIdx) {
+			cursOffset = occLines;
+			atTop = false;
+		}
+
+		if (cursOffset > occLines){
+			cursOffset = occLines;
+		}
 	}
 
 	void advanceCurs(int lineShift){
@@ -108,9 +119,8 @@ struct MsgWin : Win{
 	}
 
 	void setToBottom(){
-		int start = (writeIdx > 0) ? writeIdx - 1 : MAX_MSG_BUF - 1; 
 		cursOffset = occLines;
-		cursIdx = start;
+		cursIdx = writeIdx;
 	}
 
 };

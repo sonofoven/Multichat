@@ -160,6 +160,8 @@ void restoreHistory(UiContext& context){
 			appendMsgWin(context, formattedStr, false);
 		}
 
+		scrollBottom(context);
+
 		log.close();
 	}
 }
