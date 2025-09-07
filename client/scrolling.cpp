@@ -10,7 +10,7 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 	}
 
 	int row = getcury(pad);
-	int maxCols = getmaxx(context.msgWin->textWin) + 1;
+	int maxCols = getmaxx(context.msgWin->textWin);
 
 	curs_set(0);
 
@@ -22,7 +22,7 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 	}
 
 	int chCount = 0;
-	int msgSpace = maxCols - ((int)formStr->header.size() + 1);
+	int msgSpace = maxCols - ((int)formStr->header.size());
 	int lineShift = lineCount(formStr, maxCols);
 
 	//TRIM/SHIFT HERE along with ringbuf
@@ -61,16 +61,28 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 		if (window.cursIdx == window.writeIdx && (int)window.msgBuf.size() >= MAX_MSG_BUF){
 			window.cursIdx = (window.cursIdx + 1) % MAX_MSG_BUF;
 		}
-		window.addMsg(move(formStr));
 
+		window.addMsg(move(formStr));
 	}
 
 	refreshFromCurs(context);
 }
 
 int lineCount(const unique_ptr<formMsg>& formStr, int maxCols){
-	int lineWidth = (maxCols - formStr->header.size());
-	return (formStr->message.size() / lineWidth) + 1;
+	int lineCnt = 0;
+	int headLen = formStr->header.size();
+
+	if (headLen >= maxCols){
+		lineCnt = headLen / maxCols;
+		headLen %= maxCols;
+	}
+
+	int lineWidth = maxCols - headLen;
+	int length = formStr->message.size();
+
+	lineCnt += (length + lineWidth - 1) / lineWidth;
+
+	return lineCnt;
 }
 
 void scrollBottom(UiContext& context){
@@ -89,11 +101,10 @@ void scrollUp(UiContext& context){
 		return;
 	}
 
-	int maxCols = getmaxx(context.msgWin->textWin) + 1;
+	int maxCols = getmaxx(context.msgWin->textWin);
 
-////////////
 	int prev = (window.cursIdx > 0) ? window.cursIdx - 1 : MAX_MSG_BUF - 1;
-	if (prev >= (int)window.msgBuf.size()) {
+	if (prev >= (int)window.msgBuf.size()){
 		window.atTop = true;
 		refreshFromTop(context);
 		return;
@@ -117,15 +128,16 @@ void scrollDown(UiContext& context){
 
 	int maxRows = getmaxy(context.msgWin->bordWin) - 2 * VALIGN;
 
-	if (window.occLines <= window.cursOffset){
+	if (window.occLines <= window.cursOffset || window.cursIdx == window.writeIdx){
 		return;
 	}
 
-	int maxCols = getmaxx(context.msgWin->textWin) + 1;
+	int maxCols = getmaxx(context.msgWin->textWin);
 
 	if (!window.atTop){
-		int idx = (window.cursIdx + 1) % MAX_MSG_BUF;
-		int lineCnt = lineCount(window.msgBuf[idx], maxCols);
+		//int idx = (window.cursIdx + 1) % MAX_MSG_BUF;
+		//int lineCnt = lineCount(window.msgBuf[idx], maxCols);
+		int lineCnt = lineCount(window.msgBuf[window.cursIdx], maxCols);
 		window.advanceCurs(lineCnt);
 	}
 
@@ -142,19 +154,18 @@ void refreshFromCurs(UiContext& context){
 	int maxRows, maxCols, starty, startx, winTopOffset, padTopOffset;
 
 	maxRows = getmaxy(context.msgWin->bordWin) - 2 * VALIGN;
-	maxCols = getmaxx(context.msgWin->textWin) + 1;
+	maxCols = getmaxx(context.msgWin->textWin);
 	getbegyx(context.msgWin->bordWin, starty, startx);
 
 	winTopOffset = (maxRows - window.occLines < 0 ? 0 : maxRows - window.occLines); // Offset from top of win
 	padTopOffset = window.cursOffset - maxRows < 0 ? 0 : window.cursOffset - maxRows;
-
 	prefresh(pad, 
 			 padTopOffset, // Top Left Pad Y
 			 0, // Top Left Pad X
 			 starty + VALIGN + winTopOffset, // TLW Y
 			 startx + HALIGN, // TLW X
 			 starty + maxRows, //BRW Y
-			 startx + maxCols); //BRW X
+			 startx + maxCols + 1); //BRW X
 }
 
 void refreshFromTop(UiContext& context){
@@ -166,7 +177,7 @@ void refreshFromTop(UiContext& context){
 	int maxRows, maxCols, starty, startx, winTopOffset, padTopOffset;
 
 	maxRows = getmaxy(context.msgWin->bordWin) - 2 * VALIGN;
-	maxCols = getmaxx(context.msgWin->textWin) + 1;
+	maxCols = getmaxx(context.msgWin->textWin);
 	getbegyx(context.msgWin->bordWin, starty, startx);
 
 	winTopOffset = (maxRows - window.occLines < 0 ? 0 : maxRows - window.occLines); // Offset from top of win
@@ -176,5 +187,5 @@ void refreshFromTop(UiContext& context){
 			 starty + VALIGN + winTopOffset, // TLW Y
 			 startx + HALIGN, // TLW X
 			 starty + maxRows, //BRW Y
-			 startx + maxCols); //BRW X
+			 startx + maxCols + 1); //BRW X
 }

@@ -4,7 +4,7 @@
 #include <form.h>
 #include "client.hpp"
 
-#define MAX_MSG_BUF 25
+#define MAX_MSG_BUF 500
 #define PAD_HEIGHT 2000
 
 
@@ -51,7 +51,6 @@ struct MsgWin : Win{
 			msgBuf.reserve(MAX_MSG_BUF);
 		}
 
-
 	void addMsg(unique_ptr<formMsg> formStr){
 		if (writeIdx >= (int)msgBuf.size()){
 			msgBuf.push_back(move(formStr));
@@ -77,17 +76,6 @@ struct MsgWin : Win{
 				cursOffset = occLines;
 			}
 		}
-
-
-		///////
-		if (tempCursIdx == writeIdx) {
-			cursOffset = occLines;
-			atTop = false;
-		}
-
-		if (cursOffset > occLines){
-			cursOffset = occLines;
-		}
 	}
 
 	void advanceCurs(int lineShift){
@@ -102,15 +90,14 @@ struct MsgWin : Win{
 	}
 
 	void revertCurs(int lineShift){
-		// Goes back in time (further from present)
+		// Goes back in time (closer to present)
 		if (cursIdx == writeIdx){
-			return;
+			return; 
 		}
 
 		int idx = (cursIdx > 0) ? cursIdx - 1 : MAX_MSG_BUF - 1;
 
 		if (idx >= (int)msgBuf.size()){
-			// don't wanna access nonexistent past
 			return;
 		}
 
@@ -119,8 +106,10 @@ struct MsgWin : Win{
 	}
 
 	void setToBottom(){
+		int start = (writeIdx > 0) ? writeIdx - 1 : MAX_MSG_BUF - 1; 
 		cursOffset = occLines;
-		cursIdx = writeIdx;
+		cursIdx = start;
+		atTop = false;
 	}
 
 };

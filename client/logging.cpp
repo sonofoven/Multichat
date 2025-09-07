@@ -159,7 +159,6 @@ void restoreHistory(UiContext& context){
 			unique_ptr<formMsg> formattedStr = formatMessage(servPacket.timestamp, servPacket.msg, servPacket.username);
 			appendMsgWin(context, formattedStr, false);
 		}
-
 		scrollBottom(context);
 
 		log.close();
