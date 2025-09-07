@@ -94,8 +94,10 @@ MsgWin* createMsgWin(string title, int lines, int cols){
 								  boxOn, 
 								  !scrollOn);
 
-	window->textWin = newpad(PAD_HEIGHT, 
-							 width - (2*HALIGN));
+	int padWidth = width - 2*HALIGN;
+	int padHeight = (MAXMSG + 2 * NAMELEN)/padWidth * MAX_MSG_BUF * 3;
+	window->textWin = newpad(padHeight, 
+							 padWidth);
 
 	title = "| "+ title + " |";
 	int leftPadding = (width - title.length())/2;
@@ -224,7 +226,6 @@ void redrawMsgWin(UiContext& context, int lines, int cols){
 	int startX = cols / 6;
 	bool boxOn = true;
 	bool scrollOn = true;
-	int padWidth = width - (2*HALIGN);
 
 	window.bordWin = createWindow(height, 
 								  width, 
@@ -233,7 +234,9 @@ void redrawMsgWin(UiContext& context, int lines, int cols){
 								  boxOn, 
 								  !scrollOn);
 
-	window.textWin = newpad(PAD_HEIGHT, 
+	int padWidth = width - (2*HALIGN);
+	int padHeight = (MAXMSG + 2 * NAMELEN)/padWidth * MAX_MSG_BUF * 3;
+	window.textWin = newpad(padHeight, 
 							 padWidth);
 
 	string title = "| "+ serverName + " |";

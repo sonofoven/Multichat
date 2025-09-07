@@ -39,6 +39,7 @@ struct MsgWin : Win{
 	int cursIdx; // What message is currently on bot of screen
 	int cursOffset; // Curs line offset from top
 	int occLines;  // Occupied LINES total
+	int bufLines = 0; // Lines buffered in msgBuf
 	int writeIdx = 0; // Buffer handling
 	bool atTop;
 
@@ -64,6 +65,7 @@ struct MsgWin : Win{
 	void replayMessages(UiContext& context){
 		cursOffset = 0;
 		occLines = 0;
+		bufLines = 0;
 
 		int n = (int)msgBuf.size();
 		int tempCursIdx = cursIdx;
@@ -112,6 +114,41 @@ struct MsgWin : Win{
 		atTop = false;
 	}
 
+	int maxMsgLen(){
+		int cols = getmaxx(textWin);
+		return (MAXMSG + 2 * NAMELEN)/cols;
+	}
+
+	void shiftPad(){
+		int row, cols;
+		cols = getmaxx(textWin);
+		row = getcury(textWin);
+
+		int winShift = occLines - bufLines;
+		int padHeight = maxMsgLen() * MAX_MSG_BUF * 3;
+
+		WINDOW* newPad = newpad(padHeight, cols);
+		int sminrow = winShift;
+		int smincol = 0;
+		int dminrow = 0;
+		int dmincol = 0;
+		int dmaxrow = bufLines;
+		int dmaxcol = cols;
+		int overlay = false;
+
+		copywin(textWin, newPad, 
+				sminrow, smincol, 
+				dminrow, dmincol, 
+				dmaxrow, dmaxcol,
+				overlay);
+
+		delwin(textWin);
+		textWin = newPad;
+		wmove(textWin, row - winShift, 0);
+
+		cursOffset -= winShift;
+		occLines = bufLines;
+	}
 };
 
 struct UiContext{

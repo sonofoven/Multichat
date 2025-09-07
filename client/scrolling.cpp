@@ -51,15 +51,23 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 
 	window.occLines += lineShift;
 
+	int oldWriteIdx = window.writeIdx;
+
 	// push message into history
 	if (!redraw){
 		// Shift cursIdx if at the end of the buffer
 		if (window.cursIdx == window.writeIdx && (int)window.msgBuf.size() >= MAX_MSG_BUF){
-			//window.advanceCurs(lineShift);
 			window.cursIdx = (window.cursIdx + 1) % MAX_MSG_BUF;
+		}
+		
+		if (window.msgBuf.size() >= MAX_MSG_BUF){
+			int linesOverwritten = lineCount(window.msgBuf[oldWriteIdx], maxCols);
+			window.bufLines -= linesOverwritten;
 		}
 
 		window.addMsg(move(formStr));
+
+		window.bufLines += lineShift;
 	}
 
 	if (atBottom){
