@@ -89,7 +89,8 @@ int lineCount(const unique_ptr<formMsg>& formStr, int maxCols){
 	int lineWidth = maxCols - headLen;
 	int length = formStr->message.size();
 
-	lineCnt += (length + lineWidth - 1) / lineWidth;
+	//lineCnt += (length + lineWidth - 1) / lineWidth;
+	lineCnt += (length + lineWidth) / lineWidth;
 
 	return lineCnt;
 }
