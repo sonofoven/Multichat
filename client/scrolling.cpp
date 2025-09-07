@@ -44,13 +44,9 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 		chCount++;
 	}
 
-
-	// If cursor is aligned show bottom
-	if (window.occLines == window.cursOffset){
-		// Shift the cursor
-		if (!redraw){
-			window.advanceCurs(lineShift); 
-		}
+	bool atBottom = false;
+	if (window.occLines <= window.cursOffset && !redraw){
+		atBottom = true;
 	}
 
 	window.occLines += lineShift;
@@ -59,10 +55,15 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 	if (!redraw){
 		// Shift cursIdx if at the end of the buffer
 		if (window.cursIdx == window.writeIdx && (int)window.msgBuf.size() >= MAX_MSG_BUF){
+			//window.advanceCurs(lineShift);
 			window.cursIdx = (window.cursIdx + 1) % MAX_MSG_BUF;
 		}
 
 		window.addMsg(move(formStr));
+	}
+
+	if (atBottom){
+		window.setToBottom();
 	}
 
 	refreshFromCurs(context);
@@ -135,8 +136,6 @@ void scrollDown(UiContext& context){
 	int maxCols = getmaxx(context.msgWin->textWin);
 
 	if (!window.atTop){
-		//int idx = (window.cursIdx + 1) % MAX_MSG_BUF;
-		//int lineCnt = lineCount(window.msgBuf[idx], maxCols);
 		int lineCnt = lineCount(window.msgBuf[window.cursIdx], maxCols);
 		window.advanceCurs(lineCnt);
 	}
