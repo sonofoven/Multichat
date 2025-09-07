@@ -25,11 +25,15 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 	int msgSpace = maxCols - ((int)formStr->header.size());
 	int lineShift = lineCount(formStr, maxCols);
 
-	//TRIM/SHIFT HERE along with ringbuf
-
 	// Print out header
 	for (const chtype& ch : formStr->header){
 		waddch(pad, ch);
+	}
+
+	// If one message away from edge of pad
+	if (window.occLines >= getmaxy(window.textWin) - window.maxMsgLine(maxCols)){
+		window.shiftPad();
+		refreshFromCurs(context);
 	}
 
 	// Print out message justified w/ header
@@ -89,7 +93,6 @@ int lineCount(const unique_ptr<formMsg>& formStr, int maxCols){
 	int lineWidth = maxCols - headLen;
 	int length = formStr->message.size();
 
-	//lineCnt += (length + lineWidth - 1) / lineWidth;
 	lineCnt += (length + lineWidth) / lineWidth;
 
 	return lineCnt;

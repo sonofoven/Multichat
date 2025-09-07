@@ -4,8 +4,7 @@
 #include <form.h>
 #include "client.hpp"
 
-#define MAX_MSG_BUF 500
-#define PAD_HEIGHT 2000
+#define MAX_MSG_BUF 15
 
 
 using namespace std;
@@ -114,9 +113,22 @@ struct MsgWin : Win{
 		atTop = false;
 	}
 
-	int maxMsgLen(){
-		int cols = getmaxx(textWin);
-		return (MAXMSG + 2 * NAMELEN)/cols;
+	int maxMsgLine(int maxCols){
+		// Max lines a single message can be
+		int lineCnt = 0;
+		int maxHeadLen = NAMELEN * 2;
+
+		if (maxHeadLen >= maxCols){
+			lineCnt = maxHeadLen / maxCols;
+			maxHeadLen %= maxCols;
+		}
+
+		int lineWidth = maxCols - maxHeadLen;
+		int length = MAX_MSG_BUF;
+
+		lineCnt += (length + lineWidth) / lineWidth;
+
+		return lineCnt;
 	}
 
 	void shiftPad(){
@@ -125,7 +137,7 @@ struct MsgWin : Win{
 		row = getcury(textWin);
 
 		int winShift = occLines - bufLines;
-		int padHeight = maxMsgLen() * MAX_MSG_BUF * 3;
+		int padHeight = maxMsgLine(cols) * MAX_MSG_BUF * 3;
 
 		WINDOW* newPad = newpad(padHeight, cols);
 		int sminrow = winShift;
