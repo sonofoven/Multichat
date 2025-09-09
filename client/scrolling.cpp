@@ -9,37 +9,40 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 		return;
 	}
 
-	int row = getcury(pad);
 	int maxCols = getmaxx(context.msgWin->textWin);
+	int lineShift = lineCount(formStr, maxCols);
 
 	curs_set(0);
 
+	// If one message away from edge of pad
+	if (window.occLines + lineShift > getmaxy(window.textWin) && !redraw){
+		// Shift pad to save memory
+		window.shiftPad(context);
+	}
+
+	int row = getcury(pad);
+	int col = getcurx(pad);
+
 	// Adding to the bottom
-	if (window.occLines > 0){
+	if (window.occLines > 0 && col != 0){
 		wmove(pad, row + 1, 0);
 	} else {
-		wmove(pad, 0, 0);
+		wmove(pad, row, 0);
 	}
 
 	int chCount = 0;
-	int msgSpace = maxCols - ((int)formStr->header.size());
-	int lineShift = lineCount(formStr, maxCols);
+	int msgSpace = maxCols - (int)formStr->header.size() - 1;
 
 	// Print out header
 	for (const chtype& ch : formStr->header){
 		waddch(pad, ch);
 	}
 
-	// If one message away from edge of pad
-	if (window.occLines >= getmaxy(window.textWin) - window.maxMsgLine(maxCols)){
-		window.shiftPad();
-		refreshFromCurs(context);
-	}
 
 	// Print out message justified w/ header
 	for (const chtype& ch : formStr->message){
-		if (chCount >= msgSpace){
-			for (int i = 0; i < (int)formStr->header.size(); i++){
+		if (chCount > msgSpace){
+			for (int i = 0; i < ((int)formStr->header.size()); i++){
 				waddch(pad, ' ');
 			}
 			chCount = 0;
@@ -49,110 +52,74 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 	}
 
 	bool atBottom = false;
-	if (window.occLines <= window.cursOffset && !redraw){
+	if (window.occLines <= window.cursOffset){
 		atBottom = true;
 	}
 
 	window.occLines += lineShift;
 
-	int oldWriteIdx = window.writeIdx;
-
 	// push message into history
 	if (!redraw){
-		// Shift cursIdx if at the end of the buffer
-		if (window.cursIdx == window.writeIdx && (int)window.msgBuf.size() >= MAX_MSG_BUF){
-			window.cursIdx = (window.cursIdx + 1) % MAX_MSG_BUF;
-		}
-		
-		if (window.msgBuf.size() >= MAX_MSG_BUF){
-			int linesOverwritten = lineCount(window.msgBuf[oldWriteIdx], maxCols);
-			window.bufLines -= linesOverwritten;
-		}
-
 		window.addMsg(move(formStr));
-
-		window.bufLines += lineShift;
 	}
 
 	if (atBottom){
-		window.setToBottom();
+		window.cursOffset = window.occLines;
 	}
 
 	refreshFromCurs(context);
 }
 
 int lineCount(const unique_ptr<formMsg>& formStr, int maxCols){
-	int lineCnt = 0;
+	int lines = 0;
 	int headLen = formStr->header.size();
+	int msgLen = formStr->message.size();
 
 	if (headLen >= maxCols){
-		lineCnt = headLen / maxCols;
+		lines = headLen / maxCols;
 		headLen %= maxCols;
 	}
 
 	int lineWidth = maxCols - headLen;
-	int length = formStr->message.size();
+	if (lineWidth <= 0){
+		lineWidth = 1;
+	}
 
-	lineCnt += (length + lineWidth) / lineWidth;
 
-	return lineCnt;
+	lines += (msgLen + lineWidth - 1) / lineWidth;
+
+
+	return lines;
 }
 
 void scrollBottom(UiContext& context){
 	MsgWin& window = *(context.msgWin);
-	window.setToBottom();
+	window.cursOffset = window.occLines;
 	refreshFromCurs(context);
 }
 
 void scrollUp(UiContext& context){
 	MsgWin& window = *(context.msgWin);
-	WINDOW* pad = window.textWin;
 
 	int maxRows = getmaxy(context.msgWin->bordWin) - 2 * VALIGN;
 
 	if (window.cursOffset <= maxRows){
 		return;
-	}
-
-	int maxCols = getmaxx(context.msgWin->textWin);
-
-	int prev = (window.cursIdx > 0) ? window.cursIdx - 1 : MAX_MSG_BUF - 1;
-	if (prev >= (int)window.msgBuf.size()){
-		window.atTop = true;
-		refreshFromTop(context);
-		return;
-	}
-
-	int lineCnt = lineCount(window.msgBuf[prev], maxCols);
-
-	if ((window.cursOffset - lineCnt) <= maxRows){
-		window.atTop = true;
-		refreshFromTop(context);
 
 	} else {
-		window.revertCurs(lineCnt);
+		window.cursOffset--;
 		refreshFromCurs(context);
 	}
 }
 
 void scrollDown(UiContext& context){
 	MsgWin& window = *(context.msgWin);
-	WINDOW* pad = window.textWin;
 
-	int maxRows = getmaxy(context.msgWin->bordWin) - 2 * VALIGN;
-
-	if (window.occLines <= window.cursOffset || window.cursIdx == window.writeIdx){
+	if (window.occLines <= window.cursOffset){
 		return;
 	}
 
-	int maxCols = getmaxx(context.msgWin->textWin);
-
-	if (!window.atTop){
-		int lineCnt = lineCount(window.msgBuf[window.cursIdx], maxCols);
-		window.advanceCurs(lineCnt);
-	}
-
-	window.atTop = false;
+	window.cursOffset++;
 	refreshFromCurs(context);
 }
 
@@ -172,28 +139,6 @@ void refreshFromCurs(UiContext& context){
 	padTopOffset = window.cursOffset - maxRows < 0 ? 0 : window.cursOffset - maxRows;
 	prefresh(pad, 
 			 padTopOffset, // Top Left Pad Y
-			 0, // Top Left Pad X
-			 starty + VALIGN + winTopOffset, // TLW Y
-			 startx + HALIGN, // TLW X
-			 starty + maxRows, //BRW Y
-			 startx + maxCols + 1); //BRW X
-}
-
-void refreshFromTop(UiContext& context){
-	MsgWin& window = *(context.msgWin);
-	WINDOW* pad = window.textWin;
-	
-	// refresh the right amount
-	// Get position of bordwin
-	int maxRows, maxCols, starty, startx, winTopOffset, padTopOffset;
-
-	maxRows = getmaxy(context.msgWin->bordWin) - 2 * VALIGN;
-	maxCols = getmaxx(context.msgWin->textWin);
-	getbegyx(context.msgWin->bordWin, starty, startx);
-
-	winTopOffset = (maxRows - window.occLines < 0 ? 0 : maxRows - window.occLines); // Offset from top of win
-	prefresh(pad, 
-			 0, // Top Left Pad Y
 			 0, // Top Left Pad X
 			 starty + VALIGN + winTopOffset, // TLW Y
 			 startx + HALIGN, // TLW X

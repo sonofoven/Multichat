@@ -4,7 +4,7 @@
 #include <form.h>
 #include "client.hpp"
 
-#define MAX_MSG_BUF 15
+#define MAX_MSG_BUF 500
 
 
 using namespace std;
@@ -31,23 +31,18 @@ struct Win{
 		textWin(nullptr) {}
 };
 
-void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw); //m//*
+void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw);
 
 struct MsgWin : Win{
 	vector<unique_ptr<formMsg>> msgBuf;
-	int cursIdx; // What message is currently on bot of screen
 	int cursOffset; // Curs line offset from top
 	int occLines;  // Occupied LINES total
-	int bufLines = 0; // Lines buffered in msgBuf
 	int writeIdx = 0; // Buffer handling
-	bool atTop;
 
 	MsgWin() :
 		msgBuf(),
-		cursIdx(-1),
 		cursOffset(0),
-		occLines(0),
-		atTop(false){
+		occLines(0){
 			msgBuf.reserve(MAX_MSG_BUF);
 		}
 
@@ -64,102 +59,64 @@ struct MsgWin : Win{
 	void replayMessages(UiContext& context){
 		cursOffset = 0;
 		occLines = 0;
-		bufLines = 0;
 
 		int n = (int)msgBuf.size();
-		int tempCursIdx = cursIdx;
 		int start = (n == MAX_MSG_BUF) ? writeIdx : 0;
 
 		for (int i = 0; i < n; i++){
 			int idx = (start + i) % MAX_MSG_BUF;
 			appendMsgWin(context, msgBuf[idx], true);
-			if (idx == tempCursIdx){
-				cursOffset = occLines;
-			}
-		}
-	}
-
-	void advanceCurs(int lineShift){
-		// Goes forward in time (closer to present)
-		int idx = (cursIdx + 1) % MAX_MSG_BUF;
-		if (idx == writeIdx){
-			return;
 		}
 
-		cursIdx = idx;
-		cursOffset += lineShift;
-	}
-
-	void revertCurs(int lineShift){
-		// Goes back in time (closer to present)
-		if (cursIdx == writeIdx){
-			return; 
-		}
-
-		int idx = (cursIdx > 0) ? cursIdx - 1 : MAX_MSG_BUF - 1;
-
-		if (idx >= (int)msgBuf.size()){
-			return;
-		}
-
-		cursIdx = idx;
-		cursOffset -= lineShift;
-	}
-
-	void setToBottom(){
-		int start = (writeIdx > 0) ? writeIdx - 1 : MAX_MSG_BUF - 1; 
+		// Set to bottom
 		cursOffset = occLines;
-		cursIdx = start;
-		atTop = false;
 	}
 
 	int maxMsgLine(int maxCols){
 		// Max lines a single message can be
-		int lineCnt = 0;
+		int lines = 0;
 		int maxHeadLen = NAMELEN * 2;
+		int maxMsgLen = MAXMSG;
 
 		if (maxHeadLen >= maxCols){
-			lineCnt = maxHeadLen / maxCols;
+			lines = maxHeadLen / maxCols;
 			maxHeadLen %= maxCols;
 		}
 
 		int lineWidth = maxCols - maxHeadLen;
-		int length = MAX_MSG_BUF;
+		if (lineWidth <= 0){
+			lineWidth = 1;
+		}
 
-		lineCnt += (length + lineWidth) / lineWidth;
 
-		return lineCnt;
+		lines += (maxMsgLen + lineWidth - 1) / lineWidth;
+
+		return lines;
 	}
 
-	void shiftPad(){
-		int row, cols;
-		cols = getmaxx(textWin);
-		row = getcury(textWin);
+	void shiftPad(UiContext& context){
+		// Clears pad and shifts everything to the top
+		clearPad();
+		replayMessages(context);
+	}
 
-		int winShift = occLines - bufLines;
-		int padHeight = maxMsgLine(cols) * MAX_MSG_BUF * 3;
+	void clearPad(){
+		werase(textWin);
+		wmove(textWin, 0, 0);
 
-		WINDOW* newPad = newpad(padHeight, cols);
-		int sminrow = winShift;
-		int smincol = 0;
-		int dminrow = 0;
-		int dmincol = 0;
-		int dmaxrow = bufLines;
-		int dmaxcol = cols;
-		int overlay = false;
+		int starty, startx;
+		getbegyx(bordWin, starty, startx);
 
-		copywin(textWin, newPad, 
-				sminrow, smincol, 
-				dminrow, dmincol, 
-				dmaxrow, dmaxcol,
-				overlay);
+		int maxRows = getmaxy(bordWin) - 2 * VALIGN;
+		int maxCols = getmaxx(textWin);
 
-		delwin(textWin);
-		textWin = newPad;
-		wmove(textWin, row - winShift, 0);
-
-		cursOffset -= winShift;
-		occLines = bufLines;
+		prefresh(textWin, 
+				 0, // Top Left Pad Y
+				 0, // Top Left Pad X
+				 starty + VALIGN, // TLW Y
+				 startx + HALIGN, // TLW X
+				 starty + maxRows, //BRW Y
+				 startx + maxCols + 1); //BRW X
 	}
 };
 
@@ -181,21 +138,21 @@ struct UiContext{
 
 // Setup
 void interfaceStart();
-UiContext setupWindows(); //m//*
+UiContext setupWindows();
 void setupForm();
 
 // Formatting tools
 void pushBackStr(string str, vector<chtype>& outBuf, attr_t attr);
-unique_ptr<formMsg> formatMessage(time_t time, string& message, string& username); //m//*
-unique_ptr<formMsg> formatDisMessage(time_t time, string& username); //m//*
-unique_ptr<formMsg> formatConMessage(time_t time, string& username); //m//*
+unique_ptr<formMsg> formatMessage(time_t time, string& message, string& username); 
+unique_ptr<formMsg> formatDisMessage(time_t time, string& username); 
+unique_ptr<formMsg> formatConMessage(time_t time, string& username); 
 string formatTime(time_t timestamp);
 string dateStr(int day);
 
 
 // Window creation
 Win* createUserWin(int lines, int cols);
-MsgWin* createMsgWin(string title, int lines, int cols); //m//*
+MsgWin* createMsgWin(string title, int lines, int cols); 
 Win* createInputWin(int lines, int cols);
 WINDOW* createWindow(int height, 
 					 int width, 
@@ -208,14 +165,14 @@ WINDOW* createWindow(int height,
 string getWindowInput(Win& window, UiContext& context);
 
 void updateUserWindow(UiContext& context);
-void handleCh(UiContext& context, int ch, int servFd); //m//*
+void handleCh(UiContext& context, int ch, int servFd); 
 inline char getBaseChar(chtype ch);
-void restoreHistory(UiContext& context); //m//*
+void restoreHistory(UiContext& context); 
 
 // Redrawing
 void redrawInputWin(Win* window, int lines, int cols);
 void redrawUserWin(Win* window, int lines, int cols);
-void redrawMsgWin(Win* window, int lines, int cols); //m//*
+void redrawMsgWin(Win* window, int lines, int cols); 
 
 // Scrolling
 int lineCount(const unique_ptr<formMsg>& formStr, int maxCols);
