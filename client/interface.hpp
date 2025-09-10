@@ -5,6 +5,7 @@
 #include "client.hpp"
 
 #define MAX_MSG_BUF 500
+#define PAD_BUF_MULTI 5
 
 
 using namespace std;
@@ -103,20 +104,7 @@ struct MsgWin : Win{
 	void clearPad(){
 		werase(textWin);
 		wmove(textWin, 0, 0);
-
-		int starty, startx;
-		getbegyx(bordWin, starty, startx);
-
-		int maxRows = getmaxy(bordWin) - 2 * VALIGN;
-		int maxCols = getmaxx(textWin);
-
-		prefresh(textWin, 
-				 0, // Top Left Pad Y
-				 0, // Top Left Pad X
-				 starty + VALIGN, // TLW Y
-				 startx + HALIGN, // TLW X
-				 starty + maxRows, //BRW Y
-				 startx + maxCols + 1); //BRW X
+		wrefresh(textWin);
 	}
 };
 
@@ -180,4 +168,3 @@ void scrollBottom(UiContext& context);
 void scrollUp(UiContext& context);
 void scrollDown(UiContext& context);
 void refreshFromCurs(UiContext& context);
-void refreshFromTop(UiContext& context);

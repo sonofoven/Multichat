@@ -95,7 +95,7 @@ MsgWin* createMsgWin(string title, int lines, int cols){
 								  !scrollOn);
 
 	int padWidth = width - (2*HALIGN);
-	int padHeight = window->maxMsgLine(padWidth) * MAX_MSG_BUF * 3;
+	int padHeight = PAD_BUF_MULTI * MAX_MSG_BUF;
 	window->textWin = newpad(padHeight, 
 							 padWidth);
 
@@ -235,7 +235,7 @@ void redrawMsgWin(UiContext& context, int lines, int cols){
 								  !scrollOn);
 
 	int padWidth = width - (2*HALIGN);
-	int padHeight = window.maxMsgLine(padWidth) * MAX_MSG_BUF * 3;
+	int padHeight = PAD_BUF_MULTI * MAX_MSG_BUF;
 	window.textWin = newpad(padHeight, 
 							 padWidth);
 

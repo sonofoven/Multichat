@@ -31,7 +31,8 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 	}
 
 	int chCount = 0;
-	int msgSpace = maxCols - (int)formStr->header.size() - 1;
+	int remainder = (int)formStr->header.size() % maxCols;
+	int msgSpace = maxCols - remainder - 1;
 
 	// Print out header
 	for (const chtype& ch : formStr->header){
@@ -85,9 +86,7 @@ int lineCount(const unique_ptr<formMsg>& formStr, int maxCols){
 		lineWidth = 1;
 	}
 
-
 	lines += (msgLen + lineWidth - 1) / lineWidth;
-
 
 	return lines;
 }
@@ -132,16 +131,27 @@ void refreshFromCurs(UiContext& context){
 	int maxRows, maxCols, starty, startx, winTopOffset, padTopOffset;
 
 	maxRows = getmaxy(context.msgWin->bordWin) - 2 * VALIGN;
-	maxCols = getmaxx(context.msgWin->textWin);
+	maxCols = getmaxx(context.msgWin->bordWin) - 2 * HALIGN;
 	getbegyx(context.msgWin->bordWin, starty, startx);
 
 	winTopOffset = (maxRows - window.occLines < 0 ? 0 : maxRows - window.occLines); // Offset from top of win
 	padTopOffset = window.cursOffset - maxRows < 0 ? 0 : window.cursOffset - maxRows;
+
+	int pminrow = padTopOffset;
+	int pmincol = 0;
+	int sminrow = starty + VALIGN + winTopOffset;
+	int smincol = startx + HALIGN;
+	int smaxrow = starty + maxRows;
+	int smaxcol = startx + maxCols + 1;
+
 	prefresh(pad, 
-			 padTopOffset, // Top Left Pad Y
-			 0, // Top Left Pad X
-			 starty + VALIGN + winTopOffset, // TLW Y
-			 startx + HALIGN, // TLW X
-			 starty + maxRows, //BRW Y
-			 startx + maxCols + 1); //BRW X
+			 pminrow, // Top Left Pad Y
+			 pmincol, // Top Left Pad X
+			 sminrow, // TLW Y
+			 smincol, // TLW X
+			 smaxrow, //BRW Y
+			 smaxcol); //BRW X
+
 }
+
+
