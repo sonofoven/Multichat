@@ -37,7 +37,7 @@ client: $(CLIENT_BIN)
 server: $(SERVER_BIN)
 
 $(CLIENT_BIN): $(CLIENT_SRCS) $(CLIENT_HDRS)
-	$(CC) $(CFLAGS) -o $@ $(CLIENT_SRCS) -lncurses -lform
+	$(CC) $(CFLAGS) -o $@ $(CLIENT_SRCS) -lform -lmenu -lncurses 
 
 $(SERVER_BIN): $(SERVER_SRCS) $(SERVER_HDRS)
 	$(CC) $(CFLAGS) -o $@ $(SERVER_SRCS)

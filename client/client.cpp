@@ -17,7 +17,6 @@ int epollFd;
 
 atomic<bool> redrawQueued = false;
 
-
 int main() {
 	struct sigaction sa {};
 	sa.sa_handler = sigwinchHandler;
@@ -25,6 +24,9 @@ int main() {
 	sigaction(SIGWINCH, &sa, nullptr);
 
 	cout << "Multichat v" << VERSION << endl;
+
+	//configForm();
+	configMenu();
 
 	// Check if setting file exists
 

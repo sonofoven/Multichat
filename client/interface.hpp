@@ -2,6 +2,7 @@
 
 #include <ncurses.h>
 #include <form.h>
+#include <menu.h>
 #include "client.hpp"
 
 #define MAX_MSG_BUF 500
@@ -97,14 +98,10 @@ struct MsgWin : Win{
 
 	void shiftPad(UiContext& context){
 		// Clears pad and shifts everything to the top
-		clearPad();
-		replayMessages(context);
-	}
-
-	void clearPad(){
 		werase(textWin);
 		wmove(textWin, 0, 0);
 		wrefresh(textWin);
+		replayMessages(context);
 	}
 };
 
@@ -122,6 +119,62 @@ struct UiContext{
 			  msgWin(m), 
 			  inputWin(i),
 			  uiDisplayed(true){}
+};
+
+struct ConfMenuContext{
+	WINDOW* confWin = NULL;
+	WINDOW* subWin = NULL;
+	MENU* confMenu = NULL;
+	vector<string> choices;
+	vector<ITEM*> myItems;
+
+	ConfMenuContext(WINDOW* w, 
+					vector<string> c)
+					:
+					confWin(w),
+					choices(move(c)){
+
+						myItems.reserve(choices.size());
+						for (const string& choice : choices){
+							myItems.push_back(new_item(choice.c_str(), choice.c_str()));
+						}
+
+						confMenu = new_menu(myItems.data());
+
+						int rows, cols;
+						getmaxyx(confWin, rows, cols);
+
+						int nlines = rows/2 - VALIGN;
+						int ncols = cols - 2*HALIGN;
+						int begY = VALIGN + rows/2;
+						int begX = HALIGN;
+
+						subWin = derwin(confWin,
+										nlines, ncols,
+										begY, begX);
+					}
+
+	void freeAll(){
+		if (confMenu != NULL){
+			unpost_menu(confMenu);
+			free_menu(confMenu);
+		}
+
+		for (int i = 0; i < (int)choices.size(); i++){
+			if (myItems[i] != NULL){
+				free_item(myItems[i]);
+			}
+		}
+
+		if (confWin != NULL){
+			delwin(confWin);
+		}
+
+		if (subWin != NULL){
+			delwin(subWin);
+		}
+
+	}
 };
 
 // Setup
@@ -168,3 +221,12 @@ void scrollBottom(UiContext& context);
 void scrollUp(UiContext& context);
 void scrollDown(UiContext& context);
 void refreshFromCurs(UiContext& context);
+
+// Form
+void configForm();
+
+// Menu
+bool configMenu();
+bool reconnectMenu();
+WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int rowDiv, int colDiv);
+
