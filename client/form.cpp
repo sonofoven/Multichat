@@ -1,6 +1,6 @@
 #include "interface.hpp"
 
-bool configMenu(){
+bool configMenu(){//vector<string> choices, vector<string> caption){
 	
 	initscr();
 	cbreak();
@@ -10,7 +10,7 @@ bool configMenu(){
 	vector<string> choices {"Use Existing", "Configure New"};
 	string caption = "Existing config file detected";
 	string title = "| MultiChat |";
-	WINDOW* locMenuWin = centerWin(NULL, title, caption, 4, 4);
+	WINDOW* locMenuWin = centerWin(NULL, title, caption, MENU_HEIGHT, MENU_WIDTH);
 
 	ConfMenuContext context(locMenuWin, move(choices));
 	MENU* locMenu = context.confMenu;
@@ -21,7 +21,7 @@ bool configMenu(){
 	 
 	set_menu_win(locMenu, locMenuWin);
 	set_menu_sub(locMenu, context.subWin);
-	set_menu_format(locMenu, 2, 1);
+	set_menu_format(locMenu, 1, context.choices.size());
 	set_menu_mark(locMenu, "");
 
 	refresh();
@@ -40,14 +40,16 @@ bool configMenu(){
 				menu_driver(locMenu, REQ_NEXT_ITEM);
 				break;
 
-			//item_index();
-			//current_index();
 			wrefresh(locMenuWin);
 		}	
 	}
 
+	int selection = item_index(current_item(locMenu));
+
 	context.freeAll();
 	endwin();
+
+	return selection;
 }
 
 bool reconnectMenu(){
@@ -119,9 +121,7 @@ void configForm(){
 }
 
 
-WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int rowDiv, int colDiv){
-	int height = LINES / rowDiv;
-	int width = COLS / colDiv;
+WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int height, int width){
 	int startY = (LINES - height)/2;
 	int startX = (COLS - width)/2;
 
@@ -130,7 +130,6 @@ WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int rowDiv, in
 	}
 
 	WINDOW* localWin = newwin(height, width, startY, startX);
-	box(localWin, 0, 0);
 	wrefresh(localWin);
 
 	int leftPad = (width - title.length())/2;

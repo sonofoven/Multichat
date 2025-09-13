@@ -7,6 +7,8 @@
 
 #define MAX_MSG_BUF 500
 #define PAD_BUF_MULTI 5
+#define MENU_HEIGHT 10
+#define MENU_WIDTH 40
 
 
 using namespace std;
@@ -135,8 +137,12 @@ struct ConfMenuContext{
 					choices(move(c)){
 
 						myItems.reserve(choices.size());
+
+						int menuWidth = (int)choices.size();
+
 						for (const string& choice : choices){
 							myItems.push_back(new_item(choice.c_str(), choice.c_str()));
+							menuWidth += choice.length();
 						}
 
 						confMenu = new_menu(myItems.data());
@@ -145,9 +151,9 @@ struct ConfMenuContext{
 						getmaxyx(confWin, rows, cols);
 
 						int nlines = rows/2 - VALIGN;
-						int ncols = cols - 2*HALIGN;
+						int ncols = menuWidth;
 						int begY = VALIGN + rows/2;
-						int begX = HALIGN;
+						int begX = (cols - HALIGN)/2 - menuWidth/2;
 
 						subWin = derwin(confWin,
 										nlines, ncols,
@@ -228,5 +234,5 @@ void configForm();
 // Menu
 bool configMenu();
 bool reconnectMenu();
-WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int rowDiv, int colDiv);
+WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int height, int width);
 
