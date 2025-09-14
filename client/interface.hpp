@@ -64,8 +64,7 @@ struct MsgWin : Win{
 		cursOffset = 0;
 		occLines = 0;
 
-		int n = (int)msgBuf.size();
-		int start = (n == MAX_MSG_BUF) ? writeIdx : 0;
+		int n = (int)msgBuf.size(); int start = (n == MAX_MSG_BUF) ? writeIdx : 0;
 
 		for (int i = 0; i < n; i++){
 			int idx = (start + i) % MAX_MSG_BUF;
@@ -91,7 +90,6 @@ struct MsgWin : Win{
 		if (lineWidth <= 0){
 			lineWidth = 1;
 		}
-
 
 		lines += (maxMsgLen + lineWidth - 1) / lineWidth;
 
@@ -232,7 +230,8 @@ void refreshFromCurs(UiContext& context);
 void configForm();
 
 // Menu
-bool configMenu();
-bool reconnectMenu();
+int menuSetup(string caption, vector<string> choices);
+int configMenu();
+int reconnectMenu();
 WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int height, int width);
 

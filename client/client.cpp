@@ -1,6 +1,9 @@
 #include "client.hpp"
 #include "interface.hpp"
 
+int prevState = SIZE_ERR;
+int state = SIZE_ERR;
+
 list<string> userConns = {};
 vector<uint8_t> readBuf;
 connInfo clientInfo;
@@ -26,7 +29,9 @@ int main() {
 	cout << "Multichat v" << VERSION << endl;
 
 	//configForm();
+
 	configMenu();
+	reconnectMenu();
 
 	// Check if setting file exists
 
