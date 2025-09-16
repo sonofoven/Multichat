@@ -7,9 +7,9 @@
 
 #define MAX_MSG_BUF 500
 #define PAD_BUF_MULTI 5
-#define MENU_HEIGHT 10
+#define MENU_HEIGHT 20
 #define MENU_WIDTH 40
-#define FIELD_OFFSET 3
+#define FIELD_OFFSET 4
 
 
 using namespace std;
@@ -206,39 +206,41 @@ struct FormContext{
 
 		int nlines = (rows*3)/4 - VALIGN;
 		int ncols = NAMELEN;
-		int begY = VALIGN + rows/4;
-		int begX = HALIGN + cols/4;
+		int begY = VALIGN + rows/6;
+		int begX = HALIGN;
 
 		// Create underying formWin
 		formWin = derwin(bordWin,
 						nlines, ncols,
 						begY, begX);
 
+		wrefresh(formWin);
+
 		for (int i = 0; i < (int)fieldNames.size(); i++){
 
-			// Create new fields
-			int height = 1;
-			int width = NAMELEN;
-			int startY = getbegy(formWin) + (i * FIELD_OFFSET);
-			int startX = getbegx(formWin);
-			
-			FIELD* newField = new_field(height, width,
-										startY, startX,
-										0, 0);
-
-			formFields.push_back(newField);
-
 			// Create box windows
-			height = height + 2;
-			width = width + 2;
-			startY = getbegy(formWin) - 1 + (i * FIELD_OFFSET);
-			startX = getbegx(formWin) - 1;
+			int height = 3;
+			int width = NAMELEN + 2;
+			int startY = getbegy(formWin) - 1 + (i * FIELD_OFFSET);
+			int startX = getbegx(formWin) - 1;
 
 			WINDOW* boxWin = derwin(bordWin,
 									height, width,
 									startY, startX);
 
 			fieldBoxes.push_back(boxWin);
+
+			// Create new fields
+			height = 1;
+			width = NAMELEN;
+			startY = getbegy(formWin) + (i * FIELD_OFFSET);
+			startX = getbegx(formWin);
+			
+			FIELD* newField = new_field(height, width,
+										startY, startX,
+										0, 0);
+
+			formFields.push_back(newField);
 		}
 
 		formFields.push_back(NULL);
@@ -246,25 +248,23 @@ struct FormContext{
 
 	void setForm(){
 		// Set field options
-		set_field_back(formFields[0], A_UNDERLINE);
 		field_opts_off(formFields[0], O_AUTOSKIP);
 
-		set_field_back(formFields[1], A_UNDERLINE); 
 		field_opts_off(formFields[1], O_AUTOSKIP);
 		
-		set_field_back(formFields[2], A_UNDERLINE); 
 		field_opts_off(formFields[2], O_AUTOSKIP);
 
 		// New form
 		confForm = new_form(formFields.data());
 
 
-		/* Set main window and sub window */
+		// Set main window and sub window
 		set_form_win(confForm, bordWin);
 		set_form_sub(confForm, formWin);
 	}
 
 	void handleInput(){
+
 		// Set special keys
 		keypad(bordWin, TRUE);
 
@@ -288,8 +288,6 @@ struct FormContext{
 	// Do this after posting form
 	void refresh(){
 		wrefresh(bordWin);
-		wrefresh(formWin);
-
 
 		int begY = getbegy(formWin);
 

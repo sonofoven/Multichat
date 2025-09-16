@@ -2,11 +2,6 @@
 
 int menuSetup(vector<string> choices, string caption){
 
-	//initscr();
-	//cbreak();
-	//noecho();
-	//keypad(stdscr, TRUE);
-
 	string title = "| MultiChat |";
 
 	int minHeight = MENU_HEIGHT;
