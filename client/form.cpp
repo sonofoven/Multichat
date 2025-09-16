@@ -2,10 +2,10 @@
 
 int menuSetup(vector<string> choices, string caption){
 
-	initscr();
-	cbreak();
-	noecho();
-	keypad(stdscr, TRUE);
+	//initscr();
+	//cbreak();
+	//noecho();
+	//keypad(stdscr, TRUE);
 
 	string title = "| MultiChat |";
 
@@ -22,7 +22,7 @@ int menuSetup(vector<string> choices, string caption){
 								   title, caption, 
 								   minHeight, minWidth);
 
-	ConfMenuContext context(locMenuWin, move(choices));
+	MenuContext context(locMenuWin, move(choices));
 	MENU* locMenu = context.confMenu;
 
 	menu_opts_off(locMenu, O_SHOWDESC);
@@ -57,7 +57,6 @@ int menuSetup(vector<string> choices, string caption){
 	int selection = item_index(current_item(locMenu));
 
 	context.freeAll();
-	endwin();
 
 	return selection;
 }
@@ -76,7 +75,41 @@ int reconnectMenu(){
 	return menuSetup(move(choices), move(caption));
 }
 
-void configForm(){
+int configForm(){
+
+	vector<string> fieldNames {"IP:  ", "Port: ", "Name: "};
+	
+	int minHeight = MENU_HEIGHT + MENU_HEIGHT/2 * (int)fieldNames.size();
+	int minWidth = MENU_WIDTH;
+
+	if (LINES < minHeight || COLS < minWidth){
+		string errMsg = "Window too small";
+		mvprintw(LINES / 2, (COLS - (int)errMsg.size())/2, errMsg.c_str());
+		return -1;
+	}
+
+	// Define ui context
+	string title = "| MultiChat |";
+	string caption = "Input connection information";
+
+	WINDOW* locFormWin = centerWin(NULL, 
+								   title, caption, 
+								   minHeight, minWidth);
+	
+	FormContext context(locFormWin, move(fieldNames));
+
+	// Set up form
+	context.setForm();
+
+	// Post and update screen
+	post_form(context.confForm);
+	context.refresh();
+
+	context.handleInput();
+
+	context.freeAll();
+
+	return 0;
 }
 
 
@@ -89,17 +122,19 @@ WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int height, in
 	}
 
 	WINDOW* localWin = newwin(height, width, startY, startX);
+
 	wrefresh(localWin);
 
-	int leftPad = (width - title.length())/2;
-	mvwprintw(localWin, 0, leftPad, title.c_str());
 
-	leftPad = (width - caption.length())/2;
-	int topPad = (height - HALIGN)/4;
+	int leftPad = (width - caption.length())/2;
+	int topPad = VALIGN * 2;
 
 	mvwprintw(localWin, topPad, leftPad, caption.c_str());
 
 	box(localWin, 0,0);
+
+	leftPad = (width - title.length())/2;
+	mvwprintw(localWin, 0, leftPad, title.c_str());
 
 	return localWin;
 }

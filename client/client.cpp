@@ -28,29 +28,18 @@ int main() {
 
 	cout << "Multichat v" << VERSION << endl;
 
-	//configForm();
+	interfaceStart();
 
-	configMenu();
-	reconnectMenu();
+	configForm();
 
-	// Check if setting file exists
-
-	// if not -> form + generate one
-
-	// Attempt connection
-
-	// If no connection -> prompt reconnect
-
-	// If connection -> check validation
-
-	// If bad validation -> prompt message & kick out
+	while(1);
+	//configMenu();
+	//reconnectMenu();
 
 	if (!fileVerify()){
 		cout << "File not found" << endl;
 		exit(1);
 	}
-
-	interfaceStart();
 
 	int servFd = startUp();
 
@@ -152,5 +141,3 @@ int main() {
 	close(servFd);
 	endwin();
 }
-
-

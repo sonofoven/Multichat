@@ -9,6 +9,7 @@
 #define PAD_BUF_MULTI 5
 #define MENU_HEIGHT 10
 #define MENU_WIDTH 40
+#define FIELD_OFFSET 3
 
 
 using namespace std;
@@ -121,14 +122,14 @@ struct UiContext{
 			  uiDisplayed(true){}
 };
 
-struct ConfMenuContext{
+struct MenuContext{
 	WINDOW* confWin = NULL;
 	WINDOW* subWin = NULL;
 	MENU* confMenu = NULL;
 	vector<string> choices;
 	vector<ITEM*> myItems;
 
-	ConfMenuContext(WINDOW* w, 
+	MenuContext(WINDOW* w, 
 					vector<string> c)
 					:
 					confWin(w),
@@ -158,24 +159,175 @@ struct ConfMenuContext{
 										begY, begX);
 					}
 
+
 	void freeAll(){
-		if (confMenu != NULL){
+		if (!confMenu){
 			unpost_menu(confMenu);
 			free_menu(confMenu);
 		}
 
-		for (int i = 0; i < (int)choices.size(); i++){
-			if (myItems[i] != NULL){
+		for (int i = 0; i < (int)myItems.size(); i++){
+			if (!myItems[i]){
 				free_item(myItems[i]);
 			}
 		}
 
-		if (confWin != NULL){
+		if (!confWin){
 			delwin(confWin);
 		}
 
-		if (subWin != NULL){
+		if (!subWin){
 			delwin(subWin);
+		}
+
+	}
+};
+
+struct FormContext{
+	WINDOW* bordWin = NULL;
+	WINDOW* formWin = NULL;
+	FORM* confForm = NULL;
+	vector<string> fieldNames;
+	vector<FIELD*> formFields;
+	vector<WINDOW*> fieldBoxes;
+
+	FormContext(WINDOW* w, 
+				vector<string> f)
+				:
+				bordWin(w),
+				fieldNames(move(f)){
+
+		int fieldNum = (int)fieldNames.size();
+		formFields.reserve(fieldNum);
+		fieldBoxes.reserve(fieldNum);
+
+		int rows, cols;
+		getmaxyx(bordWin, rows, cols);
+
+		int nlines = (rows*3)/4 - VALIGN;
+		int ncols = NAMELEN;
+		int begY = VALIGN + rows/4;
+		int begX = HALIGN + cols/4;
+
+		// Create underying formWin
+		formWin = derwin(bordWin,
+						nlines, ncols,
+						begY, begX);
+
+		for (int i = 0; i < (int)fieldNames.size(); i++){
+
+			// Create new fields
+			int height = 1;
+			int width = NAMELEN;
+			int startY = getbegy(formWin) + (i * FIELD_OFFSET);
+			int startX = getbegx(formWin);
+			
+			FIELD* newField = new_field(height, width,
+										startY, startX,
+										0, 0);
+
+			formFields.push_back(newField);
+
+			// Create box windows
+			height = height + 2;
+			width = width + 2;
+			startY = getbegy(formWin) - 1 + (i * FIELD_OFFSET);
+			startX = getbegx(formWin) - 1;
+
+			WINDOW* boxWin = derwin(bordWin,
+									height, width,
+									startY, startX);
+
+			fieldBoxes.push_back(boxWin);
+		}
+
+		formFields.push_back(NULL);
+	}
+
+	void setForm(){
+		// Set field options
+		set_field_back(formFields[0], A_UNDERLINE);
+		field_opts_off(formFields[0], O_AUTOSKIP);
+
+		set_field_back(formFields[1], A_UNDERLINE); 
+		field_opts_off(formFields[1], O_AUTOSKIP);
+		
+		set_field_back(formFields[2], A_UNDERLINE); 
+		field_opts_off(formFields[2], O_AUTOSKIP);
+
+		// New form
+		confForm = new_form(formFields.data());
+
+
+		/* Set main window and sub window */
+		set_form_win(confForm, bordWin);
+		set_form_sub(confForm, formWin);
+	}
+
+	void handleInput(){
+		// Set special keys
+		keypad(bordWin, TRUE);
+
+		int ch;
+		while ((ch = wgetch(bordWin)) != '\n'){
+			switch(ch){
+				case KEY_DOWN:
+					form_driver(confForm, REQ_NEXT_FIELD);
+					form_driver(confForm, REQ_END_LINE);
+				case KEY_UP:
+					form_driver(confForm, REQ_PREV_FIELD);
+					form_driver(confForm, REQ_END_LINE);
+				case '\b':
+					form_driver(confForm, REQ_DEL_PREV);
+				default:
+					form_driver(confForm, ch);
+			}
+		}
+	}
+	
+	// Do this after posting form
+	void refresh(){
+		wrefresh(bordWin);
+		wrefresh(formWin);
+
+
+		int begY = getbegy(formWin);
+
+		for (int i = 0; i < (int)fieldNames.size(); i++){
+			
+			begY += i * FIELD_OFFSET;
+
+			// Prepend names before fields
+			mvwprintw(bordWin,
+					  begY, HALIGN,
+					  fieldNames[i].c_str());
+
+			box(fieldBoxes[i], 0, 0);
+		}
+	}
+
+	void freeAll(){
+		if (!confForm){
+			unpost_form(confForm);
+			free_form(confForm);
+		}
+
+		for (int i = 0; i < (int)formFields.size(); i++){
+			if (!formFields[i]){
+				free_field(formFields[i]);
+			}
+
+			if (!fieldBoxes[i]){
+				delwin(fieldBoxes[i]);
+			}
+		}
+
+		if (!bordWin){
+			delwin(bordWin);
+		}
+
+		if (!formWin){
+			delwin(formWin);
 		}
 
 	}
@@ -227,7 +379,7 @@ void scrollDown(UiContext& context);
 void refreshFromCurs(UiContext& context);
 
 // Form
-void configForm();
+int configForm();
 
 // Menu
 int menuSetup(string caption, vector<string> choices);
