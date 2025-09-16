@@ -10,6 +10,7 @@
 #define MENU_HEIGHT 20
 #define MENU_WIDTH 40
 #define FIELD_OFFSET 4
+#define PORT_MAX 65535
 
 
 using namespace std;
@@ -161,22 +162,22 @@ struct MenuContext{
 
 
 	void freeAll(){
-		if (!confMenu){
+		if (confMenu){
 			unpost_menu(confMenu);
 			free_menu(confMenu);
 		}
 
 		for (int i = 0; i < (int)myItems.size(); i++){
-			if (!myItems[i]){
+			if (myItems[i]){
 				free_item(myItems[i]);
 			}
 		}
 
-		if (!confWin){
+		if (confWin){
 			delwin(confWin);
 		}
 
-		if (!subWin){
+		if (subWin){
 			delwin(subWin);
 		}
 
@@ -205,7 +206,7 @@ struct FormContext{
 		getmaxyx(bordWin, rows, cols);
 
 		int nlines = (rows*3)/4 - VALIGN;
-		int ncols = NAMELEN;
+		int ncols = NAMELEN + 1;
 		int begY = VALIGN + rows/6;
 		int begX = HALIGN;
 
@@ -214,15 +215,32 @@ struct FormContext{
 						nlines, ncols,
 						begY, begX);
 
-		wrefresh(formWin);
-
 		for (int i = 0; i < (int)fieldNames.size(); i++){
+			
+			int desiredLen = NAMELEN;
+			switch(i){
+				case 0:
+					desiredLen = NAMELEN - 1;
+					break;
+
+				case 1:
+					desiredLen = 5;
+					break;
+
+				case 2:
+					desiredLen = NAMELEN;
+					break;
+			}
+
 
 			// Create box windows
+			int relY = getpary(formWin);
+			int relX = getparx(formWin);
+
 			int height = 3;
-			int width = NAMELEN + 2;
-			int startY = getbegy(formWin) - 1 + (i * FIELD_OFFSET);
-			int startX = getbegx(formWin) - 1;
+			int width = desiredLen + 3;
+			int startY = relY - 1 + (i * FIELD_OFFSET);
+			int startX = relX - 1;
 
 			WINDOW* boxWin = derwin(bordWin,
 									height, width,
@@ -232,13 +250,31 @@ struct FormContext{
 
 			// Create new fields
 			height = 1;
-			width = NAMELEN;
-			startY = getbegy(formWin) + (i * FIELD_OFFSET);
-			startX = getbegx(formWin);
+			width = desiredLen + 1;
+			startY = i * FIELD_OFFSET;
+			startX = 0;
 			
 			FIELD* newField = new_field(height, width,
 										startY, startX,
 										0, 0);
+
+			switch(i){
+				case 0: // IP
+					break;
+
+				case 1: // Port
+					set_field_type(newField,
+								   TYPE_INTEGER,
+								   0,
+								   0, PORT_MAX);
+					break;
+
+				case 2: // Name
+					set_field_type(newField,
+								   TYPE_ALNUM,
+								   NAMELEN);
+					break;
+			}
 
 			formFields.push_back(newField);
 		}
@@ -248,19 +284,25 @@ struct FormContext{
 
 	void setForm(){
 		// Set field options
-		field_opts_off(formFields[0], O_AUTOSKIP);
-
-		field_opts_off(formFields[1], O_AUTOSKIP);
-		
-		field_opts_off(formFields[2], O_AUTOSKIP);
+		for (FIELD* f : formFields) {
+			if (f){
+				field_opts_off(f, O_AUTOSKIP); 
+			}
+		}
 
 		// New form
 		confForm = new_form(formFields.data());
 
+		form_opts_off(confForm, O_BS_OVERLOAD);
+		//form_opts_off(confForm, O_NL_OVERLOAD);
 
 		// Set main window and sub window
 		set_form_win(confForm, bordWin);
 		set_form_sub(confForm, formWin);
+	}
+
+	bool validIpCh(int idx, int ch){
+		return idx == 0 && (ch == '.' || (ch > 47 && ch < 58));
 	}
 
 	void handleInput(){
@@ -269,18 +311,43 @@ struct FormContext{
 		keypad(bordWin, TRUE);
 
 		int ch;
-		while ((ch = wgetch(bordWin)) != '\n'){
+		while ((ch = wgetch(bordWin)) != '\n' && ch != KEY_ENTER && ch != '\r'){
+			curs_set(1);
 			switch(ch){
 				case KEY_DOWN:
 					form_driver(confForm, REQ_NEXT_FIELD);
 					form_driver(confForm, REQ_END_LINE);
+					break;
+
 				case KEY_UP:
 					form_driver(confForm, REQ_PREV_FIELD);
 					form_driver(confForm, REQ_END_LINE);
-				case '\b':
+					break;
+
+				case '\t':
+					form_driver(confForm, REQ_NEXT_FIELD);
+					form_driver(confForm, REQ_END_LINE);
+					break;
+
+				case KEY_BACKSPACE:
+				case 127:
+				case '\b': 
 					form_driver(confForm, REQ_DEL_PREV);
-				default:
-					form_driver(confForm, ch);
+					break;
+
+				default: {
+						int rc = form_driver(confForm, REQ_NEXT_CHAR);
+						if (rc != E_REQUEST_DENIED){
+							form_driver(confForm, REQ_END_LINE);
+
+							int idx = field_index(current_field(confForm)); 
+
+							if (idx != 0 || validIpCh(idx, ch)){
+								form_driver(confForm, ch);
+							}
+						}
+					}
+					break;
 			}
 		}
 	}
@@ -291,6 +358,7 @@ struct FormContext{
 
 		int begY = getbegy(formWin);
 
+		wrefresh(formWin);
 		for (int i = 0; i < (int)fieldNames.size(); i++){
 			
 			begY += i * FIELD_OFFSET;
@@ -301,30 +369,29 @@ struct FormContext{
 					  fieldNames[i].c_str());
 
 			box(fieldBoxes[i], 0, 0);
+			wrefresh(fieldBoxes[i]);
 		}
 	}
 
 	void freeAll(){
-		if (!confForm){
+		if (confForm){
 			unpost_form(confForm);
 			free_form(confForm);
 		}
 
 		for (int i = 0; i < (int)formFields.size(); i++){
-			if (!formFields[i]){
-				free_field(formFields[i]);
-			}
-
-			if (!fieldBoxes[i]){
-				delwin(fieldBoxes[i]);
-			}
+			free_field(formFields[i]);
 		}
 
-		if (!bordWin){
+		for (int i = 0; i < (int)fieldBoxes.size(); i++){
+			delwin(fieldBoxes[i]);
+		}
+
+		if (bordWin){
 			delwin(bordWin);
 		}
 
-		if (!formWin){
+		if (formWin){
 			delwin(formWin);
 		}
 

@@ -32,7 +32,7 @@ int main() {
 
 	configForm();
 
-	while(1);
+	//while(1);
 	//configMenu();
 	//reconnectMenu();
 
