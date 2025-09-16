@@ -72,9 +72,9 @@ int reconnectMenu(){
 
 int configForm(){
 
-	vector<string> fieldNames {"IP:  ", "Port: ", "Name: "};
+	vector<string> fieldNames {"IP:", "Port:", "Name:"};
 	
-	int minHeight = MENU_HEIGHT + MENU_HEIGHT/2 * (int)fieldNames.size();
+	int minHeight = MENU_HEIGHT + MENU_HEIGHT/3 * (int)fieldNames.size();
 	int minWidth = MENU_WIDTH;
 
 	if (LINES < minHeight || COLS < minWidth){

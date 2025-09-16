@@ -7,7 +7,7 @@
 
 #define MAX_MSG_BUF 500
 #define PAD_BUF_MULTI 5
-#define MENU_HEIGHT 20
+#define MENU_HEIGHT 10
 #define MENU_WIDTH 40
 #define FIELD_OFFSET 4
 #define PORT_MAX 65535
@@ -205,10 +205,10 @@ struct FormContext{
 		int rows, cols;
 		getmaxyx(bordWin, rows, cols);
 
-		int nlines = (rows*3)/4 - VALIGN;
-		int ncols = NAMELEN + 1;
-		int begY = VALIGN + rows/6;
-		int begX = HALIGN;
+		int nlines = (rows*3)/4 - VALIGN*2;
+		int ncols = NAMELEN + 3;
+		int begY = VALIGN*2 + FIELD_OFFSET;
+		int begX = HALIGN + NAMELEN;
 
 		// Create underying formWin
 		formWin = derwin(bordWin,
@@ -356,16 +356,17 @@ struct FormContext{
 	void refresh(){
 		wrefresh(bordWin);
 
-		int begY = getbegy(formWin);
+		int begY = getpary(formWin);
+		int startY = 0;
 
 		wrefresh(formWin);
+
 		for (int i = 0; i < (int)fieldNames.size(); i++){
-			
-			begY += i * FIELD_OFFSET;
+			startY = begY + i * FIELD_OFFSET;
 
 			// Prepend names before fields
 			mvwprintw(bordWin,
-					  begY, HALIGN,
+					  startY, HALIGN*3,
 					  fieldNames[i].c_str());
 
 			box(fieldBoxes[i], 0, 0);
