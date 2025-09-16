@@ -70,7 +70,8 @@ int main(int argc, char* argv[]){
 			// Client disconnected/connection drop
 			if (event & (EPOLLHUP | EPOLLERR)){
 				dropClient(fd);
-				continue; }
+				continue; 
+			}
 			clientConn* clientPtr = lockFindCli(fd);
 
 			bool fatal = false;

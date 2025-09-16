@@ -102,9 +102,11 @@ int configForm(){
 
 	context.handleInput();
 
+	int status = context.updateFile();
+
 	context.freeAll();
 
-	return 0;
+	return status;
 }
 
 
@@ -132,4 +134,26 @@ WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int height, in
 	mvwprintw(localWin, 0, leftPad, title.c_str());
 
 	return localWin;
+}
+
+string getFieldValue(FIELD* field){
+	// Trims off all the padded spaces and gets the plain value
+	char* raw = field_buffer(field, 0);
+
+	if (!raw){ 
+		return "";
+	}
+
+	int idx = strlen(raw) - 1;
+
+	while (idx >= 0 && 
+		   isspace((int)raw[idx])){
+		idx--;
+	}
+
+	if (idx < 0){
+		return "";
+	}
+
+	return string(raw, idx + 1);
 }

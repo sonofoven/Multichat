@@ -38,6 +38,7 @@ struct Win{
 };
 
 void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw);
+string getFieldValue(FIELD* field);
 
 struct MsgWin : Win{
 	vector<unique_ptr<formMsg>> msgBuf;
@@ -350,6 +351,21 @@ struct FormContext{
 					break;
 			}
 		}
+		form_driver(confForm, REQ_VALIDATION);
+	}
+
+	bool updateFile(){
+		// Updates and checks file
+		clientInfo.addr = getFieldValue(formFields[0]); 
+		clientInfo.port = (uint16_t)stoi(getFieldValue(formFields[1])); 
+		clientInfo.username = getFieldValue(formFields[2]); 
+
+		if(!fileCreate()){
+			return false;
+		} else {
+			return fileVerify();
+		}
+
 	}
 	
 	// Do this after posting form
