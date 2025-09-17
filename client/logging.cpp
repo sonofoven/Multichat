@@ -5,7 +5,7 @@ void logLoop(){
 	list<path> logFiles = detectLogFiles();
 	logFiles.sort(greater<path>());
 	weenLogFiles(logFiles);
-	while(1){
+	while(!chatContext.stopLog){
 		unique_lock lock(logMtx);
 
 		// Locks up here and releases the mutex
@@ -75,7 +75,6 @@ void addToLog(string str, list<path>& logFiles){
 	log << str << endl;
 	log.close();
 
-
 	logFiles.push_front(logFile);
 
 	if (!exist){
@@ -125,7 +124,7 @@ void appendToLog(unique_ptr<Packet> pkt){
 	queueCv.notify_one();
 }
 
-void restoreHistory(UiContext& context){
+void restoreHistory(ChatContext& context){
 	// Find logs
 	list<path> logFiles = detectLogFiles();
 

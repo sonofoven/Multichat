@@ -4,11 +4,6 @@ void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw)
 	MsgWin& window = *(context.msgWin);
 	WINDOW* pad = window.textWin;
 
-	if (!context.uiDisplayed){
-		window.addMsg(move(formStr));
-		return;
-	}
-
 	int maxCols = getmaxx(context.msgWin->textWin);
 	int lineShift = lineCount(formStr, maxCols);
 

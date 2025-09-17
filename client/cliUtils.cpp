@@ -2,24 +2,6 @@
 #include "interface.hpp"
 
 
-int startUp(){
-	int servFd = networkStart();
-	if(servFd < 0){
-		// Can't connect
-		return -1;
-	}
-
-	// send validation
-	sendOneConn(servFd);
-
-	// wait for validation
-	if (!recvOneVal(servFd)){
-		return -1;
-	}
-
-	return servFd;
-}
-
 int networkStart(){
 	int sockFd = 0;
 	struct sockaddr_in serverAddr;

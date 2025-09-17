@@ -50,25 +50,36 @@ struct connInfo{
 	uint16_t port;
 	string username;
 };
-extern connInfo clientInfo;
 
+struct ContextState(){
+	uiState state;
 
-// List of users connected to server
-extern list<string> userConns; 
+	virtual int startUp() = 0;
 
-extern vector<uint8_t> readBuf;
-extern vector<uint8_t> writeBuf;
-extern string inputBuf;
-extern int epollFd;
-extern string serverName;
+	virtual int running() = 0;
 
-// Logging
-extern queue<unique_ptr<Packet>> logQueue;
-extern mutex logMtx; // Control the logging queue
-extern shared_mutex fileMtx; // Control the file access
-extern condition_variable queueCv;
-extern atomic<bool> redrawQueued;
-extern atomic<bool> windowDisplayed;
+	virtual int tearDown() = 0;
+}
+//extern connInfo clientInfo;
+//
+//
+//// List of users connected to server
+//extern list<string> userConns; 
+//
+//extern vector<uint8_t> readBuf;
+//extern vector<uint8_t> writeBuf;
+//extern string inputBuf;
+//extern int epollFd;
+//extern string serverName;
+//
+//// Logging
+//extern queue<unique_ptr<Packet>> logQueue;
+//extern mutex logMtx; // Control the logging queue
+//extern shared_mutex fileMtx; // Control the file access
+//extern condition_variable queueCv;
+//extern atomic<bool> redrawQueued;
+//extern atomic<bool> windowDisplayed;
+
 
 void logLoop();
 list<path> detectLogFiles();

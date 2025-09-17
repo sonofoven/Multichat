@@ -35,6 +35,16 @@ struct Win{
 	Win() :
 		bordWin(nullptr),
 		textWin(nullptr) {}
+	
+	void freeWin(){
+		if (textWin){
+			delwin(textWin);
+		}
+
+		if (bordWin){
+			delwin(textWin);
+		}
+	}
 };
 
 void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw);
@@ -108,20 +118,136 @@ struct MsgWin : Win{
 	}
 };
 
-struct UiContext{
+struct ChatContext : ContextState{
+	state = MESSENGING;
+
 	Win* userWin;
 	MsgWin* msgWin;
 	Win* inputWin;
-	bool uiDisplayed;
 
-	UiContext(Win* u, 
-			  MsgWin* m, 
-			  Win* i) 
-			  : 
-			  userWin(u), 
-			  msgWin(m), 
-			  inputWin(i),
-			  uiDisplayed(true){}
+	list<string> userConns = {};
+	vector<uint8_t> readBuf;
+	connInfo clientInfo;
+	
+	vector<uint8_t> writeBuf;
+	string inputBuf;
+	string serverName; 
+	
+	shared_mutex fileMtx;
+
+	mutex logMtx;
+	queue<unique_ptr<Packet>> logQueue;
+	condition_variable queueCv;
+	thread logT;
+	atomic<bool> stopLog = false;
+
+	int servFd ;
+	int epollFd = -1;
+	epoll_event events[MAX_EVENTS];
+	
+	int startUp() override {
+
+	}
+
+	int running() override {
+
+	}
+
+	int tearDown() override {
+
+	}
+
+	int startProcess(){
+		// Setup network connection
+		setupFd();
+		if (servFd < 0){
+			return -1;
+		}
+
+		// Setup logging
+		startLog();
+
+		// Setup Epoll
+		setupEpoll();
+		if (epollFd == -1){
+			return -1;
+		}
+
+		// Setup windows
+		setupWindows();
+
+		restoreHistory(this);
+
+		modFds();
+	}
+
+	void modFds(){
+		fcntl(servFd, F_SETFL, O_NONBLOCK);
+		fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+		epollModify(epollFd, servFd, EPOLLIN | EPOLLET | EPOLLHUP | EPOLLERR, EPOLL_CTL_ADD);
+		epollModify(epollFd, STDIN_FILENO, EPOLLIN | EPOLLET, EPOLL_CTL_ADD);
+	}
+
+	void setupWindows(){
+		int rows, cols;
+		getmaxyx(stdscr, rows, cols);
+
+		inputWin = createInputWin(rows, cols);
+		msgWin = createMsgWin(serverName, rows, cols);
+		userWin = createUserWin(rows, cols);
+
+		updateUserWindow(this);
+	}
+
+	void setupEpoll(){
+		// Create our epoll instance
+		epollFd = epoll_create1(0);
+	}
+
+	void startLog(){
+		stopLog = false;
+		logT(logLoop);
+		logT.detach();
+	}
+
+	void stopLog(){
+		stopLog = true;
+		logT.join();
+	}
+
+	void setupFd(){
+		int servFd = networkStart();
+		if(servFd < 0){
+			// Can't connect
+			return;
+		}
+
+		// send validation
+		sendOneConn(servFd);
+
+		// wait for validation
+		if (!recvOneVal(servFd)){
+			servFd = -1;
+		}
+	}
+
+
+	void freeAll(){
+		if (userWin){
+			userWin.freeWin();
+		}
+
+		if (msgWin){
+			msgWin.freeWin();
+		}
+
+		if (inputWin){
+			inputWin.freeWin();
+		}
+		erase();
+		refresh();
+	}
+
 };
 
 struct MenuContext{
@@ -185,7 +311,41 @@ struct MenuContext{
 	}
 };
 
-struct FormContext{
+struct FileDetectMenu : ContextState{
+	state = FILE_DETECT;
+
+	int startUp() override {
+
+	}
+
+	int running() override {
+
+	}
+
+	int tearDown() override {
+
+	}
+}
+
+struct ReconnectMenu : ContextState{
+	state = RECONNECT;
+
+	int startUp() override {
+
+	}
+
+	int running() override {
+
+	}
+
+	int tearDown() override {
+
+	}
+}
+
+struct FormContext : ContextState{
+	state = FORM_FILL;
+
 	WINDOW* bordWin = NULL;
 	WINDOW* formWin = NULL;
 	FORM* confForm = NULL;
@@ -281,6 +441,18 @@ struct FormContext{
 		}
 
 		formFields.push_back(NULL);
+	}
+
+	int startUp() override {
+
+	}
+
+	int running() override {
+
+	}
+
+	int tearDown() override {
+
 	}
 
 	void setForm(){
@@ -412,8 +584,11 @@ struct FormContext{
 			delwin(formWin);
 		}
 
+		erase();
+		refresh();
 	}
 };
+
 
 // Setup
 void interfaceStart();

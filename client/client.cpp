@@ -1,70 +1,25 @@
 #include "client.hpp"
 #include "interface.hpp"
 
-int prevState = SIZE_ERR;
-int state = SIZE_ERR;
-
-list<string> userConns = {};
-vector<uint8_t> readBuf;
-connInfo clientInfo;
-
-vector<uint8_t> writeBuf;
-string inputBuf;
-string serverName;
-
-mutex logMtx;
-shared_mutex fileMtx;
-queue<unique_ptr<Packet>> logQueue;
-condition_variable queueCv;
-int epollFd;
-
+int prevState = SIZE_ERR; //G
+int state = SIZE_ERR; //G
 atomic<bool> redrawQueued = false;
 
+
+// Contexts
+ChatContext chatContext;
+MenuContext menuContext;
+FormContext formContext;
+
 int main() {
-	struct sigaction sa {};
+	struct sigaction sa {}; // U
 	sa.sa_handler = sigwinchHandler;
 	sa.sa_flags = SA_RESTART;
 	sigaction(SIGWINCH, &sa, nullptr);
 
-	cout << "Multichat v" << VERSION << endl;
+	cout << "Multichat v" << VERSION << endl; // U
 
-	interfaceStart();
-
-	configForm();
-
-	//while(1);
-	//configMenu();
-	//reconnectMenu();
-
-	if (!fileVerify()){
-		cout << "File not found" << endl;
-		exit(1);
-	}
-
-	int servFd = startUp();
-
-	thread logT(logLoop);
-	logT.detach();
-
-	if (servFd < 0){
-		endwin();
-		cout << "Connection Not Possible" << endl;
-		exit(1);
-	}
-
-
-	// Set up epoll for both server and key input
-	epollFd = -1;
-	epoll_event events[MAX_EVENTS];
-
-	// Create our epoll instance
-	epollFd = epoll_create1(0);
-	if (epollFd == -1){
-		perror("Epoll creation failure");
-		exit(1);
-	}
-
-	UiContext uiContext = setupWindows();
+	interfaceStart(); // U
 
 	restoreHistory(uiContext);
 
@@ -125,7 +80,7 @@ int main() {
 					handleRead(servFd, uiContext);
 				}
 
-			} else if (uiContext.uiDisplayed) {
+			} else {
 				// If something happened w/ keyboard input
 				int ch;
 

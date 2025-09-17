@@ -8,7 +8,7 @@ void interfaceStart(){
 	refresh();
 }
 
-UiContext setupWindows(){
+void setupWindows(){
 	int rows, cols;
 	getmaxyx(stdscr, rows, cols);
 
@@ -503,10 +503,7 @@ string dateStr(int day){
 }
 
 
-void updateUserWindow(UiContext& context){
-	if (!context.uiDisplayed){
-		return;
-	}
+void updateUserWindow(ChatContext& context){
 
 	WINDOW* win = context.userWin->textWin;
 
@@ -519,7 +516,7 @@ void updateUserWindow(UiContext& context){
 
 	int y = 0;
 
-	for (const string& str : userConns){
+	for (const string& str : context.userConns){
 		if (y >= row){
 			break;
 		}
@@ -550,5 +547,4 @@ void redrawUi(UiContext& context, int lines, int cols){
 	redrawUserWin(context.userWin, lines, cols);
 	redrawMsgWin(context, lines, cols);
 	updateUserWindow(context);
-	context.uiDisplayed = true;
 }
