@@ -22,100 +22,35 @@ struct formMsg {
 
 	formMsg() :
 		header(),
-		message() {
+		message(){
 			message.reserve(MAXMSG);
 		}
 };
 
 // Window/UI structs
 struct Win{
-	WINDOW* bordWin;	   
-	WINDOW* textWin;	   
-
-	Win() :
-		bordWin(nullptr),
-		textWin(nullptr) {}
+	WINDOW* bordWin = nullptr;	   
+	WINDOW* textWin = nullptr;	   
 	
-	void freeWin(){
-		if (textWin){
-			delwin(textWin);
-		}
-
-		if (bordWin){
-			delwin(textWin);
-		}
-	}
+	void freeWin();
 };
 
-void appendMsgWin(UiContext& context, unique_ptr<formMsg>& formStr, bool redraw);
 string getFieldValue(FIELD* field);
 
 struct MsgWin : Win{
 	vector<unique_ptr<formMsg>> msgBuf;
-	int cursOffset; // Curs line offset from top
-	int occLines;  // Occupied LINES total
+	int cursOffset = 0; // Curs line offset from top
+	int occLines = 0;  // Occupied LINES total
 	int writeIdx = 0; // Buffer handling
 
-	MsgWin() :
-		msgBuf(),
-		cursOffset(0),
-		occLines(0){
-			msgBuf.reserve(MAX_MSG_BUF);
-		}
-
-	void addMsg(unique_ptr<formMsg> formStr){
-		if (writeIdx >= (int)msgBuf.size()){
-			msgBuf.push_back(move(formStr));
-		} else {
-			msgBuf[writeIdx] = move(formStr);
-		}
-
-		writeIdx = (writeIdx + 1) % MAX_MSG_BUF;
-	}
-	
-	void replayMessages(UiContext& context){
-		cursOffset = 0;
-		occLines = 0;
-
-		int n = (int)msgBuf.size(); int start = (n == MAX_MSG_BUF) ? writeIdx : 0;
-
-		for (int i = 0; i < n; i++){
-			int idx = (start + i) % MAX_MSG_BUF;
-			appendMsgWin(context, msgBuf[idx], true);
-		}
-
-		// Set to bottom
-		cursOffset = occLines;
+	MsgWin(){
+		msgBuf.reserve(MAX_MSG_BUF);
 	}
 
-	int maxMsgLine(int maxCols){
-		// Max lines a single message can be
-		int lines = 0;
-		int maxHeadLen = NAMELEN * 2;
-		int maxMsgLen = MAXMSG;
-
-		if (maxHeadLen >= maxCols){
-			lines = maxHeadLen / maxCols;
-			maxHeadLen %= maxCols;
-		}
-
-		int lineWidth = maxCols - maxHeadLen;
-		if (lineWidth <= 0){
-			lineWidth = 1;
-		}
-
-		lines += (maxMsgLen + lineWidth - 1) / lineWidth;
-
-		return lines;
-	}
-
-	void shiftPad(UiContext& context){
-		// Clears pad and shifts everything to the top
-		werase(textWin);
-		wmove(textWin, 0, 0);
-		wrefresh(textWin);
-		replayMessages(context);
-	}
+	void addMsg(unique_ptr<formMsg> formStr);
+	void replayMessages(UiContext& context);
+	int maxMsgLine(int maxCols);
+	void shiftPad(UiContext& context);
 };
 
 struct ChatContext : ContextState{
@@ -141,112 +76,31 @@ struct ChatContext : ContextState{
 	thread logT;
 	atomic<bool> stopLog = false;
 
-	int servFd ;
+	int servFd = -1;
 	int epollFd = -1;
 	epoll_event events[MAX_EVENTS];
-	
-	int startUp() override {
-
-	}
-
-	int running() override {
-
-	}
-
-	int tearDown() override {
-
-	}
-
-	int startProcess(){
-		// Setup network connection
-		setupFd();
-		if (servFd < 0){
-			return -1;
-		}
-
-		// Setup logging
-		startLog();
-
-		// Setup Epoll
-		setupEpoll();
-		if (epollFd == -1){
-			return -1;
-		}
-
-		// Setup windows
-		setupWindows();
-
-		restoreHistory(this);
-
-		modFds();
-	}
-
-	void modFds(){
-		fcntl(servFd, F_SETFL, O_NONBLOCK);
-		fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
-		epollModify(epollFd, servFd, EPOLLIN | EPOLLET | EPOLLHUP | EPOLLERR, EPOLL_CTL_ADD);
-		epollModify(epollFd, STDIN_FILENO, EPOLLIN | EPOLLET, EPOLL_CTL_ADD);
-	}
-
-	void setupWindows(){
-		int rows, cols;
-		getmaxyx(stdscr, rows, cols);
-
-		inputWin = createInputWin(rows, cols);
-		msgWin = createMsgWin(serverName, rows, cols);
-		userWin = createUserWin(rows, cols);
-
-		updateUserWindow(this);
-	}
-
-	void setupEpoll(){
-		// Create our epoll instance
-		epollFd = epoll_create1(0);
-	}
-
-	void startLog(){
-		stopLog = false;
-		logT(logLoop);
-		logT.detach();
-	}
-
-	void stopLog(){
-		stopLog = true;
-		logT.join();
-	}
-
-	void setupFd(){
-		int servFd = networkStart();
-		if(servFd < 0){
-			// Can't connect
-			return;
-		}
-
-		// send validation
-		sendOneConn(servFd);
-
-		// wait for validation
-		if (!recvOneVal(servFd)){
-			servFd = -1;
-		}
-	}
 
 
-	void freeAll(){
-		if (userWin){
-			userWin.freeWin();
-		}
+	// Control funcs
+	int startProcess();
+	int runProcess();
+	int termProcess();
+	void freeAll();
 
-		if (msgWin){
-			msgWin.freeWin();
-		}
+	// Net & Epoll Setup
+	void setupFd();
+	void setupEpoll();
+	void modFds();
 
-		if (inputWin){
-			inputWin.freeWin();
-		}
-		erase();
-		refresh();
-	}
+
+	// Ui
+	void setupWindows();
+	void appendMsgWin(unique_ptr<formMsg>& formStr, bool redraw);
+
+	//Logging
+	void restoreHistory();
+	void startLog();
+	void stopLog();
 
 };
 
@@ -257,93 +111,14 @@ struct MenuContext{
 	vector<string> choices;
 	vector<ITEM*> myItems;
 
-	MenuContext(WINDOW* w, 
-					vector<string> c)
-					:
-					confWin(w),
-					choices(move(c)){
+	MenuContext(WINDOW* w, vector<string> c);
 
-						myItems.reserve(choices.size());
-
-						int menuWidth = (int)choices.size();
-
-						for (const string& choice : choices){
-							myItems.push_back(new_item(choice.c_str(), choice.c_str()));
-							menuWidth += choice.length();
-						}
-
-						confMenu = new_menu(myItems.data());
-
-						int rows, cols;
-						getmaxyx(confWin, rows, cols);
-
-						int nlines = rows/2 - VALIGN;
-						int ncols = menuWidth;
-						int begY = VALIGN + rows/2;
-						int begX = (cols - HALIGN)/2 - menuWidth/2;
-
-						subWin = derwin(confWin,
-										nlines, ncols,
-										begY, begX);
-					}
-
-
-	void freeAll(){
-		if (confMenu){
-			unpost_menu(confMenu);
-			free_menu(confMenu);
-		}
-
-		for (int i = 0; i < (int)myItems.size(); i++){
-			if (myItems[i]){
-				free_item(myItems[i]);
-			}
-		}
-
-		if (confWin){
-			delwin(confWin);
-		}
-
-		if (subWin){
-			delwin(subWin);
-		}
-
-	}
+	void freeAll();
 };
 
-struct FileDetectMenu : ContextState{
-	state = FILE_DETECT;
 
-	int startUp() override {
 
-	}
-
-	int running() override {
-
-	}
-
-	int tearDown() override {
-
-	}
-}
-
-struct ReconnectMenu : ContextState{
-	state = RECONNECT;
-
-	int startUp() override {
-
-	}
-
-	int running() override {
-
-	}
-
-	int tearDown() override {
-
-	}
-}
-
-struct FormContext : ContextState{
+struct FormContext{
 	state = FORM_FILL;
 
 	WINDOW* bordWin = NULL;
@@ -353,242 +128,39 @@ struct FormContext : ContextState{
 	vector<FIELD*> formFields;
 	vector<WINDOW*> fieldBoxes;
 
-	FormContext(WINDOW* w, 
-				vector<string> f)
-				:
-				bordWin(w),
-				fieldNames(move(f)){
+	FormContext(WINDOW* w, vector<string> f);
 
-		int fieldNum = (int)fieldNames.size();
-		formFields.reserve(fieldNum);
-		fieldBoxes.reserve(fieldNum);
+	void setForm();
+	bool validIpCh(int idx, int ch);
 
-		int rows, cols;
-		getmaxyx(bordWin, rows, cols);
-
-		int nlines = (rows*3)/4 - VALIGN*2;
-		int ncols = NAMELEN + 3;
-		int begY = VALIGN*2 + FIELD_OFFSET;
-		int begX = HALIGN + NAMELEN;
-
-		// Create underying formWin
-		formWin = derwin(bordWin,
-						nlines, ncols,
-						begY, begX);
-
-		for (int i = 0; i < (int)fieldNames.size(); i++){
-			
-			int desiredLen = NAMELEN;
-			switch(i){
-				case 0:
-					desiredLen = NAMELEN - 1;
-					break;
-
-				case 1:
-					desiredLen = 5;
-					break;
-
-				case 2:
-					desiredLen = NAMELEN;
-					break;
-			}
-
-
-			// Create box windows
-			int relY = getpary(formWin);
-			int relX = getparx(formWin);
-
-			int height = 3;
-			int width = desiredLen + 3;
-			int startY = relY - 1 + (i * FIELD_OFFSET);
-			int startX = relX - 1;
-
-			WINDOW* boxWin = derwin(bordWin,
-									height, width,
-									startY, startX);
-
-			fieldBoxes.push_back(boxWin);
-
-			// Create new fields
-			height = 1;
-			width = desiredLen + 1;
-			startY = i * FIELD_OFFSET;
-			startX = 0;
-			
-			FIELD* newField = new_field(height, width,
-										startY, startX,
-										0, 0);
-
-			switch(i){
-				case 0: // IP
-					break;
-
-				case 1: // Port
-					set_field_type(newField,
-								   TYPE_INTEGER,
-								   0,
-								   0, PORT_MAX);
-					break;
-
-				case 2: // Name
-					set_field_type(newField,
-								   TYPE_ALNUM,
-								   NAMELEN);
-					break;
-			}
-
-			formFields.push_back(newField);
-		}
-
-		formFields.push_back(NULL);
-	}
-
-	int startUp() override {
-
-	}
-
-	int running() override {
-
-	}
-
-	int tearDown() override {
-
-	}
-
-	void setForm(){
-		// Set field options
-		for (FIELD* f : formFields) {
-			if (f){
-				field_opts_off(f, O_AUTOSKIP); 
-			}
-		}
-
-		// New form
-		confForm = new_form(formFields.data());
-
-		form_opts_off(confForm, O_BS_OVERLOAD);
-		//form_opts_off(confForm, O_NL_OVERLOAD);
-
-		// Set main window and sub window
-		set_form_win(confForm, bordWin);
-		set_form_sub(confForm, formWin);
-	}
-
-	bool validIpCh(int idx, int ch){
-		return idx == 0 && (ch == '.' || (ch > 47 && ch < 58));
-	}
-
-	void handleInput(){
-
-		// Set special keys
-		keypad(bordWin, TRUE);
-
-		int ch;
-		while ((ch = wgetch(bordWin)) != '\n' && ch != KEY_ENTER && ch != '\r'){
-			curs_set(1);
-			switch(ch){
-				case KEY_DOWN:
-					form_driver(confForm, REQ_NEXT_FIELD);
-					form_driver(confForm, REQ_END_LINE);
-					break;
-
-				case KEY_UP:
-					form_driver(confForm, REQ_PREV_FIELD);
-					form_driver(confForm, REQ_END_LINE);
-					break;
-
-				case '\t':
-					form_driver(confForm, REQ_NEXT_FIELD);
-					form_driver(confForm, REQ_END_LINE);
-					break;
-
-				case KEY_BACKSPACE:
-				case 127:
-				case '\b': 
-					form_driver(confForm, REQ_DEL_PREV);
-					break;
-
-				default: {
-						int rc = form_driver(confForm, REQ_NEXT_CHAR);
-						if (rc != E_REQUEST_DENIED){
-							form_driver(confForm, REQ_END_LINE);
-
-							int idx = field_index(current_field(confForm)); 
-
-							if (idx != 0 || validIpCh(idx, ch)){
-								form_driver(confForm, ch);
-							}
-						}
-					}
-					break;
-			}
-		}
-		form_driver(confForm, REQ_VALIDATION);
-	}
-
-	bool updateFile(){
-		// Updates and checks file
-		clientInfo.addr = getFieldValue(formFields[0]); 
-		clientInfo.port = (uint16_t)stoi(getFieldValue(formFields[1])); 
-		clientInfo.username = getFieldValue(formFields[2]); 
-
-		if(!fileCreate()){
-			return false;
-		} else {
-			return fileVerify();
-		}
-
-	}
+	void handleInput();
+	bool updateFile();
 	
 	// Do this after posting form
-	void refresh(){
-		wrefresh(bordWin);
+	void refresh();
 
-		int begY = getpary(formWin);
-		int startY = 0;
-
-		wrefresh(formWin);
-
-		for (int i = 0; i < (int)fieldNames.size(); i++){
-			startY = begY + i * FIELD_OFFSET;
-
-			// Prepend names before fields
-			mvwprintw(bordWin,
-					  startY, HALIGN*3,
-					  fieldNames[i].c_str());
-
-			box(fieldBoxes[i], 0, 0);
-			wrefresh(fieldBoxes[i]);
-		}
-	}
-
-	void freeAll(){
-		if (confForm){
-			unpost_form(confForm);
-			free_form(confForm);
-		}
-
-		for (int i = 0; i < (int)formFields.size(); i++){
-			free_field(formFields[i]);
-		}
-
-		for (int i = 0; i < (int)fieldBoxes.size(); i++){
-			delwin(fieldBoxes[i]);
-		}
-
-		if (bordWin){
-			delwin(bordWin);
-		}
-
-		if (formWin){
-			delwin(formWin);
-		}
-
-		erase();
-		refresh();
-	}
+	void freeAll();
 };
 
+struct WinErrState : ContextState {
+
+}
+
+struct ChatState : ContextState {
+
+}
+
+struct FormState : ContextState {
+
+}
+
+struct ReconnectState : ContextState {
+
+}
+
+struct FileState : ContextState {
+
+}
 
 // Setup
 void interfaceStart();

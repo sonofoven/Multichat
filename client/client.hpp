@@ -60,6 +60,13 @@ struct ContextState(){
 
 	virtual int tearDown() = 0;
 }
+
+extern ContextState winErrState;
+extern ContextState chatState;
+extern ContextState formState;
+extern ContextState reconnectState;
+extern ContextState fileState;
+
 //extern connInfo clientInfo;
 //
 //
@@ -89,7 +96,6 @@ path logFilePath();
 path getLogDir();
 void appendToLog(unique_ptr<Packet> ptr);
 time_t getLatestLoggedMsgTime();
-
 
 // UI / Window IO
 struct UiContext;

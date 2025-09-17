@@ -124,44 +124,6 @@ void appendToLog(unique_ptr<Packet> pkt){
 	queueCv.notify_one();
 }
 
-void restoreHistory(ChatContext& context){
-	// Find logs
-	list<path> logFiles = detectLogFiles();
-
-	if (logFiles.empty()){
-		return;
-	}
-
-	// Sort them (reverse order)
-	logFiles.sort(less<path>());
-
-	shared_lock<shared_mutex> lock(fileMtx);
-	// Iterate log file
-	for (const path & logFile : logFiles){
-		if (!exists(logFile)){
-			continue;
-		}
-
-		ifstream log(logFile);
-		if (!log.is_open()){
-			continue;
-		}
-
-		string line;
-
-		while (getline(log, line)){
-			uint8_t* data = (uint8_t*)line.c_str();
-			Packet* linePtr = instancePacketFromData(data);
-
-			ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
-
-			unique_ptr<formMsg> formattedStr = formatMessage(servPacket.timestamp, servPacket.msg, servPacket.username);
-			appendMsgWin(context, formattedStr, false);
-		}
-
-		log.close();
-	}
-}
 
 time_t getLatestLoggedMsgTime(){
 	// Find logs
