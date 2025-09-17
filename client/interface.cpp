@@ -8,20 +8,6 @@ void interfaceStart(){
 	refresh();
 }
 
-void setupWindows(){
-	int rows, cols;
-	getmaxyx(stdscr, rows, cols);
-
-	Win* input = createInputWin(rows, cols);
-	MsgWin* messages = createMsgWin(serverName, rows, cols);
-	Win* users = createUserWin(rows, cols);
-
-	UiContext uiContext = UiContext(users, messages, input);
-	updateUserWindow(uiContext);
-
-	return uiContext;
-}
-
 WINDOW* createWindow(int height, int width, int starty, int startx, bool boxOn, bool scroll){
 	WINDOW* localWin;
 	localWin = newwin(height, width, starty, startx);
