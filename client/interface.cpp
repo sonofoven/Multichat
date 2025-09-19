@@ -126,7 +126,8 @@ Win* createInputWin(int lines, int cols){
 }
 
 
-void redrawInputWin(Win* window, int lines, int cols){
+void ChatContext::redrawInputWin(int lines, int cols){//
+	Win* window = inputWin;
 	delwin(window->bordWin);
 	delwin(window->textWin);
 
@@ -164,7 +165,8 @@ void redrawInputWin(Win* window, int lines, int cols){
 }
 
 
-void redrawUserWin(Win* window, int lines, int cols){
+void ChatContext::redrawUserWin(int lines, int cols){//
+	Win* window = userWin;
 	delwin(window->bordWin);
 	delwin(window->textWin);
 
@@ -199,8 +201,8 @@ void redrawUserWin(Win* window, int lines, int cols){
 }
 
 
-void redrawMsgWin(UiContext& context, int lines, int cols){
-	MsgWin& window = *(context.msgWin);
+void ChatContext::redrawMsgWin(int lines, int cols){//
+	MsgWin& window = *msgWin;
 
 	delwin(window.bordWin);
 	delwin(window.textWin);
@@ -230,16 +232,16 @@ void redrawMsgWin(UiContext& context, int lines, int cols){
 	mvwprintw(window.bordWin, 0, leftPadding, title.c_str());
 	wrefresh(window.bordWin);
 
-	window.replayMessages(context);
+	window.replayMessages();
 
 	// Refresh
-	refreshFromCurs(context);
+	refreshFromCurs();
 }
 
-void handleCh(UiContext& context, int ch, int servFd){
+void ChatContext::handleCh(int ch){//
 	refresh();
 
-	Win& inWin = *context.inputWin;
+	Win& inWin = *inputWin;
 	WINDOW* inWindow = inWin.textWin;
 
 
@@ -253,11 +255,11 @@ void handleCh(UiContext& context, int ch, int servFd){
 	getyx(inWindow, y, x);
 
 	if (ch == KEY_UP){
-		scrollUp(context);
+		scrollUp();
 	}
 
 	if (ch == KEY_DOWN){
-		scrollDown(context);
+		scrollDown();
 	}
 
 	// Handle Backspace
@@ -301,7 +303,7 @@ void handleCh(UiContext& context, int ch, int servFd){
 		
 		// Format string and output it
 		unique_ptr<formMsg> msgPtr = formatMessage(time(NULL), inputBuf, clientInfo.username);
-		appendMsgWin(context, msgPtr, false);
+		appendMsgWin(msgPtr, false);
 
 		// Append packet to writeBuf
 		ClientBroadMsg pkt = ClientBroadMsg(inputBuf);
@@ -330,7 +332,7 @@ void handleCh(UiContext& context, int ch, int servFd){
 		
 		inputBuf.clear();
 
-		scrollBottom(context);
+		scrollBottom();
 
 		return;
 		
@@ -489,31 +491,6 @@ string dateStr(int day){
 }
 
 
-void updateUserWindow(ChatContext& context){
-
-	WINDOW* win = context.userWin->textWin;
-
-	werase(win);
-
-	int row, col;
-	getmaxyx(win, row, col);
-
-	curs_set(0);
-
-	int y = 0;
-
-	for (const string& str : context.userConns){
-		if (y >= row){
-			break;
-		}
-
-		wattron(win, A_BOLD);
-		mvwprintw(win, y++, 0, "[%s]", str.c_str());
-		wattroff(win, A_BOLD);
-	}
-	wrefresh(win);
-}
-
 
 inline char getBaseChar(chtype ch){
 	return (char)(ch & A_CHARTEXT);
@@ -525,12 +502,12 @@ void pushBackStr(string str, vector<chtype>& outBuf, attr_t attr){
 	}
 }
 
-void redrawUi(UiContext& context, int lines, int cols){
+void ChatContext::redrawChat(int lines, int cols){//
 	erase();
 	refresh();
 
-	redrawInputWin(context.inputWin, lines, cols);
-	redrawUserWin(context.userWin, lines, cols);
-	redrawMsgWin(context, lines, cols);
-	updateUserWindow(context);
+	redrawInputWin(inputWin, lines, cols);
+	redrawUserWin(userWin, lines, cols);
+	redrawMsgWin(lines, cols);
+	updateUserWindow();
 }

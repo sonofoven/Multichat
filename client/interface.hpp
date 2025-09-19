@@ -35,7 +35,6 @@ struct Win{
 	void freeWin();
 };
 
-string getFieldValue(FIELD* field);
 
 struct MsgWin : Win{
 	vector<unique_ptr<formMsg>> msgBuf;
@@ -62,14 +61,11 @@ struct ChatContext : ContextState{
 
 	list<string> userConns = {};
 	vector<uint8_t> readBuf;
-	connInfo clientInfo;
 	
 	vector<uint8_t> writeBuf;
 	string inputBuf;
 	string serverName; 
 	
-	shared_mutex fileMtx;
-
 	mutex logMtx;
 	queue<unique_ptr<Packet>> logQueue;
 	condition_variable queueCv;
@@ -87,20 +83,48 @@ struct ChatContext : ContextState{
 	int termProcess();
 	void freeAll();
 
-	// Net & Epoll Setup
-	void setupFd();
+	// Epoll/Fd Setup
 	void setupEpoll();
 	void modFds();
 
-
-	// Ui
+	// Ui / Scrolling
 	void setupWindows();
 	void appendMsgWin(unique_ptr<formMsg>& formStr, bool redraw);
+	void handleCh(int ch);
+	void scrollBottom();
+	void scrollUp();
+	void scrollDown();
+	void refreshFromCurs();
 
 	//Logging
-	void restoreHistory();
 	void startLog();
 	void stopLog();
+	void restoreHistory();
+	void logLoop();
+	void appendToLog(unique_ptr<Packet> pkt);
+
+	// Network Setup/Handling
+	void setupFd();
+	void networkStart();
+	void sendOneConn();
+	void recvOneVal();
+	int drainReadFd();
+	void handleRead();
+	void handleWrite();
+
+	// Packet handling
+	int protocolParser(Packet* pkt);
+	void serverValidate(Packet* pkt);
+	void serverConnect(Packet* pkt);
+	void serverBroadMsg(Packet* pkt);
+	void serverDisconnect(Packet* pkt);
+
+	// Redraw
+	void redrawChat(int lines, int cols);
+	void redrawMsgWin(int lines, int cols);
+	void redrawInputWin(int lines, int cols);
+	void redrawUserWin(int lines, int cols);
+	
 
 };
 
@@ -134,11 +158,19 @@ struct FormContext{
 	bool validIpCh(int idx, int ch);
 
 	void handleInput();
+	string getFieldValue(FIELD* field);
+
+	// File manipulation
 	bool updateFile();
+	path getConfDir();
+	bool fileCreate();
+	bool fileVerify();
+	bool checkCliInfo();
+	bool validateIpv4(string str);
+	optional<vector<string>> octetTokenize(string str);
 	
 	// Do this after posting form
 	void refresh();
-
 	void freeAll();
 };
 

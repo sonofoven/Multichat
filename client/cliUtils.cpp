@@ -1,8 +1,35 @@
 #include "client.hpp"
 #include "interface.hpp"
 
+void ChatContext::setupFd(){ //
+	servFd = networkStart();
+	if(servFd < 0){
+		// Can't connect
+		return;
+	}
 
-int networkStart(){
+	// send validation
+	sendOneConn();
+
+	// wait for validation
+	if (!recvOneVal()){
+		servFd = -1;
+	}
+}
+
+void ChatContext::modFds(){ // 
+	fcntl(servFd, F_SETFL, O_NONBLOCK);
+	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	epollModify(epollFd, servFd, EPOLLIN | EPOLLET | EPOLLHUP | EPOLLERR, EPOLL_CTL_ADD);
+	epollModify(epollFd, STDIN_FILENO, EPOLLIN | EPOLLET, EPOLL_CTL_ADD);
+}
+
+void ChatContext::setupEpoll(){ //
+	// Create our epoll instance
+	epollFd = epoll_create1(0);
+}
+
+int ChatContext::networkStart(){
 	int sockFd = 0;
 	struct sockaddr_in serverAddr;
 
@@ -39,7 +66,7 @@ int networkStart(){
 }
 
 
-void sendOneConn(int servFd){
+void ChatContext::sendOneConn(){//
 	ClientConnect pkt = ClientConnect(clientInfo.username, getLatestLoggedMsgTime());
 	pkt.serialize(writeBuf);
 
@@ -61,7 +88,7 @@ void sendOneConn(int servFd){
 }
 
 
-bool recvOneVal(int servFd){
+bool ChatContext::recvOneVal(){//
 	size_t fullLen;
 
 	size_t headerLen = Packet::headerLen;
@@ -95,7 +122,7 @@ bool recvOneVal(int servFd){
 	}
 
 	Packet* pkt = instancePacketFromData(readBuf.data());
-	ServerValidate* serverVal = static_cast<ServerValidate*>(pkt);
+	ServerValidate* serverVal = static_cast<ServerValidate*>(pkt); // It was static cast btw if it messes up
 
 	bool retVal = serverVal->able;
 	serverName = move(serverVal->servName);
@@ -108,10 +135,9 @@ bool recvOneVal(int servFd){
 	return retVal;
 }
 
-void handleRead(int servFd, UiContext& context){
-	// Reading
 
-	if (drainReadFd(servFd) != 0){
+void ChatContext::handleRead(){//
+	if (drainReadFd() != 0){
 		return;
 	}
 
@@ -121,7 +147,6 @@ void handleRead(int servFd, UiContext& context){
 
 		if (fullPacketLen < Packet::headerLen){
 			//cerr << "Lying runt" << endl;
-			// Kill one byte until hopefully it works
 			readBuf.erase(readBuf.begin());
 			continue;
 		}
@@ -138,7 +163,7 @@ void handleRead(int servFd, UiContext& context){
 			}
 
 			// Switch depending on opcode
-			protocolParser(pkt, context);
+			protocolParser(pkt);
 			delete pkt;
 
 			// Remove the packet from the read queue
@@ -149,7 +174,8 @@ void handleRead(int servFd, UiContext& context){
 	}
 }
 
-int drainReadFd(int servFd){
+
+int ChatContext::drainReadFd(){ //
 	uint8_t buf[CHUNK];
 	ssize_t n;
 
@@ -175,7 +201,7 @@ int drainReadFd(int servFd){
 	return 0;
 }
 
-void handleWrite(int servFd){
+void ChatContext::handleWrite(){
 	ssize_t sent = write(servFd, writeBuf.data(), writeBuf.size());
 	if (sent > 0){
 		writeBuf.erase(writeBuf.begin(), writeBuf.begin() + sent);	
@@ -192,7 +218,7 @@ void handleWrite(int servFd){
 	}
 }
 
-int protocolParser(Packet* pkt, UiContext& context){
+int ChatContext::protocolParser(Packet* pkt){ //
 	int exitCode = 0;
 	uint16_t opcode = pkt->opcode;
 
@@ -201,7 +227,7 @@ int protocolParser(Packet* pkt, UiContext& context){
 
 			ServerValidate* serverPacket = static_cast<ServerValidate*>(pkt);
 
-			serverValidate(*serverPacket, context);
+			serverValidate(*serverPacket);
 			break;
 		}
 
@@ -209,7 +235,7 @@ int protocolParser(Packet* pkt, UiContext& context){
 
 			ServerConnect* serverPacket = static_cast<ServerConnect*>(pkt);
 
-			serverConnect(*serverPacket, context);
+			serverConnect(*serverPacket);
 
 			break;
 		}
@@ -218,7 +244,7 @@ int protocolParser(Packet* pkt, UiContext& context){
 
 			ServerBroadMsg* serverPacket = static_cast<ServerBroadMsg*>(pkt);
 
-			serverBroadMsg(*serverPacket, context);
+			serverBroadMsg(*serverPacket);
 
 			break;
 		}
@@ -228,7 +254,7 @@ int protocolParser(Packet* pkt, UiContext& context){
 
 			ServerDisconnect* serverPacket = static_cast<ServerDisconnect*>(pkt);
 
-			serverDisconnect(*serverPacket, context);
+			serverDisconnect(*serverPacket);
 
 			break;
 		}
@@ -240,7 +266,7 @@ int protocolParser(Packet* pkt, UiContext& context){
 	return exitCode;
 }
 
-void serverValidate(ServerValidate& pkt, UiContext& context){
+void ChatContext::serverValidate(ServerValidate& pkt){//
 	// YOU SHOULD NEVER GET THIS WHILE RUNNING only in startup
 	// You can use this in the future to occasionally send out sync's
 
@@ -254,10 +280,10 @@ void serverValidate(ServerValidate& pkt, UiContext& context){
 
 	// This could be an issue with the move
 	userConns = move(pkt.userList);
-	updateUserWindow(context);
+	updateUserWindow();
 }
 
-void serverConnect(ServerConnect& pkt, UiContext& context){
+void ChatContext::serverConnect(ServerConnect& pkt){//
 	// Informs the user about client disconnect
 	string username(pkt.username);
 
@@ -266,23 +292,22 @@ void serverConnect(ServerConnect& pkt, UiContext& context){
 	userConns.sort(greater<string>());
 	unique_ptr<formMsg> formattedStr = formatConMessage(pkt.timestamp, pkt.username);
 	
-	appendMsgWin(context, formattedStr, false);
+	appendMsgWin(formattedStr, false);
 
 	// Update the users window
-	updateUserWindow(context);
-
+	updateUserWindow();
 }
 
-void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context){
+void ChatContext::serverBroadMsg(ServerBroadMsg& pkt){//
 	unique_ptr<formMsg> formattedStr = formatMessage(pkt.timestamp, pkt.msg, pkt.username);
 	
 	unique_ptr<ServerBroadMsg> upkt = make_unique<ServerBroadMsg>(pkt);
 	appendToLog(move(upkt));
 
-	appendMsgWin(context, formattedStr, false);
+	appendMsgWin(formattedStr, false);
 }
 
-void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
+void ChatContext::serverDisconnect(ServerDisconnect& pkt){// 
 	// Informs the user about client disconnect
 	string username(pkt.username);
 
@@ -293,176 +318,34 @@ void serverDisconnect(ServerDisconnect& pkt, UiContext& context){
 
 	unique_ptr<formMsg> formattedStr = formatDisMessage(pkt.timestamp, pkt.username);
 
-	appendMsgWin(context, formattedStr, false);
+	appendMsgWin(formattedStr, false);
 
 	// Update the users window
-	updateUserWindow(context);
-
+	updateUserWindow();
 }
 
-path getConfDir(){
-	const char* home = getenv("HOME");
-	// Not a check but if you have this unset, you have bigger problems
-	path configDir = path(home) / STORAGE_DIR;
-	create_directories(configDir);
-	path configFile = configDir / "config";
+void ChatContext::updateUserWindow(){
 
-	return configFile;
-}
+	WINDOW* win = userWin->textWin;
 
+	werase(win);
 
-bool fileCreate(){
-	path configFile = getConfDir();
+	int row, col;
+	getmaxyx(win, row, col);
 
-	ofstream config(configFile, ios::trunc);
+	curs_set(0);
 
-	if (!config){
-		return false;
-	}
+	int y = 0;
 
-	config << "address:=" << clientInfo.addr << '\n';
-	config << "port:=" << clientInfo.port << '\n';
-	config << "username:=" << clientInfo.username << '\n';
-	config.close();
-	return true;
-}
-
-bool fileVerify(){
-	path configFile = getConfDir();
-
-	ifstream config(configFile);
-	if (!config){
-		return false;
-	}
-
-	string line, addrP, portP, usernameP;
-	addrP = "address:=";
-	portP = "port:=";
-	usernameP = "username:=";
-
-	while (getline(config, line)){
-		if (line.rfind(addrP, 0) != string::npos){
-			clientInfo.addr = line.substr(addrP.length());
-
-		} else if (line.rfind(portP, 0) != string::npos){
-
-			string subStr = line.substr(portP.length());
-			if (subStr.length() > 5){
-				config.close();
-				return false;
-			}
-
-			try {
-				int portInt = stoi(line.substr(portP.length()));
-				if (portInt > 65536 || portInt < 0){
-					throw 1;
-				}
-				clientInfo.port = (uint16_t)portInt;
-			}
-
-			catch (...){
-				config.close();
-				return false;
-			}
-				
-		} else if (line.rfind(usernameP, 0) != string::npos){
-			clientInfo.username = line.substr(usernameP.length());
-
-		} else {
-			continue;
-		}
-	}
-	config.close();
-	
-	if (checkCliInfo()){
-		return true;
-	} else {
-		clientInfo = {};
-		return false;
-	}
-}
-
-bool checkCliInfo(){
-	if (clientInfo.addr.empty() || clientInfo.port == 0 || clientInfo.username.empty()){
-		return false;
-	}
-
-	if (clientInfo.username.length() > NAMELEN){
-		return false;
-	}
-
-	if (clientInfo.port < 1 || clientInfo.port > 65535){
-		return false;
-	}
-
-	return validateIpv4(clientInfo.addr);
-}
-
-
-bool validateIpv4(string str){
-
-	// Validate whole structure
-	if (str.length() < 7 || str.length() > 15){
-		return false;
-	}
-
-	optional<vector<string>> octetsOpt = octetTokenize(str);
-	if (!octetsOpt){
-		return false;
-	}
-
-	vector<string> octets = *octetsOpt;
-	
-	// Validate the octets of the address
-	for (string & octet : octets){
-		if (octet.length() > 3 || octet.empty()){
-			return false;
+	for (const string& str : userConns){
+		if (y >= row){
+			break;
 		}
 
-		for (char & ch : octet){
-			if (!isdigit(ch)){
-				return false;
-			}
-		}
-
-		int octVal = stoi(octet);
-		if (octVal > 255 || octVal < 0){
-			return false;
-		}
+		wattron(win, A_BOLD);
+		mvwprintw(win, y++, 0, "[%s]", str.c_str());
+		wattroff(win, A_BOLD);
 	}
-
-	return true;
+	wrefresh(win);
 }
 
-
-
-optional<vector<string>> octetTokenize(string str){
-	vector<string> outBuf;
-	
-	char* tok = strtok(str.data(), ".");
-	size_t count = 0;
-
-	while (tok){
-		// Stop if its for some reason longer
-		if (count > 4){
-			return {};
-		}
-
-		string tokenStr(tok);
-		outBuf.push_back(tokenStr);
-		tok = strtok(NULL, ".");
-		count++;
-	}
-
-	// Break if its too short
-	if (count < 4){
-		return {};
-	}
-
-	return outBuf;
-}
-
-
-void sigwinchHandler(int sig){
-	redrawQueued = true;
-}

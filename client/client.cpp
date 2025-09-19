@@ -4,7 +4,7 @@
 int prevState = SIZE_ERR; //G
 int state = SIZE_ERR; //G
 atomic<bool> redrawQueued = false;
-
+shared_mutex fileMtx;
 
 // Contexts
 
@@ -33,3 +33,8 @@ int main() {
 
 
 }
+
+void sigwinchHandler(int sig){
+	redrawQueued = true;
+}
+

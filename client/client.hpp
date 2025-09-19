@@ -45,7 +45,7 @@ enum uiState {
 };
 
 // For storing connection information
-struct connInfo{
+struct connInfo{ // This stays global
 	string addr;
 	uint16_t port;
 	string username;
@@ -66,27 +66,7 @@ extern ContextState chatState;
 extern ContextState formState;
 extern ContextState reconnectState;
 extern ContextState fileState;
-
-//extern connInfo clientInfo;
-//
-//
-//// List of users connected to server
-//extern list<string> userConns; 
-//
-//extern vector<uint8_t> readBuf;
-//extern vector<uint8_t> writeBuf;
-//extern string inputBuf;
-//extern int epollFd;
-//extern string serverName;
-//
-//// Logging
-//extern queue<unique_ptr<Packet>> logQueue;
-//extern mutex logMtx; // Control the logging queue
-//extern shared_mutex fileMtx; // Control the file access
-//extern condition_variable queueCv;
-//extern atomic<bool> redrawQueued;
-//extern atomic<bool> windowDisplayed;
-
+extern shared_mutex fileMtx;
 
 void logLoop();
 list<path> detectLogFiles();
@@ -98,7 +78,6 @@ void appendToLog(unique_ptr<Packet> ptr);
 time_t getLatestLoggedMsgTime();
 
 // UI / Window IO
-struct UiContext;
 
 int protocolParser(Packet* pkt, UiContext& context);
 
@@ -110,7 +89,7 @@ void serverValidate(ServerValidate& pkt, UiContext& context);
 void serverConnect(ServerConnect& pkt, UiContext& context);
 void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context);
 void serverDisconnect(ServerDisconnect& pkt, UiContext& context);
-void redrawUi(UiContext& context, int lines, int cols); //m//*
+void redrawUi(UiContext& context, int lines, int cols);
 
 // Server startup & client negotiation
 int startUp();

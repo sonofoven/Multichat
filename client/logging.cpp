@@ -1,7 +1,46 @@
 #include "client.hpp"
 #include "interface.hpp"
 
-void logLoop(){
+void ChatContext::restoreHistory(){
+	// Find logs
+	list<path> logFiles = detectLogFiles();
+
+	if (logFiles.empty()){
+		return;
+	}
+
+	// Sort them (reverse order)
+	logFiles.sort(less<path>());
+
+	shared_lock<shared_mutex> lock(fileMtx);
+	// Iterate log file
+	for (const path & logFile : logFiles){
+		if (!exists(logFile)){
+			continue;
+		}
+
+		ifstream log(logFile);
+		if (!log.is_open()){
+			continue;
+		}
+
+		string line;
+
+		while (getline(log, line)){
+			uint8_t* data = (uint8_t*)line.c_str();
+			Packet* linePtr = instancePacketFromData(data);
+
+			ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
+
+			unique_ptr<formMsg> formattedStr = formatMessage(servPacket.timestamp, servPacket.msg, servPacket.username);
+			appendMsgWin(formattedStr, false);
+		}
+
+		log.close();
+	}
+}
+
+void ChatContext::logLoop(){
 	list<path> logFiles = detectLogFiles();
 	logFiles.sort(greater<path>());
 	weenLogFiles(logFiles);
@@ -118,7 +157,7 @@ path getLogDir(){
 	return logDir;
 }
 
-void appendToLog(unique_ptr<Packet> pkt){
+void ChatContext::appendToLog(unique_ptr<Packet> pkt){
 	lock_guard lock(logMtx);
 	logQueue.push(move(pkt));
 	queueCv.notify_one();
