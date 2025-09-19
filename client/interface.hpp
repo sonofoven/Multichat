@@ -47,9 +47,7 @@ struct MsgWin : Win{
 	}
 
 	void addMsg(unique_ptr<formMsg> formStr);
-	void replayMessages(UiContext& context);
 	int maxMsgLine(int maxCols);
-	void shiftPad(UiContext& context);
 };
 
 struct ChatContext : ContextState{
@@ -77,49 +75,52 @@ struct ChatContext : ContextState{
 	epoll_event events[MAX_EVENTS];
 
 
-	// Control funcs
+	// Control funcs //
 	int startProcess();
 	int runProcess();
 	int termProcess();
 	void freeAll();
 
-	// Epoll/Fd Setup
+	// Epoll/Fd Setup //
 	void setupEpoll();
 	void modFds();
 
-	// Ui / Scrolling
+	// Ui //
 	void setupWindows();
 	void appendMsgWin(unique_ptr<formMsg>& formStr, bool redraw);
 	void handleCh(int ch);
 	void scrollBottom();
 	void scrollUp();
 	void scrollDown();
+	void replayMessages();
 	void refreshFromCurs();
+	void shiftPad();
+	void updateUserWindow();
 
-	//Logging
-	void startLog();
-	void stopLog();
+	// Logging //
+	void startLog(); 
+	void stopLog(); 
 	void restoreHistory();
-	void logLoop();
+	void logLoop(); 
 	void appendToLog(unique_ptr<Packet> pkt);
 
-	// Network Setup/Handling
-	void setupFd();
+	// Network Setup/Handling //
+	void servFdStart();
 	void networkStart();
 	void sendOneConn();
 	void recvOneVal();
-	int drainReadFd();
 	void handleRead();
 	void handleWrite();
+	int drainReadFd();
 
-	// Packet handling
+	// Packet handling //
 	int protocolParser(Packet* pkt);
 	void serverValidate(Packet* pkt);
 	void serverConnect(Packet* pkt);
 	void serverBroadMsg(Packet* pkt);
 	void serverDisconnect(Packet* pkt);
 
-	// Redraw
+	// Redraw //
 	void redrawChat(int lines, int cols);
 	void redrawMsgWin(int lines, int cols);
 	void redrawInputWin(int lines, int cols);
@@ -128,7 +129,7 @@ struct ChatContext : ContextState{
 
 };
 
-struct MenuContext{
+struct MenuContext{ ////////////////////
 	WINDOW* confWin = NULL;
 	WINDOW* subWin = NULL;
 	MENU* confMenu = NULL;
@@ -142,7 +143,7 @@ struct MenuContext{
 
 
 
-struct FormContext{
+struct FormContext{ ////////////////////////
 	state = FORM_FILL;
 
 	WINDOW* bordWin = NULL;
@@ -154,13 +155,16 @@ struct FormContext{
 
 	FormContext(WINDOW* w, vector<string> f);
 
+	// Control funcs //
+	int startProcess();
+	int runProcess();
+	int termProcess();
+	void freeAll();
+
 	void setForm();
 	bool validIpCh(int idx, int ch);
-
 	void handleInput();
 	string getFieldValue(FIELD* field);
-
-	// File manipulation
 	bool updateFile();
 	path getConfDir();
 	bool fileCreate();

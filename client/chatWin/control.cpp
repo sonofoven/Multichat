@@ -82,32 +82,6 @@ int ChatContext::termProcess(){
 	endwin();
 }
 
-
-void ChatContext::setupWindows(){
-	int rows, cols;
-	getmaxyx(stdscr, rows, cols);
-
-	inputWin = createInputWin(rows, cols);
-	msgWin = createMsgWin(serverName, rows, cols);
-	userWin = createUserWin(rows, cols);
-
-	updateUserWindow();
-}
-
-
-
-void ChatContext::startLog(){
-	stopLog = false;
-	logT(logLoop);
-	logT.detach();
-}
-
-void ChatContext::stopLog(){
-	stopLog = true;
-	logT.join();
-}
-
-
 void ChatContext::freeAll(){
 	if (userWin){
 		userWin.freeWin();

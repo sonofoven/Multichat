@@ -126,243 +126,6 @@ Win* createInputWin(int lines, int cols){
 }
 
 
-void ChatContext::redrawInputWin(int lines, int cols){//
-	Win* window = inputWin;
-	delwin(window->bordWin);
-	delwin(window->textWin);
-
-	int userWidth = cols/6;
-	int boxHeight = lines / 6;
-	int boxWidth = cols-userWidth;
-	int boxStartY = lines - boxHeight;
-	int boxStartX = cols  / 6;
-
-	int textHeight = boxHeight - (2 * VALIGN);
-	int textWidth = boxWidth  - (2 * HALIGN);
-	int textStartY = boxStartY + VALIGN;
-	int textStartX = boxStartX + HALIGN;
-
-	window->bordWin = createWindow(
-		boxHeight, boxWidth, boxStartY, boxStartX,
-		true, false
-	);
-	window->textWin = createWindow(
-		textHeight, textWidth, textStartY, textStartX,
-		false, true
-	);
-
-
-	nodelay(window->textWin, TRUE);
-	keypad(window->textWin, TRUE);
-
-	wrefresh(window->bordWin);
-	// Append text to textWin
-	werase(window->textWin);
-	for (char & ch : inputBuf){
-		waddch(window->textWin, (chtype)ch);
-	}
-	wrefresh(window->textWin);
-}
-
-
-void ChatContext::redrawUserWin(int lines, int cols){//
-	Win* window = userWin;
-	delwin(window->bordWin);
-	delwin(window->textWin);
-
-	int boxHeight = lines;
-	int boxWidth = cols / 6;
-	int boxStartY = 0;
-	int boxStartX = 0;
-
-	int textHeight = boxHeight - (2 * VALIGN);
-	int textWidth = boxWidth  - (2 * HALIGN);
-	int textStartY = VALIGN;
-	int textStartX = HALIGN;
-
-	window->bordWin = createWindow(
-		boxHeight, boxWidth, boxStartY, boxStartX,
-		true, false
-	);
-	window->textWin = createWindow(
-		textHeight, textWidth, textStartY, textStartX,
-		false, true
-	);
-
-
-	string title = "| Users |";
-	int leftPad = (boxWidth - title.length()) / 2;
-	mvwprintw(window->bordWin, 0, leftPad, "%s", title.c_str());
-
-	wrefresh(window->bordWin);
-
-	// Append text to textWin
-	wrefresh(window->textWin);
-}
-
-
-void ChatContext::redrawMsgWin(int lines, int cols){//
-	MsgWin& window = *msgWin;
-
-	delwin(window.bordWin);
-	delwin(window.textWin);
-
-	int height = lines - (lines /6);
-	int userWidth = cols/6;
-	int width = cols - userWidth;
-	int startY = 0;
-	int startX = cols / 6;
-	bool boxOn = true;
-	bool scrollOn = true;
-
-	window.bordWin = createWindow(height, 
-								  width, 
-								  startY, 
-								  startX,
-								  boxOn, 
-								  !scrollOn);
-
-	int padWidth = width - (2*HALIGN);
-	int padHeight = PAD_BUF_MULTI * MAX_MSG_BUF;
-	window.textWin = newpad(padHeight, 
-							 padWidth);
-
-	string title = "| "+ serverName + " |";
-	int leftPadding = (width - title.length())/2;
-	mvwprintw(window.bordWin, 0, leftPadding, title.c_str());
-	wrefresh(window.bordWin);
-
-	window.replayMessages();
-
-	// Refresh
-	refreshFromCurs();
-}
-
-void ChatContext::handleCh(int ch){//
-	refresh();
-
-	Win& inWin = *inputWin;
-	WINDOW* inWindow = inWin.textWin;
-
-
-	int row, col;
-	getmaxyx(inWindow, row, col);
-
-
-	size_t maxChar = min(MAXMSG, (row * col) - 1);
-
-	int y, x; // Current y and x pos
-	getyx(inWindow, y, x);
-
-	if (ch == KEY_UP){
-		scrollUp();
-	}
-
-	if (ch == KEY_DOWN){
-		scrollDown();
-	}
-
-	// Handle Backspace
-	if (ch == KEY_BACKSPACE){ 
-
-		// Backspace
-		if (inputBuf.empty()){
-			// If there is nothing, don't do anything
-			return;
-		}
-
-		// Remove the last of the input
-		inputBuf.pop_back();
-
-		if (x == 0 && y > 0){
-			// If at left edge
-			y--;
-			x = col - 1;
-
-		} else {
-			x--;
-		}
-
-		wmove(inWindow, y, x);
-
-		wdelch(inWindow);
-		wrefresh(inWindow);
-		return;
-	}
-
-	// Handle enter
-	if (ch == '\n' || ch == KEY_ENTER){
-		if (inputBuf.empty()){
-			return;
-		}
-
-		// Clear the window
-		werase(inWindow);
-		wmove(inWindow, 0, 0);
-		wrefresh(inWindow);
-		
-		// Format string and output it
-		unique_ptr<formMsg> msgPtr = formatMessage(time(NULL), inputBuf, clientInfo.username);
-		appendMsgWin(msgPtr, false);
-
-		// Append packet to writeBuf
-		ClientBroadMsg pkt = ClientBroadMsg(inputBuf);
-		pkt.serialize(writeBuf);
-
-		// Send a modded packet to the log
-		ServerBroadMsg logPkt = ServerBroadMsg(clientInfo.username, inputBuf);
-		unique_ptr<ServerBroadMsg> upkt = make_unique<ServerBroadMsg>(logPkt);
-		appendToLog(move(upkt));
-
-
-		// If initial send didn't work, mark fd for output checking
-		ssize_t sent = write(servFd, writeBuf.data(), writeBuf.size());
-		if (sent > 0){
-			writeBuf.erase(writeBuf.begin(), writeBuf.begin() + sent);	
-
-		} else if (sent < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
-			//Big error, handle
-			perror("Init write");
-			exit(1);
-		}
-
-		if (!writeBuf.empty()) {
-			epollModify(epollFd, servFd, EPOLLIN|EPOLLOUT|EPOLLET|EPOLLHUP|EPOLLERR, EPOLL_CTL_MOD);
-		}
-		
-		inputBuf.clear();
-
-		scrollBottom();
-
-		return;
-		
-	}
-
-	if (inputBuf.size() >= maxChar || (ch < 32 || ch >= 127)){
-		// Can't add no more or not a real char
-		return;
-
-	} 
-
-	if (x >= col - 1){
-
-		// If hit the end of the line
-		waddch(inWindow, ch);
-		wmove(inWindow, y + 1, 0);
-		inputBuf.push_back(ch);
-
-	} else {
-
-		// Normal movement
-		waddch(inWindow, ch);
-		wmove(inWindow, y, x + 1);
-		inputBuf.push_back(ch);
-	}
-
-	wrefresh(inWindow);
-	return;
-}
-
 unique_ptr<formMsg> formatMessage(time_t time, string& message, string& username){
 	unique_ptr<formMsg> outMsg = make_unique<formMsg>();
 
@@ -502,12 +265,146 @@ void pushBackStr(string str, vector<chtype>& outBuf, attr_t attr){
 	}
 }
 
-void ChatContext::redrawChat(int lines, int cols){//
-	erase();
-	refresh();
+void Win::freeWin(){
+	if (textWin){
+		delwin(textWin);
+	}
 
-	redrawInputWin(inputWin, lines, cols);
-	redrawUserWin(userWin, lines, cols);
-	redrawMsgWin(lines, cols);
-	updateUserWindow();
+	if (bordWin){
+		delwin(textWin);
+	}
 }
+
+int lineCount(const unique_ptr<formMsg>& formStr, int maxCols){
+	int lines = 0;
+	int headLen = formStr->header.size();
+	int msgLen = formStr->message.size();
+
+	if (headLen >= maxCols){
+		lines = headLen / maxCols;
+		headLen %= maxCols;
+	}
+
+	int lineWidth = maxCols - headLen;
+	if (lineWidth <= 0){
+		lineWidth = 1;
+	}
+
+	lines += (msgLen + lineWidth - 1) / lineWidth;
+
+	return lines;
+}
+
+time_t getLatestLoggedMsgTime(){
+	// Find logs
+	list<path> logFiles = detectLogFiles();
+	if (logFiles.empty()){
+		return 0;
+	}
+	logFiles.sort(greater<path>());
+
+	path logPath = logFiles.front();
+
+	if (!exists(logPath)){
+		return 0;
+	}
+
+	shared_lock<shared_mutex> lock(fileMtx);
+	ifstream log(logPath);
+
+	if (!log.is_open()){
+		return 0;
+	}
+
+	string line, lastLine;
+
+	while (getline(log, line)){
+		if (!line.empty()){
+			lastLine = line;
+		}
+	}
+
+	uint8_t* data = (uint8_t*)lastLine.c_str();
+	Packet* linePtr = instancePacketFromData(data);
+
+	ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
+	return servPacket.timestamp;
+}
+
+list<path> detectLogFiles(){
+	// Get the list of fitting logfiles in log dir
+	regex pattern(R"(^\d{4}_\d{2}_\d{2}_multiChat\.log$)");
+	list<path> logFiles;
+	
+	shared_lock<shared_mutex> lock(fileMtx);
+	for (const auto & entry : directory_iterator(getLogDir())){
+		if (entry.is_regular_file()){
+			if (regex_match(entry.path().filename().string(), pattern)){
+				logFiles.push_back(entry.path());
+			}
+		}
+	}
+
+	return logFiles;
+}
+
+void addToLog(string str, list<path>& logFiles){
+	// Add to the current or next log file if none exist
+	path logFile = logFilePath();
+
+	unique_lock<shared_mutex> lock(fileMtx);
+	bool exist = exists(logFile);
+
+	ofstream log(logFile, ios::app);
+	if (!log){
+		cerr << "Couldn't open log file: " << logFile << endl;
+	}
+
+	// Append serialized packet
+	log << str << endl;
+	log.close();
+
+	logFiles.push_front(logFile);
+
+	if (!exist){
+		weenLogFiles(logFiles);
+	}
+	
+	return;
+}
+
+void weenLogFiles(list<path>& logFiles){
+	// Remove the last log
+	while (logFiles.size() > LOG_DAY_MAX){
+		if (remove(logFiles.back())){
+			logFiles.pop_back();
+		} else {
+			cerr << "Couldn't remove log: " << logFiles.back() << endl;
+			break;
+		}
+	}
+
+	return;
+}
+
+path logFilePath(){
+	// Generate file path for the log file based on date
+	time_t timestamp = time(NULL);
+	tm stampTime = *localtime(&timestamp);
+
+	char outBuf[64];
+	strftime(outBuf, sizeof(outBuf), "%Y_%m_%d_multiChat.log", &stampTime);
+	path filePath = getLogDir() / outBuf; 
+
+	return filePath;
+}
+
+path getLogDir(){
+	const char* home = getenv("HOME");
+	path logDir = path(home) / STORAGE_DIR / "logs" / clientInfo.addr;
+	create_directories(logDir);
+
+	return logDir;
+}
+
+
