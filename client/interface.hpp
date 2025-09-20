@@ -51,7 +51,6 @@ struct MsgWin : Win{
 };
 
 struct ChatContext : ContextState{
-	state = MESSENGING;
 
 	Win* userWin;
 	MsgWin* msgWin;
@@ -76,9 +75,6 @@ struct ChatContext : ContextState{
 
 
 	// Control funcs //
-	int startProcess();
-	int runProcess();
-	int termProcess();
 	void freeAll();
 
 	// Epoll/Fd Setup //
@@ -129,22 +125,22 @@ struct ChatContext : ContextState{
 
 };
 
-struct MenuContext{ ////////////////////
+struct MenuContext{
 	WINDOW* confWin = NULL;
 	WINDOW* subWin = NULL;
 	MENU* confMenu = NULL;
 	vector<string> choices;
 	vector<ITEM*> myItems;
 
-	MenuContext(WINDOW* w, vector<string> c);
+	int setup();
+	int getSelection();
 
 	void freeAll();
 };
 
 
 
-struct FormContext{ ////////////////////////
-	state = FORM_FILL;
+struct FormContext{
 
 	WINDOW* bordWin = NULL;
 	WINDOW* formWin = NULL;
@@ -154,12 +150,6 @@ struct FormContext{ ////////////////////////
 	vector<WINDOW*> fieldBoxes;
 
 	FormContext(WINDOW* w, vector<string> f);
-
-	// Control funcs //
-	int startProcess();
-	int runProcess();
-	int termProcess();
-	void freeAll();
 
 	void setForm();
 	bool validIpCh(int idx, int ch);
@@ -179,23 +169,44 @@ struct FormContext{ ////////////////////////
 };
 
 struct WinErrState : ContextState {
+	state = SIZE_ERR;
+
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
 
 }
 
 struct ChatState : ContextState {
+	state = MESSENGING;
 
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
 }
 
 struct FormState : ContextState {
+	state = FORM_FILL;
 
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
 }
 
 struct ReconnectState : ContextState {
+	state = RECONNECT;
 
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
 }
 
 struct FileState : ContextState {
+	state = FILE_DETECT;
 
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
 }
 
 // Setup
@@ -210,6 +221,7 @@ unique_ptr<formMsg> formatDisMessage(time_t time, string& username);
 unique_ptr<formMsg> formatConMessage(time_t time, string& username); 
 string formatTime(time_t timestamp);
 string dateStr(int day);
+inline char getBaseChar(chtype ch);
 
 
 // Window creation
@@ -224,31 +236,18 @@ WINDOW* createWindow(int height,
 					 bool scrollOn);
 
 // Window I/O
-string getWindowInput(Win& window, UiContext& context);
-
+WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int height, int width);
 void updateUserWindow(UiContext& context);
 void handleCh(UiContext& context, int ch, int servFd); 
-inline char getBaseChar(chtype ch);
 void restoreHistory(UiContext& context); 
-
-// Redrawing
-void redrawInputWin(Win* window, int lines, int cols);
-void redrawUserWin(Win* window, int lines, int cols);
-void redrawMsgWin(Win* window, int lines, int cols); 
 
 // Scrolling
 int lineCount(const unique_ptr<formMsg>& formStr, int maxCols);
-void scrollBottom(UiContext& context);
-void scrollUp(UiContext& context);
-void scrollDown(UiContext& context);
-void refreshFromCurs(UiContext& context);
 
-// Form
-int configForm();
-
-// Menu
-int menuSetup(string caption, vector<string> choices);
-int configMenu();
-int reconnectMenu();
-WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int height, int width);
-
+// Logging
+time_t getLatestLoggedMsgTime();
+list<path> detectLogFiles();
+void addToLog(string str, list<path>& logFiles);
+void weenLogFiles(list<path>& logFiles);
+path logFilePath();
+path getLogDir();

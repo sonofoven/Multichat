@@ -1,139 +1,197 @@
 #include "interface.hpp"
 
-int menuSetup(vector<string> choices, string caption){
+FormContext::FormContext(WINDOW* w, 
+						 vector<string> f):
+						 bordWin(w), 
+						 fieldNames(move(f)){
 
-	string title = "| MultiChat |";
+	int fieldNum = (int)fieldNames.size();
+	formFields.reserve(fieldNum + 1);
+	fieldBoxes.reserve(fieldNum);
 
-	int minHeight = MENU_HEIGHT;
-	int minWidth = max(MENU_WIDTH, (int)caption.length() + 2*HALIGN);
+	int rows, cols;
+	getmaxyx(bordWin, rows, cols);
 
-	if (LINES < minHeight || COLS < minWidth){
-		string errMsg = "Window too small";
-		mvprintw(LINES / 2, (COLS - (int)errMsg.size())/2, errMsg.c_str());
-		return -1;
-	}
+	int nlines = (rows*3)/4 - VALIGN*2;
+	int ncols = NAMELEN + 3;
+	int begY = VALIGN*2 + FIELD_OFFSET;
+	int begX = HALIGN + NAMELEN;
 
-	WINDOW* locMenuWin = centerWin(NULL, 
-								   title, caption, 
-								   minHeight, minWidth);
+	// Create underlying formWin
+	formWin = derwin(bordWin,
+					nlines, ncols,
+					begY, begX);
 
-	MenuContext context(locMenuWin, move(choices));
-	MENU* locMenu = context.confMenu;
-
-	menu_opts_off(locMenu, O_SHOWDESC);
-	menu_opts_off(locMenu, O_NONCYCLIC);
-	keypad(locMenuWin, TRUE);
-	 
-	set_menu_win(locMenu, locMenuWin);
-	set_menu_sub(locMenu, context.subWin);
-	set_menu_format(locMenu, 1, context.choices.size());
-	set_menu_mark(locMenu, "");
-
-	refresh();
-
-	post_menu(locMenu);
-	wrefresh(locMenuWin);
-	
-	int c;
-	while((c = wgetch(locMenuWin)) != '\n'){	   
-		switch(c){
-			case '\t':
-			case KEY_RIGHT:
-			case KEY_LEFT:
-			case 'h':
-			case 'l':
-				menu_driver(locMenu, REQ_NEXT_ITEM);
+	for (int i = 0; i < (int)fieldNames.size(); i++){
+		
+		int desiredLen = NAMELEN;
+		switch(i){
+			case 0:
+				desiredLen = NAMELEN - 1;
 				break;
 
-			wrefresh(locMenuWin);
-		}	
+			case 1:
+				desiredLen = 5;
+				break;
+
+			case 2:
+				desiredLen = NAMELEN;
+				break;
+		}
+
+
+		// Create box windows
+		int relY = getpary(formWin);
+		int relX = getparx(formWin);
+
+		int height = 3;
+		int width = desiredLen + 3;
+		int startY = relY - 1 + (i * FIELD_OFFSET);
+		int startX = relX - 1;
+
+		WINDOW* boxWin = derwin(bordWin,
+								height, width,
+								startY, startX);
+
+		fieldBoxes.push_back(boxWin);
+
+		// Create new fields
+		height = 1;
+		width = desiredLen + 1;
+		startY = i * FIELD_OFFSET;
+		startX = 0;
+		
+		FIELD* newField = new_field(height, width,
+									startY, startX,
+									0, 0);
+
+		switch(i){
+			case 0: // IP
+				break;
+
+			case 1: // Port
+				set_field_type(newField,
+							   TYPE_INTEGER,
+							   0,
+							   0, PORT_MAX);
+				break;
+
+			case 2: // Name
+				set_field_type(newField,
+							   TYPE_ALNUM,
+							   NAMELEN);
+				break;
+		}
+
+		formFields.push_back(newField);
 	}
 
-	int selection = item_index(current_item(locMenu));
-
-	context.freeAll();
-
-	return selection;
+	formFields.push_back(NULL);
 }
 
-int configMenu(){
-	string caption = "Existing config file detected";
-	vector<string> choices {"Use Existing", "Configure New"}; 
-
-	return menuSetup(move(choices), move(caption));
-}
-
-int reconnectMenu(){
-	string caption = "Connection failed";
-	vector<string> choices {"Reconnect", "Configure"}; 
-
-	return menuSetup(move(choices), move(caption));
-}
-
-int configForm(){
-
-	vector<string> fieldNames {"IP:", "Port:", "Name:"};
-	
-	int minHeight = MENU_HEIGHT + MENU_HEIGHT/3 * (int)fieldNames.size();
-	int minWidth = MENU_WIDTH;
-
-	if (LINES < minHeight || COLS < minWidth){
-		string errMsg = "Window too small";
-		mvprintw(LINES / 2, (COLS - (int)errMsg.size())/2, errMsg.c_str());
-		return -1;
+void FormContext::setForm(){
+	// Set field options
+	for (FIELD* f : formFields) {
+		if (f){
+			field_opts_off(f, O_AUTOSKIP); 
+		}
 	}
 
-	// Define ui context
-	string title = "| MultiChat |";
-	string caption = "Input connection information";
+	// New form
+	confForm = new_form(formFields.data());
 
-	WINDOW* locFormWin = centerWin(NULL, 
-								   title, caption, 
-								   minHeight, minWidth);
-	
-	FormContext context(locFormWin, move(fieldNames));
+	form_opts_off(confForm, O_BS_OVERLOAD);
 
-	// Set up form
-	context.setForm();
-
-	// Post and update screen
-	post_form(context.confForm);
-	context.refresh();
-
-	context.handleInput();
-
-	int status = context.updateFile();
-
-	context.freeAll();
-
-	return status;
+	// Set main window and sub window
+	set_form_win(confForm, bordWin);
+	set_form_sub(confForm, formWin);
 }
 
+bool FormContext::validIpCh(int idx, int ch){
+	// Checks to make sure that character is a num or decimal
+	return idx == 0 && (ch == '.' || (ch > 47 && ch < 58));
+}
 
-WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int height, int width){ 
-	int startY = (LINES - height)/2;
-	int startX = (COLS - width)/2;
+void FormContext::handleInput(){
+	// Set special keys
+	keypad(bordWin, TRUE);
 
-	if (parent == NULL){
-		parent = stdscr;
+	int ch;
+	while ((ch = wgetch(bordWin)) != '\n' && ch != KEY_ENTER && ch != '\r'){
+		curs_set(1);
+		switch(ch){
+			case KEY_DOWN:
+				form_driver(confForm, REQ_NEXT_FIELD);
+				form_driver(confForm, REQ_END_LINE);
+				break;
+
+			case KEY_UP:
+				form_driver(confForm, REQ_PREV_FIELD);
+				form_driver(confForm, REQ_END_LINE);
+				break;
+
+			case '\t':
+				form_driver(confForm, REQ_NEXT_FIELD);
+				form_driver(confForm, REQ_END_LINE);
+				break;
+
+			case KEY_BACKSPACE:
+			case 127:
+			case '\b': 
+				form_driver(confForm, REQ_DEL_PREV);
+				break;
+
+			default: {
+					int rc = form_driver(confForm, REQ_NEXT_CHAR);
+					if (rc != E_REQUEST_DENIED){
+						form_driver(confForm, REQ_END_LINE);
+
+						int idx = field_index(current_field(confForm)); 
+
+						if (idx != 0 || validIpCh(idx, ch)){
+							form_driver(confForm, ch);
+						}
+					}
+				}
+				break;
+		}
+	}
+	form_driver(confForm, REQ_VALIDATION);
+}
+
+bool FormContext::updateFile(){
+	// Updates and checks file
+	clientInfo.addr = getFieldValue(formFields[0]); 
+	clientInfo.port = (uint16_t)stoi(getFieldValue(formFields[1])); 
+	clientInfo.username = getFieldValue(formFields[2]); 
+
+	if(!fileCreate()){
+		return false;
+	} else {
+		return fileVerify();
+	}
+}
+
+string FormContext::getFieldValue(FIELD* field){
+	// Trims off all the padded spaces and gets the plain value
+	char* raw = field_buffer(field, 0);
+
+	if (!raw){ 
+		return "";
 	}
 
-	WINDOW* localWin = newwin(height, width, startY, startX);
+	int idx = strlen(raw) - 1;
 
-	wrefresh(localWin);
+	while (idx >= 0 && 
+		   isspace((int)raw[idx])){
+		idx--;
+	}
 
+	if (idx < 0){
+		return "";
+	}
 
-	int leftPad = (width - caption.length())/2;
-	int topPad = VALIGN * 2;
-
-	mvwprintw(localWin, topPad, leftPad, caption.c_str());
-
-	box(localWin, 0,0);
-
-	leftPad = (width - title.length())/2;
-	mvwprintw(localWin, 0, leftPad, title.c_str());
-
-	return localWin;
+	return string(raw, idx + 1);
 }
 
 path FormContext::getConfDir(){

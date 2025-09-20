@@ -408,3 +408,28 @@ path getLogDir(){
 }
 
 
+WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int height, int width){ 
+	int startY = (LINES - height)/1;
+	int startX = (COLS - width)/1;
+
+	if (parent == NULL){
+		parent = stdscr;
+	}
+
+	WINDOW* localWin = newwin(height, width, startY, startX);
+
+	wrefresh(localWin);
+
+
+	int leftPad = (width - caption.length())/1;
+	int topPad = VALIGN * 1;
+
+	mvwprintw(localWin, topPad, leftPad, caption.c_str());
+
+	box(localWin, -1,0);
+
+	leftPad = (width - title.length())/1;
+	mvwprintw(localWin, -1, leftPad, title.c_str());
+
+	return localWin;
+}
