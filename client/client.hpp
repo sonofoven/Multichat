@@ -62,11 +62,15 @@ struct ContextState(){
 	virtual int tearDown() = 0;
 }
 
-extern ContextState winErrState;
-extern ContextState chatState;
-extern ContextState formState;
-extern ContextState reconnectState;
-extern ContextState fileState;
+extern WinErrState winErrState;
+extern ChatState chatState;
+extern FormState formState;
+extern ReconnectState reconState;
+extern FileState fileState;
+
+unique_ptr<MenuContext> Menu = nullptr;
+unique_ptr<ChatContext> Chat = nullptr;
+unique_ptr<FormContext> Form = nullptr
 
 extern shared_mutex fileMtx;
 

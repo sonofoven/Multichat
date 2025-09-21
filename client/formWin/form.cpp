@@ -194,16 +194,6 @@ string FormContext::getFieldValue(FIELD* field){
 	return string(raw, idx + 1);
 }
 
-path FormContext::getConfDir(){
-	const char* home = getenv("HOME");
-	// Not a check but if you have this unset, you have bigger problems
-	path configDir = path(home) / STORAGE_DIR;
-	create_directories(configDir);
-	path configFile = configDir / "config";
-
-	return configFile;
-}
-
 
 bool FormContext::fileCreate(){
 	path configFile = getConfDir();

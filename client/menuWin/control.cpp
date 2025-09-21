@@ -1,18 +1,59 @@
 #include "interface.hpp"
 
-int configMenu(){
+int FileState::startUp(){
+	if (!exists(getConfDir()){
+		// If conf file doesn't exist go
+		// straight to form
+		return 2;
+	}
+
 	string caption = "Existing config file detected";
 	vector<string> choices {"Use Existing", "Configure New"}; 
 
-	return menuSetup(move(choices), move(caption));
+	Menu = make_unique<MenuContext>();
+
+	return Menu->menuSetup(choices, caption);
 }
 
-int reconnectMenu(){
+int FileState::running(){
+	// Get selection or action
+	return Menu->getSelection();
+}
+
+int FileState::tearDown(){
+	
+	// Clear everything and revert back to nullptr
+	Menu->freeAll();
+	Menu.reset();
+
+	return 0;
+}
+
+
+int ReconnectState::startUp(){
+
 	string caption = "Connection failed";
 	vector<string> choices {"Reconnect", "Configure"}; 
 
-	return menuSetup(move(choices), move(caption));
+	Menu = make_unique<MenuContext>();
+
+	return Menu->menuSetup(choices, caption);
 }
+
+int ReconnectState::running(){
+	// Get selection or action
+	return Menu->getSelection();
+}
+
+int ReconnectState::tearDown(){
+	
+	// Clear everything and revert back to nullptr
+	Menu->freeAll();
+	Menu.reset();
+
+	return 0;
+}
+
 
 
 void MenuContext::freeAll(){

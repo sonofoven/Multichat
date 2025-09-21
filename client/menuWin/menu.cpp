@@ -57,6 +57,7 @@ int MenuContext::menuSetup(vector<string> choices, string caption){
 }
 
 int MenuContext::getSelection(){
+	// ADD THING TO CHECK EPOLL
 	int c;
 	while((c = wgetch(locMenuWin)) != '\n'){	   
 		switch(c){

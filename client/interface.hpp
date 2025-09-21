@@ -156,7 +156,6 @@ struct FormContext{
 	void handleInput();
 	string getFieldValue(FIELD* field);
 	bool updateFile();
-	path getConfDir();
 	bool fileCreate();
 	bool fileVerify();
 	bool checkCliInfo();
@@ -167,6 +166,13 @@ struct FormContext{
 	void refresh();
 	void freeAll();
 };
+
+// MAKE A SEPERATE THREAD FOR REDRAW EPOLL HANDLING
+
+// -1 means winErr
+// 0 means good/first option
+// 1 means second option
+// 2 means skip state
 
 struct WinErrState : ContextState {
 	state = SIZE_ERR;
@@ -246,3 +252,4 @@ void addToLog(string str, list<path>& logFiles);
 void weenLogFiles(list<path>& logFiles);
 path logFilePath();
 path getLogDir();
+path getConfDir();
