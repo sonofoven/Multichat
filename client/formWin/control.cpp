@@ -1,6 +1,7 @@
 #include "interface.hpp"
 
-int configForm(){
+
+int FormState::startUp(){
 
 	vector<string> fieldNames {"IP:", "Port:", "Name:"};
 	
@@ -8,8 +9,6 @@ int configForm(){
 	int minWidth = MENU_WIDTH;
 
 	if (LINES < minHeight || COLS < minWidth){
-		string errMsg = "Window too small";
-		mvprintw(LINES / 2, (COLS - (int)errMsg.size())/2, errMsg.c_str());
 		return -1;
 	}
 
@@ -21,23 +20,37 @@ int configForm(){
 								   title, caption, 
 								   minHeight, minWidth);
 	
-	FormContext context(locFormWin, move(fieldNames));
+	Form = make_unique<FormContext>(locFormWin, move(fieldNames));
 
 	// Set up form
-	context.setForm();
+	Form->setForm();
 
 	// Post and update screen
-	post_form(context.confForm);
-	context.refresh();
+	post_form(Form->confForm);
+	Form->refresh();
 
-	context.handleInput();
+	return 0;
+}
 
-	int status = context.updateFile();
+int FormState::running(){
+	// Get selection or action
+	return Form->handleInput();
+}
 
-	context.freeAll();
+int FormState::tearDown(){
+	
+	// Clear everything and revert back to nullptr
+	int status = Form->updateFile();
+
+	Form->freeAll();
+	Form.reset();
 
 	return status;
 }
+
+
+
+
 
 void FormContext::refresh(){
 	wrefresh(bordWin);
