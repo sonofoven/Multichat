@@ -11,7 +11,7 @@
 #define MENU_WIDTH 40
 #define FIELD_OFFSET 4
 #define PORT_MAX 65535
-
+#define REDRAW_WAIT_MS 250
 
 using namespace std;
 
@@ -211,8 +211,6 @@ struct FileState : ContextState {
 
 // Setup
 void interfaceStart();
-UiContext setupWindows();
-void setupForm();
 
 // Formatting tools
 void pushBackStr(string str, vector<chtype>& outBuf, attr_t attr);
@@ -237,9 +235,6 @@ WINDOW* createWindow(int height,
 
 // Window I/O
 WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int height, int width);
-void updateUserWindow(UiContext& context);
-void handleCh(UiContext& context, int ch, int servFd); 
-void restoreHistory(UiContext& context); 
 
 // Scrolling
 int lineCount(const unique_ptr<formMsg>& formStr, int maxCols);

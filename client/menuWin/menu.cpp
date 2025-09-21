@@ -8,8 +8,6 @@ int MenuContext::menuSetup(vector<string> choices, string caption){
 	int minWidth = max(MENU_WIDTH, (int)caption.length() + 2*HALIGN);
 
 	if (LINES < minHeight || COLS < minWidth){
-		string errMsg = "Window too small";
-		mvprintw(LINES / 2, (COLS - (int)errMsg.size())/2, errMsg.c_str());
 		return -1;
 	}
 

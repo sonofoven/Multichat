@@ -7,6 +7,7 @@
 
 #include <csignal>
 #include <cstring>
+#include <chrono>
 #include <vector>
 #include <list>
 #include <queue>
@@ -66,44 +67,13 @@ extern ContextState chatState;
 extern ContextState formState;
 extern ContextState reconnectState;
 extern ContextState fileState;
+
 extern shared_mutex fileMtx;
 
-void logLoop();
-list<path> detectLogFiles();
-void addToLog(string str, list<path>& logFiles);
-void weenLogFiles(list<path>& logFiles);
-path logFilePath();
-path getLogDir();
-void appendToLog(unique_ptr<Packet> ptr);
-time_t getLatestLoggedMsgTime();
+extern atomic<bool> redrawQueued = false;
 
 // UI / Window IO
-
-int protocolParser(Packet* pkt, UiContext& context);
-
-void handleRead(int servFd, UiContext& context);
-void handleWrite(int servFd);
-int drainReadFd(int servFd);
-
-void serverValidate(ServerValidate& pkt, UiContext& context);
-void serverConnect(ServerConnect& pkt, UiContext& context);
-void serverBroadMsg(ServerBroadMsg& pkt, UiContext& context);
-void serverDisconnect(ServerDisconnect& pkt, UiContext& context);
-void redrawUi(UiContext& context, int lines, int cols);
-
-// Server startup & client negotiation
-int startUp();
-int networkStart();
-void sendOneConn(int servFd);
-bool recvOneVal(int servFd);
-
-// Config creation/loading/checking
-path getConfDir();
-bool fileCreate();
-bool fileVerify();
-bool checkCliInfo();
-bool validateIpv4(string str);
-optional<vector<string>> octetTokenize(string str);
+void redrawUi();
 
 // Signal Handling
 void sigwinchHandler(int sig);
