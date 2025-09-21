@@ -70,7 +70,7 @@ extern FileState fileState;
 
 unique_ptr<MenuContext> Menu = nullptr;
 unique_ptr<ChatContext> Chat = nullptr;
-unique_ptr<FormContext> Form = nullptr
+unique_ptr<FormContext> Form = nullptr;
 
 extern shared_mutex fileMtx;
 

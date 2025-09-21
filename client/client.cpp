@@ -9,6 +9,9 @@ shared_mutex fileMtx;
 // Contexts
 
 int main() {
+	// thread fdControl;
+	// Create an fdControl thread to manage all input
+
 	struct sigaction sa {}; // U
 	sa.sa_handler = sigwinchHandler;
 	sa.sa_flags = SA_RESTART;
