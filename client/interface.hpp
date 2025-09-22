@@ -50,7 +50,7 @@ struct MsgWin : Win{
 	int maxMsgLine(int maxCols);
 };
 
-struct ChatContext : ContextState{
+struct ChatContext{
 
 	Win* userWin;
 	MsgWin* msgWin;
@@ -67,7 +67,7 @@ struct ChatContext : ContextState{
 	queue<unique_ptr<Packet>> logQueue;
 	condition_variable queueCv;
 	thread logT;
-	atomic<bool> stopLog = false;
+	atomic<bool> termLog = false;
 
 	int servFd = -1;
 	int epollFd = -1;
@@ -75,6 +75,9 @@ struct ChatContext : ContextState{
 
 
 	// Control funcs //
+	int startProcess();
+	int runProcess();
+	int termProcess();
 	void freeAll();
 
 	// Epoll/Fd Setup //
@@ -102,19 +105,19 @@ struct ChatContext : ContextState{
 
 	// Network Setup/Handling //
 	void servFdStart();
-	void networkStart();
+	int networkStart();
 	void sendOneConn();
-	void recvOneVal();
+	bool recvOneVal();
 	void handleRead();
 	void handleWrite();
 	int drainReadFd();
 
 	// Packet handling //
 	int protocolParser(Packet* pkt);
-	void serverValidate(Packet* pkt);
-	void serverConnect(Packet* pkt);
-	void serverBroadMsg(Packet* pkt);
-	void serverDisconnect(Packet* pkt);
+	void serverValidate(ServerValidate& pkt);
+	void serverConnect(ServerConnect& pkt);
+	void serverBroadMsg(ServerBroadMsg& pkt);
+	void serverDisconnect(ServerDisconnect& pkt);
 
 	// Redraw //
 	void redrawChat(int lines, int cols);
@@ -132,7 +135,7 @@ struct MenuContext{
 	vector<string> choices;
 	vector<ITEM*> myItems;
 
-	int setup();
+	int menuSetup(vector<string> choices, string caption);
 	int getSelection();
 
 	void freeAll();
@@ -167,54 +170,11 @@ struct FormContext{
 	void freeAll();
 };
 
+extern unique_ptr<MenuContext> Menu;
+extern unique_ptr<ChatContext> Chat;
+extern unique_ptr<FormContext> Form;
+
 // MAKE A SEPERATE THREAD FOR REDRAW EPOLL HANDLING
-
-// -2 means bad response, go back
-// -1 means winErr or redraw for chat
-// 0 means good/first option
-// 1 means second option
-// 2 means skip state
-
-struct WinErrState : ContextState {
-	state = SIZE_ERR;
-
-	int startUp() override;
-	int running() override;
-	int tearDown() override;
-
-}
-
-struct ChatState : ContextState {
-	state = MESSENGING;
-
-	int startUp() override;
-	int running() override;
-	int tearDown() override;
-}
-
-struct FormState : ContextState {
-	state = FORM_FILL;
-
-	int startUp() override;
-	int running() override;
-	int tearDown() override;
-}
-
-struct ReconnectState : ContextState {
-	state = RECONNECT;
-
-	int startUp() override;
-	int running() override;
-	int tearDown() override;
-}
-
-struct FileState : ContextState {
-	state = FILE_DETECT;
-
-	int startUp() override;
-	int running() override;
-	int tearDown() override;
-}
 
 // Setup
 void interfaceStart();

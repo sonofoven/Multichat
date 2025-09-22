@@ -1,4 +1,4 @@
-#include "interface.hpp"
+#include "../interface.hpp"
 
 int ChatContext::protocolParser(Packet* pkt){ 
 	int exitCode = 0;

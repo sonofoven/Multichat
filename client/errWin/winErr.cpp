@@ -1,4 +1,4 @@
-#include "interface.hpp"
+#include "../interface.hpp"
 
 int WinErrState::startUp(){
 	erase();
@@ -11,9 +11,10 @@ int WinErrState::startUp(){
 
 int WinErrState::running(){
 	// Busy loop I know, juice is not worth the squeeze
-	while (!redrawQueued){
-		sleep_for(chrono::milliseconds(REDRAW_WAIT_MS);
-	}
+	// CRAPPY WORK, add sigwinch to epoll handler and put epoll handler on a separate thread
+//	while (!redrawQueued){
+//		sleep_for(chrono::milliseconds(REDRAW_WAIT_MS));
+//	}
 	return 0;
 }
 

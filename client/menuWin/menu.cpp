@@ -1,4 +1,4 @@
-#include "interface.hpp"
+#include "../interface.hpp"
 
 int MenuContext::menuSetup(vector<string> choices, string caption){
 
@@ -59,21 +59,21 @@ int MenuContext::menuSetup(vector<string> choices, string caption){
 int MenuContext::getSelection(){
 	// ADD THING TO CHECK EPOLL
 	int c;
-	while((c = wgetch(locMenuWin)) != '\n'){	   
+	while((c = wgetch(confWin)) != '\n'){	   
 		switch(c){
 			case '\t':
 			case KEY_RIGHT:
 			case KEY_LEFT:
 			case 'h':
 			case 'l':
-				menu_driver(locMenu, REQ_NEXT_ITEM);
+				menu_driver(confMenu, REQ_NEXT_ITEM);
 				break;
 
-			wrefresh(locMenuWin);
+			wrefresh(confWin);
 		}	
 	}
 
-	int selection = item_index(current_item(locMenu));
+	int selection = item_index(current_item(confMenu));
 
 	return selection;
 }

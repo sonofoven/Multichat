@@ -1,4 +1,4 @@
-#include "interface.hpp"
+#include "../interface.hpp"
 
 
 void ChatContext::redrawInputWin(int lines, int cols){
@@ -104,7 +104,7 @@ void ChatContext::redrawMsgWin(int lines, int cols){
 	mvwprintw(window.bordWin, 0, leftPadding, title.c_str());
 	wrefresh(window.bordWin);
 
-	window.replayMessages();
+	replayMessages();
 
 	// Refresh
 	refreshFromCurs();
@@ -115,8 +115,8 @@ void ChatContext::redrawChat(int lines, int cols){
 	erase();
 	refresh();
 
-	redrawInputWin(inputWin, lines, cols);
-	redrawUserWin(userWin, lines, cols);
+	redrawInputWin(lines, cols);
+	redrawUserWin(lines, cols);
 	redrawMsgWin(lines, cols);
 	updateUserWindow();
 }

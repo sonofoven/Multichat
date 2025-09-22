@@ -1,4 +1,4 @@
-#include "interface.hpp"
+#include "../interface.hpp"
 
 
 int ChatState::startUp(){
@@ -15,7 +15,7 @@ int ChatState::running(){
 
 int ChatState::tearDown(){
 	
-	Chat->freeAll();
+	Chat->termProcess();
 	Chat.reset();
 	return 0;
 }
@@ -24,10 +24,11 @@ int ChatState::tearDown(){
 
 int ChatContext::startProcess(){
 	// Setup network connection
-	setupFd();
+	servFd = networkStart();
 	if (servFd < 0){
 		return -2;
 	}
+	modFds();
 
 	// Setup logging
 	startLog();
@@ -43,7 +44,6 @@ int ChatContext::startProcess(){
 
 	restoreHistory();
 
-	modFds();
 	return 0;
 }
 
@@ -76,12 +76,12 @@ int ChatContext::runProcess(){
 
 				if (event & EPOLLOUT){
 					// Write event
-					handleWrite(servFd);
+					handleWrite();
 				}
 
 				if (event & EPOLLIN){
 					// Read event
-					handleRead(servFd, uiContext);
+					handleRead();
 				}
 
 			} else {
@@ -89,8 +89,8 @@ int ChatContext::runProcess(){
 				int ch;
 
 				curs_set(2); // Make the cursor visible
-				while ((ch = wgetch(uiContext.inputWin->textWin)) != ERR){
-					handleCh(uiContext, ch, servFd);
+				while ((ch = wgetch(inputWin->textWin)) != ERR){
+					handleCh(ch);
 				}
 			}
 		}
@@ -104,19 +104,20 @@ int ChatContext::termProcess(){
 	close(servFd);
 	freeAll();
 	//endwin();
+	return 0;
 }
 
 void ChatContext::freeAll(){
 	if (userWin){
-		userWin.freeWin();
+		userWin->freeWin();
 	}
 
 	if (msgWin){
-		msgWin.freeWin();
+		msgWin->freeWin();
 	}
 
 	if (inputWin){
-		inputWin.freeWin();
+		inputWin->freeWin();
 	}
 
 	delete userWin;

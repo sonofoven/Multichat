@@ -1,14 +1,16 @@
-#include "client.hpp"
-#include "interface.hpp"
+#include "../client.hpp"
+#include "../interface.hpp"
 
 void ChatContext::startLog(){
-	stopLog = false;
-	logT(logLoop);
+	termLog = false;
+	logT = thread(&ChatContext::logLoop, this);
 	logT.detach();
 }
 
 void ChatContext::stopLog(){
-	stopLog = true;
+	termLog = true;
+	// Break out of deadlocks
+	queueCv.notify_all();
 	logT.join();
 }
 
@@ -55,12 +57,21 @@ void ChatContext::logLoop(){
 	list<path> logFiles = detectLogFiles();
 	logFiles.sort(greater<path>());
 	weenLogFiles(logFiles);
-	while(!chatContext.stopLog){
+	while(!termLog){
+		// THIS MIGHT GENERATE SOME DEADLOCKS
 		unique_lock lock(logMtx);
 
 		// Locks up here and releases the mutex
 		while (logQueue.empty()){
+			if (termLog){
+				break;
+			}
 			queueCv.wait(lock);
+		}
+
+		if (termLog){
+			// If logging gets termed during wait, kill
+			break;
 		}
 
 		// Move the queue over and then release it to get more packets

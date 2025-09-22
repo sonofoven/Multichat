@@ -1,4 +1,4 @@
-#include "interface.hpp"
+#include "../interface.hpp"
 
 void ChatContext::setupWindows(){
 	int rows, cols;

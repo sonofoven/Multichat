@@ -1,4 +1,4 @@
-#include "interface.hpp"
+#include "../interface.hpp"
 
 void ChatContext::modFds(){ 
 	fcntl(servFd, F_SETFL, O_NONBLOCK);

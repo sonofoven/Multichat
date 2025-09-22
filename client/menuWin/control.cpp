@@ -1,7 +1,7 @@
-#include "interface.hpp"
+#include "../interface.hpp"
 
 int FileState::startUp(){
-	if (!exists(getConfDir()){
+	if (!exists(getConfDir())){
 		// If conf file doesn't exist go
 		// straight to form
 		return 2;

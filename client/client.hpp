@@ -7,7 +7,6 @@
 
 #include <csignal>
 #include <cstring>
-#include <chrono>
 #include <vector>
 #include <list>
 #include <queue>
@@ -52,29 +51,65 @@ struct connInfo{ // This stays global
 	string username;
 };
 
-struct ContextState(){
+struct ContextState{
 	uiState state;
 
 	virtual int startUp() = 0;
-
 	virtual int running() = 0;
-
 	virtual int tearDown() = 0;
-}
+};
 
-extern WinErrState winErrState;
-extern ChatState chatState;
-extern FormState formState;
-extern ReconnectState reconState;
-extern FileState fileState;
+// -2 means bad response, go back
+// -1 means winErr or redraw for chat
+// 0 means good/first option
+// 1 means second option
+// 2 means skip state
 
-unique_ptr<MenuContext> Menu = nullptr;
-unique_ptr<ChatContext> Chat = nullptr;
-unique_ptr<FormContext> Form = nullptr;
+struct WinErrState : ContextState {
+	WinErrState() {state = SIZE_ERR;}
+
+
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
+};
+
+struct ChatState : ContextState {
+	ChatState() {state = MESSENGING;}
+
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
+};
+
+struct FormState : ContextState {
+	FormState() {state = FORM_FILL;}
+
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
+};
+
+struct ReconnectState : ContextState {
+	ReconnectState() {state = RECONNECT;}
+
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
+};
+
+struct FileState : ContextState {
+	FileState() {state = FILE_DETECT;}
+
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
+};
+
 
 extern shared_mutex fileMtx;
-
-extern atomic<bool> redrawQueued = false;
+extern connInfo clientInfo;
+extern atomic<bool> redrawQueued;
 
 // UI / Window IO
 void redrawUi();

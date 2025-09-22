@@ -6,18 +6,40 @@ PROTO_SRC := protocol.cpp
 CLIENT_DIR := client
 SERVER_DIR := server
 
-CLIENT_SRCS := $(CLIENT_DIR)/client.cpp \
-               $(CLIENT_DIR)/interface.cpp \
-               $(CLIENT_DIR)/cliUtils.cpp \
-               $(CLIENT_DIR)/form.cpp \
-               $(CLIENT_DIR)/logging.cpp \
-               $(CLIENT_DIR)/scrolling.cpp \
-               $(PROTO_SRC)
+# General
+CLIENT_SRCS := \
+  $(CLIENT_DIR)/client.cpp \
+  $(CLIENT_DIR)/interface.cpp \
+  $(PROTO_SRC)
 
-SERVER_SRCS := $(SERVER_DIR)/server.cpp \
-               $(SERVER_DIR)/servUtils.cpp \
-               $(SERVER_DIR)/logging.cpp \
-               $(PROTO_SRC)
+# ChatWin
+CLIENT_SRCS += \
+  $(CLIENT_DIR)/chatWin/control.cpp \
+  $(CLIENT_DIR)/chatWin/fd.cpp \
+  $(CLIENT_DIR)/chatWin/logging.cpp \
+  $(CLIENT_DIR)/chatWin/network.cpp \
+  $(CLIENT_DIR)/chatWin/packet.cpp \
+  $(CLIENT_DIR)/chatWin/redraw.cpp
+
+# WinErr
+CLIENT_SRCS += \
+  $(CLIENT_DIR)/errWin/winErr.cpp
+
+# FormWin
+CLIENT_SRCS += \
+  $(CLIENT_DIR)/formWin/control.cpp \
+  $(CLIENT_DIR)/formWin/form.cpp
+
+# MenuWin
+CLIENT_SRCS += \
+  $(CLIENT_DIR)/menuWin/control.cpp \
+  $(CLIENT_DIR)/menuWin/menu.cpp
+
+SERVER_SRCS := \
+  $(SERVER_DIR)/server.cpp \
+  $(SERVER_DIR)/servUtils.cpp \
+  $(SERVER_DIR)/logging.cpp \
+  $(PROTO_SRC)
 
 CLIENT_HDRS := protocol.hpp $(CLIENT_DIR)/client.hpp $(CLIENT_DIR)/interface.hpp
 SERVER_HDRS := protocol.hpp $(SERVER_DIR)/server.hpp
@@ -37,7 +59,7 @@ client: $(CLIENT_BIN)
 server: $(SERVER_BIN)
 
 $(CLIENT_BIN): $(CLIENT_SRCS) $(CLIENT_HDRS)
-	$(CC) $(CFLAGS) -o $@ $(CLIENT_SRCS) -lform -lmenu -lncurses 
+	$(CC) $(CFLAGS) -o $@ $(CLIENT_SRCS) -lform -lmenu -lncurses
 
 $(SERVER_BIN): $(SERVER_SRCS) $(SERVER_HDRS)
 	$(CC) $(CFLAGS) -o $@ $(SERVER_SRCS)
@@ -56,4 +78,3 @@ rmCliLogs:
 
 rmServLogs:
 	rm -rf /var/log/multiChat
-

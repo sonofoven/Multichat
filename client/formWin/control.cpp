@@ -1,4 +1,4 @@
-#include "interface.hpp"
+#include "../interface.hpp"
 
 
 int FormState::startUp(){
@@ -34,7 +34,8 @@ int FormState::startUp(){
 
 int FormState::running(){
 	// Get selection or action
-	return Form->handleInput();
+	Form->handleInput();
+	return 0;
 }
 
 int FormState::tearDown(){
@@ -47,8 +48,6 @@ int FormState::tearDown(){
 
 	return status;
 }
-
-
 
 
 

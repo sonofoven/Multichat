@@ -1,4 +1,4 @@
-#include "interface.hpp"
+#include "../interface.hpp"
 
 FormContext::FormContext(WINDOW* w, 
 						 vector<string> f):
