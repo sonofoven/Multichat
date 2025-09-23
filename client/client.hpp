@@ -59,12 +59,6 @@ struct ContextState{
 	virtual int tearDown() = 0;
 };
 
-// -2 means bad response, go back
-// -1 means winErr or redraw for chat
-// 0 means good/first option
-// 1 means second option
-// 2 means skip state
-
 extern shared_mutex fileMtx;
 extern connInfo clientInfo;
 extern atomic<bool> redrawQueued;

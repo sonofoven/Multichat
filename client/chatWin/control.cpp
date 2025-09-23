@@ -24,20 +24,20 @@ int ChatState::tearDown(){
 
 int ChatContext::startProcess(){
 	// Setup network connection
-	servFd = networkStart();
+	servFdStart();
 	if (servFd < 0){
+		return -2;
+	}
+	setupEpoll();
+
+	// Setup Epoll
+	if (epollFd == -1){
 		return -2;
 	}
 	modFds();
 
 	// Setup logging
 	startLog();
-
-	// Setup Epoll
-	setupEpoll();
-	if (epollFd == -1){
-		return -2;
-	}
 
 	// Setup windows
 	setupWindows();

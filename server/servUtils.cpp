@@ -54,8 +54,9 @@ void clientBroadMsg(ClientBroadMsg& pkt, clientConn& sender){
 	// If the client is trying to impersonate someone or 
 	// try to send a message w/out connecting first kill them
 
-	if(!valConnMsg(sender.username, sender)){
+	if (!valConnMsg(sender.username, sender)){
 		cout << "Sabatoure detected" << endl;
+		cout << "Real name is this:" << sender.username << endl;
 		sender.markToDie = true;
 		return;
 	}

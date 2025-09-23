@@ -2,7 +2,7 @@
 
 void ChatContext::servFdStart(){
 	servFd = networkStart();
-	if(servFd < 0){
+	if (servFd < 0){
 		// Can't connect
 		return;
 	}

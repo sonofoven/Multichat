@@ -23,22 +23,19 @@ int main() {
 
 	interfaceStart(); // U
 
-	ReconnectState reconState;
-	reconState.startUp();
-	reconState.running();
-	reconState.tearDown();
-
 	FormState formState;
 	formState.startUp();
 	formState.running();
 	formState.tearDown();
 
-	FileState fileState;
-	fileState.startUp();
-	fileState.running();
-	fileState.tearDown();
+	ChatState chatState;
+	chatState.startUp();
+	chatState.running();
 	endwin();
 
+	cout << "address:=" << clientInfo.addr << '\n';
+	cout << "port:=" << clientInfo.port << '\n';
+	cout << "username:=" << clientInfo.username << '\n';
 
 	//if (redrawQueued.exchange(false)){
 	//	endwin();
