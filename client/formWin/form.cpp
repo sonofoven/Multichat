@@ -162,7 +162,16 @@ void FormContext::handleInput(){
 bool FormContext::updateFile(){
 	// Updates and checks file
 	clientInfo.addr = getFieldValue(formFields[0]); 
-	clientInfo.port = (uint16_t)stoi(getFieldValue(formFields[1])); 
+	string intStr = getFieldValue(formFields[1]);
+	int portNum;
+
+	try {
+		portNum = stoi(intStr);
+	} catch (...) {
+		portNum = 0;
+	}
+
+	clientInfo.port = (uint16_t)portNum; 
 	clientInfo.username = getFieldValue(formFields[2]); 
 
 	if(!fileCreate()){
