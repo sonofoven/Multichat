@@ -12,7 +12,7 @@ int FileState::startUp(){
 
 	Menu = make_unique<MenuContext>();
 
-	return Menu->menuSetup(choices, caption);
+	return Menu->menuSetup(move(choices), move(caption));
 }
 
 int FileState::running(){
@@ -37,7 +37,7 @@ int ReconnectState::startUp(){
 
 	Menu = make_unique<MenuContext>();
 
-	return Menu->menuSetup(choices, caption);
+	return Menu->menuSetup(move(choices), move(caption));
 }
 
 int ReconnectState::running(){
@@ -62,17 +62,17 @@ void MenuContext::freeAll(){
 		free_menu(confMenu);
 	}
 
-	for (int i = 0; i < (int)myItems.size(); i++){
+	for (int i = 0; i < (int)myItems.size()-1; i++){
 		if (myItems[i]){
 			free_item(myItems[i]);
 		}
 	}
 
-	if (confWin){
-		delwin(confWin);
-	}
-
 	if (subWin){
 		delwin(subWin);
+	}
+
+	if (confWin){
+		delwin(confWin);
 	}
 }

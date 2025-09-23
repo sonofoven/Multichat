@@ -16,6 +16,7 @@ CLIENT_SRCS := \
 CLIENT_SRCS += \
   $(CLIENT_DIR)/chatWin/control.cpp \
   $(CLIENT_DIR)/chatWin/fd.cpp \
+  $(CLIENT_DIR)/chatWin/ui.cpp \
   $(CLIENT_DIR)/chatWin/logging.cpp \
   $(CLIENT_DIR)/chatWin/network.cpp \
   $(CLIENT_DIR)/chatWin/packet.cpp \

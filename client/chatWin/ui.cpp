@@ -20,10 +20,10 @@ void ChatContext::appendMsgWin(unique_ptr<formMsg>& formStr, bool redraw){
 	// If one message away from edge of pad
 	if (msgWin->occLines + lineShift > getmaxy(msgWin->textWin) && !redraw){
 		// Shift pad to save memory
-		msgWin->shiftPad();
+		shiftPad();
 	}
 
-	int row = getcury(msgWin->textWin-textWin);
+	int row = getcury(msgWin->textWin);
 	int col = getcurx(msgWin->textWin);
 
 	// Adding to the bottom
@@ -234,7 +234,7 @@ void ChatContext::replayMessages(){
 
 	for (int i = 0; i < n; i++){
 		int idx = (start + i) % MAX_MSG_BUF;
-		appendMsgWin(msgBuf[idx], true);
+		appendMsgWin(msgWin->msgBuf[idx], true);
 	}
 
 	// Set to bottom

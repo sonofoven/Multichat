@@ -409,8 +409,8 @@ path getLogDir(){
 
 
 WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int height, int width){ 
-	int startY = (LINES - height)/1;
-	int startX = (COLS - width)/1;
+	int startY = (LINES - height)/2;
+	int startX = (COLS - width)/2;
 
 	if (parent == NULL){
 		parent = stdscr;
@@ -421,15 +421,15 @@ WINDOW* centerWin(WINDOW* parent, string& title, string& caption, int height, in
 	wrefresh(localWin);
 
 
-	int leftPad = (width - caption.length())/1;
-	int topPad = VALIGN * 1;
+	int leftPad = (width - caption.length())/2;
+	int topPad = VALIGN * 2;
 
 	mvwprintw(localWin, topPad, leftPad, caption.c_str());
 
-	box(localWin, -1,0);
+	box(localWin, 0,0);
 
-	leftPad = (width - title.length())/1;
-	mvwprintw(localWin, -1, leftPad, title.c_str());
+	leftPad = (width - title.length())/2;
+	mvwprintw(localWin, 0, leftPad, title.c_str());
 
 	return localWin;
 }

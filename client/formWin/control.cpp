@@ -27,7 +27,7 @@ int FormState::startUp(){
 
 	// Post and update screen
 	post_form(Form->confForm);
-	Form->refresh();
+	Form->refreshForm();
 
 	return 0;
 }
@@ -51,7 +51,7 @@ int FormState::tearDown(){
 
 
 
-void FormContext::refresh(){
+void FormContext::refreshForm(){
 	wrefresh(bordWin);
 
 	int begY = getpary(formWin);

@@ -65,48 +65,6 @@ struct ContextState{
 // 1 means second option
 // 2 means skip state
 
-struct WinErrState : ContextState {
-	WinErrState() {state = SIZE_ERR;}
-
-
-	int startUp() override;
-	int running() override;
-	int tearDown() override;
-};
-
-struct ChatState : ContextState {
-	ChatState() {state = MESSENGING;}
-
-	int startUp() override;
-	int running() override;
-	int tearDown() override;
-};
-
-struct FormState : ContextState {
-	FormState() {state = FORM_FILL;}
-
-	int startUp() override;
-	int running() override;
-	int tearDown() override;
-};
-
-struct ReconnectState : ContextState {
-	ReconnectState() {state = RECONNECT;}
-
-	int startUp() override;
-	int running() override;
-	int tearDown() override;
-};
-
-struct FileState : ContextState {
-	FileState() {state = FILE_DETECT;}
-
-	int startUp() override;
-	int running() override;
-	int tearDown() override;
-};
-
-
 extern shared_mutex fileMtx;
 extern connInfo clientInfo;
 extern atomic<bool> redrawQueued;

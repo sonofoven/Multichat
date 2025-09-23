@@ -19,10 +19,11 @@ int MenuContext::menuSetup(vector<string> choices, string caption){
 		myItems.push_back(new_item(choice.c_str(), choice.c_str()));
 		menuWidth += choice.length();
 	}
+	myItems.push_back(NULL);
 
-	WINDOW* confWin = centerWin(NULL, 
-								title, caption, 
-								minHeight, minWidth);
+	confWin = centerWin(NULL, 
+						title, caption, 
+						minHeight, minWidth);
 
 	confMenu = new_menu(myItems.data());
 

@@ -166,13 +166,56 @@ struct FormContext{
 	optional<vector<string>> octetTokenize(string str);
 	
 	// Do this after posting form
-	void refresh();
+	void refreshForm();
 	void freeAll();
 };
 
-extern unique_ptr<MenuContext> Menu;
-extern unique_ptr<ChatContext> Chat;
-extern unique_ptr<FormContext> Form;
+struct WinErrState : ContextState {
+	WinErrState() {state = SIZE_ERR;}
+
+
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
+};
+
+struct ChatState : ContextState {
+	ChatState() {state = MESSENGING;}
+
+	unique_ptr<ChatContext> Chat;
+
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
+};
+
+struct FormState : ContextState {
+	FormState() {state = FORM_FILL;}
+
+	unique_ptr<FormContext> Form;
+
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
+};
+
+struct ReconnectState : ContextState {
+	ReconnectState() {state = RECONNECT;}
+	unique_ptr<MenuContext> Menu;
+
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
+};
+
+struct FileState : ContextState {
+	FileState() {state = FILE_DETECT;}
+	unique_ptr<MenuContext> Menu;
+
+	int startUp() override;
+	int running() override;
+	int tearDown() override;
+};
 
 // MAKE A SEPERATE THREAD FOR REDRAW EPOLL HANDLING
 
