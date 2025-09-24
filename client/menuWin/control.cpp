@@ -1,8 +1,9 @@
 #include "../interface.hpp"
 
 int FileState::startUp(){
-	if (!exists(getConfDir())){
+	if (!exists(getConfDir()) && !FormContext::fileVerify()){
 		// If conf file doesn't exist go
+		// or if its not valid
 		// straight to form
 		return 2;
 	}

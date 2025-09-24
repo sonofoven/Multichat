@@ -28,12 +28,17 @@ int ChatContext::startProcess(){
 	if (servFd < 0){
 		return -2;
 	}
+
+	// Store connection info on successful connection
+	FormContext::fileCreate();
+
 	setupEpoll();
 
 	// Setup Epoll
 	if (epollFd == -1){
 		return -2;
 	}
+
 	modFds();
 
 	// Setup logging

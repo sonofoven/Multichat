@@ -159,7 +159,7 @@ void FormContext::handleInput(){
 	form_driver(confForm, REQ_VALIDATION);
 }
 
-bool FormContext::updateFile(){
+void FormContext::updateConnInfo(){
 	// Updates and checks file
 	clientInfo.addr = getFieldValue(formFields[0]); 
 	string intStr = getFieldValue(formFields[1]);
@@ -173,12 +173,6 @@ bool FormContext::updateFile(){
 
 	clientInfo.port = (uint16_t)portNum; 
 	clientInfo.username = getFieldValue(formFields[2]); 
-
-	if(!fileCreate()){
-		return false;
-	} else {
-		return fileVerify();
-	}
 }
 
 string FormContext::getFieldValue(FIELD* field){

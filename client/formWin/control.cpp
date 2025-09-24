@@ -41,12 +41,17 @@ int FormState::running(){
 int FormState::tearDown(){
 	
 	// Clear everything and revert back to nullptr
-	int status = Form->updateFile();
+	Form->updateConnInfo();
+	bool goodInfo = Form->checkCliInfo();
 
 	Form->freeAll();
 	Form.reset();
 
-	return status;
+	if (goodInfo){
+		return 0;
+	} else {
+		return -2;
+	}
 }
 
 

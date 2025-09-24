@@ -158,12 +158,12 @@ struct FormContext{
 	bool validIpCh(int idx, int ch);
 	void handleInput();
 	string getFieldValue(FIELD* field);
-	bool updateFile();
-	bool fileCreate();
-	bool fileVerify();
-	bool checkCliInfo();
-	bool validateIpv4(string str);
-	optional<vector<string>> octetTokenize(string str);
+	void updateConnInfo();
+	static bool fileCreate();
+	static bool fileVerify();
+	static bool checkCliInfo();
+	static bool validateIpv4(string str);
+	static optional<vector<string>> octetTokenize(string str);
 	
 	// Do this after posting form
 	void refreshForm();
