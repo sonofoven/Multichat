@@ -1,6 +1,5 @@
 #include "../interface.hpp"
 
-
 int ChatState::startUp(){
 
 	Chat = make_unique<ChatContext>();
@@ -8,9 +7,9 @@ int ChatState::startUp(){
 	return Chat->startProcess();
 }
 
-int ChatState::running(){
-
-	return Chat->runProcess();
+int ChatState::handleInput(int ch){
+	Chat->handleCh(ch);
+	return 0;
 }
 
 int ChatState::tearDown(){
@@ -20,26 +19,9 @@ int ChatState::tearDown(){
 	return 0;
 }
 
-
-
 int ChatContext::startProcess(){
-	// Setup network connection
-	servFdStart();
-	if (servFd < 0){
-		return -2;
-	}
-
 	// Store connection info on successful connection
 	FormContext::fileCreate();
-
-	setupEpoll();
-
-	// Setup Epoll
-	if (epollFd == -1){
-		return -2;
-	}
-
-	modFds();
 
 	// Setup logging
 	startLog();
@@ -52,55 +34,57 @@ int ChatContext::startProcess(){
 	return 0;
 }
 
-int ChatContext::runProcess(){
-	while (1){
-        int eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
 
 
-        if (eventCount == -1) {
-            if (errno == EINTR) {
-				continue;
-            } else {
-				return -1;
-            }
-            continue;
-        }
-
-
-		for (int i = 0; i < eventCount; i++){
-
-			int fd = events[i].data.fd;
-			uint32_t event = events[i].events;
-
-			if (fd == servFd){
-				// If something happened w/ serverfd
-				if (event & (EPOLLHUP | EPOLLERR)){
-					// Server dying event
-					return -1;
-				}
-
-				if (event & EPOLLOUT){
-					// Write event
-					handleWrite();
-				}
-
-				if (event & EPOLLIN){
-					// Read event
-					handleRead();
-				}
-
-			} else {
-				// If something happened w/ keyboard input
-				int ch;
-
-				curs_set(2); // Make the cursor visible
-				while ((ch = wgetch(inputWin->textWin)) != ERR){
-					handleCh(ch);
-				}
-			}
-		}
-	}
-}
+//int ChatContext::runProcess(){
+//	while (1){
+//        int eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
+//
+//
+//        if (eventCount == -1) {
+//            if (errno == EINTR) {
+//				continue;
+//            } else {
+//				return -2;
+//            }
+//            continue;
+//        }
+//
+//
+//		for (int i = 0; i < eventCount; i++){
+//
+//			int fd = events[i].data.fd;
+//			uint32_t event = events[i].events;
+//
+//			if (fd == servFd){
+//				// If something happened w/ serverfd
+//				if (event & (EPOLLHUP | EPOLLERR)){
+//					// Server dying event
+//					return -2;
+//				}
+//
+//				if (event & EPOLLOUT){
+//					// Write event
+//					handleWrite();
+//				}
+//
+//				if (event & EPOLLIN){
+//					// Read event
+//					handleRead();
+//				}
+//
+//			} else {
+//				// If something happened w/ keyboard input
+//				int ch;
+//
+//				curs_set(2); // Make the cursor visible
+//				while ((ch = wgetch(inputWin->textWin)) != ERR){
+//					handleCh(ch);
+//				}
+//			}
+//		}
+//	}
+//}
 
 int ChatContext::termProcess(){
 	stopLog();

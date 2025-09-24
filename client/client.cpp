@@ -23,20 +23,6 @@ int main() {
 
 	interfaceStart(); // U
 
-	FormState formState;
-	formState.startUp();
-	formState.running();
-	formState.tearDown();
-
-	ChatState chatState;
-	chatState.startUp();
-	chatState.running();
-	endwin();
-
-	cout << "address:=" << clientInfo.addr << '\n';
-	cout << "port:=" << clientInfo.port << '\n';
-	cout << "username:=" << clientInfo.username << '\n';
-
 	//if (redrawQueued.exchange(false)){
 	//	endwin();
 	//	clearok(stdscr, TRUE);

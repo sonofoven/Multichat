@@ -16,9 +16,10 @@ int FileState::startUp(){
 	return Menu->menuSetup(move(choices), move(caption));
 }
 
-int FileState::running(){
+int FileState::handleInput(int ch){
 	// Get selection or action
-	return Menu->getSelection();
+	
+	return Menu->handleCh(ch);
 }
 
 int FileState::tearDown(){
@@ -41,9 +42,11 @@ int ReconnectState::startUp(){
 	return Menu->menuSetup(move(choices), move(caption));
 }
 
-int ReconnectState::running(){
+
+int ReconnectState::handleInput(int ch){
 	// Get selection or action
-	return Menu->getSelection();
+	
+	return Menu->handleCh(ch);
 }
 
 int ReconnectState::tearDown(){

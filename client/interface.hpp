@@ -70,13 +70,10 @@ struct ChatContext{
 	atomic<bool> termLog = false;
 
 	int servFd = -1;
-	int epollFd = -1;
-	epoll_event events[MAX_EVENTS];
 
 
 	// Control funcs //
 	int startProcess();
-	int runProcess();
 	int termProcess();
 	void freeAll();
 
@@ -87,7 +84,7 @@ struct ChatContext{
 	// Ui //
 	void setupWindows();
 	void appendMsgWin(unique_ptr<formMsg>& formStr, bool redraw);
-	void handleCh(int ch);
+	void handleCh(int ch); //  
 	void scrollBottom();
 	void scrollUp();
 	void scrollDown();
@@ -136,7 +133,7 @@ struct MenuContext{
 	vector<ITEM*> myItems;
 
 	int menuSetup(vector<string> choices, string caption);
-	int getSelection();
+	int handleCh(int ch);
 
 	void freeAll();
 };
@@ -156,7 +153,7 @@ struct FormContext{
 
 	void setForm();
 	bool validIpCh(int idx, int ch);
-	void handleInput();
+	int handleCh(int ch);
 	string getFieldValue(FIELD* field);
 	void updateConnInfo();
 	static bool fileCreate();
@@ -170,58 +167,48 @@ struct FormContext{
 	void freeAll();
 };
 
-// -2 means bad response, go back
-// -1 means winErr or redraw for chat
-// 0 means good/first option
-// 1 means second option
-// 2 means skip state
-
-
 struct WinErrState : ContextState {
-	WinErrState() {state = SIZE_ERR;}
-
 
 	int startUp() override;
-	int running() override;
+	int handleInput(int ch) override;
 	int tearDown() override;
+
 };
 
 struct ChatState : ContextState {
-	ChatState() {state = MESSENGING;}
-
 	unique_ptr<ChatContext> Chat;
 
 	int startUp() override;
-	int running() override;
+	int handleInput(int ch) override;
 	int tearDown() override;
+
 };
 
 struct FormState : ContextState {
-	FormState() {state = FORM_FILL;}
-
 	unique_ptr<FormContext> Form;
 
 	int startUp() override;
-	int running() override;
+	int handleInput(int ch) override;
 	int tearDown() override;
+
 };
 
 struct ReconnectState : ContextState {
-	ReconnectState() {state = RECONNECT;}
 	unique_ptr<MenuContext> Menu;
 
 	int startUp() override;
-	int running() override;
+	int handleInput(int ch) override;
 	int tearDown() override;
+
 };
 
 struct FileState : ContextState {
-	FileState() {state = FILE_DETECT;}
 	unique_ptr<MenuContext> Menu;
 
 	int startUp() override;
-	int running() override;
+	int handleInput(int ch) override;
 	int tearDown() override;
+
 };
 
 // MAKE A SEPERATE THREAD FOR REDRAW EPOLL HANDLING

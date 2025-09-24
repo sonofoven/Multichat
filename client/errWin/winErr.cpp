@@ -9,12 +9,8 @@ int WinErrState::startUp(){
 	return 0;
 }
 
-int WinErrState::running(){
-	// Busy loop I know, juice is not worth the squeeze
-	// CRAPPY WORK, add sigwinch to epoll handler and put epoll handler on a separate thread
-//	while (!redrawQueued){
-//		sleep_for(chrono::milliseconds(REDRAW_WAIT_MS));
-//	}
+int handleInput(int ch){
+	// Do nothing
 	return 0;
 }
 

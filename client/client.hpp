@@ -30,8 +30,6 @@
 #define VERSION "1.0"
 #define LOG_DAY_MAX 7
 #define STORAGE_DIR ".multiChat"
-//#define MIN_LINES 25
-//#define MIN_COLS 65
 
 using namespace std;
 using namespace std::filesystem;
@@ -52,11 +50,29 @@ struct connInfo{ // This stays global
 };
 
 struct ContextState{
-	uiState state;
-
 	virtual int startUp() = 0;
-	virtual int running() = 0;
+	virtual int handleInput(int ch) = 0;
 	virtual int tearDown() = 0;
+};
+
+struct ContextController{
+	uiState prevState = FILE_DETECT;
+	uiState state = FILE_DETECT;
+
+	// Epoll starts at very beginning
+	int epollFd = -1;
+	epoll_event events[MAX_EVENTS];
+
+	// Sig -> fd
+	int winchFd = -1;
+
+	// servFd is grabbed after Chat makes it
+	int servFd = -1;
+
+	// Controllers setups the network connection
+	int setupEpoll();
+	void addServFd();
+	void rmServFd();
 };
 
 extern shared_mutex fileMtx;

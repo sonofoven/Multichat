@@ -105,6 +105,7 @@ void FormContext::setForm(){
 	// Set main window and sub window
 	set_form_win(confForm, bordWin);
 	set_form_sub(confForm, formWin);
+	keypad(bordWin, TRUE);
 }
 
 bool FormContext::validIpCh(int idx, int ch){
@@ -112,34 +113,32 @@ bool FormContext::validIpCh(int idx, int ch){
 	return idx == 0 && (ch == '.' || (ch > 47 && ch < 58));
 }
 
-void FormContext::handleInput(){
+void FormContext::handleInput(int ch){
 	// Set special keys
-	keypad(bordWin, TRUE);
 
-	int ch;
-	while ((ch = wgetch(bordWin)) != '\n' && ch != KEY_ENTER && ch != '\r'){
+	if (ch  != '\n' && ch != KEY_ENTER && ch != '\r'){
 		curs_set(1);
 		switch(ch){
 			case KEY_DOWN:
 				form_driver(confForm, REQ_NEXT_FIELD);
 				form_driver(confForm, REQ_END_LINE);
-				break;
+				return -1;
 
 			case KEY_UP:
 				form_driver(confForm, REQ_PREV_FIELD);
 				form_driver(confForm, REQ_END_LINE);
-				break;
+				return -1;
 
 			case '\t':
 				form_driver(confForm, REQ_NEXT_FIELD);
 				form_driver(confForm, REQ_END_LINE);
-				break;
+				return -1;
 
 			case KEY_BACKSPACE:
 			case 127:
 			case '\b': 
 				form_driver(confForm, REQ_DEL_PREV);
-				break;
+				return -1;
 
 			default: {
 					int rc = form_driver(confForm, REQ_NEXT_CHAR);
@@ -153,10 +152,12 @@ void FormContext::handleInput(){
 						}
 					}
 				}
-				break;
+				return -1;
 		}
+	} else {
+		form_driver(confForm, REQ_VALIDATION);
+		return 0;
 	}
-	form_driver(confForm, REQ_VALIDATION);
 }
 
 void FormContext::updateConnInfo(){

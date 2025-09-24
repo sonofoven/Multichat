@@ -57,11 +57,9 @@ int MenuContext::menuSetup(vector<string> choices, string caption){
 	return 0;
 }
 
-int MenuContext::getSelection(){
-	// ADD THING TO CHECK EPOLL
-	int c;
-	while((c = wgetch(confWin)) != '\n'){	   
-		switch(c){
+int MenuContext::handleCh(int ch){
+	if (ch != '\n'){	   
+		switch(ch){
 			case '\t':
 			case KEY_RIGHT:
 			case KEY_LEFT:
@@ -71,12 +69,12 @@ int MenuContext::getSelection(){
 				break;
 
 			wrefresh(confWin);
+			return -1;
 		}	
+	} else {
+		int selection = item_index(current_item(confMenu));
+		return selection;
 	}
-
-	int selection = item_index(current_item(confMenu));
-
-	return selection;
 }
 
 

@@ -32,10 +32,9 @@ int FormState::startUp(){
 	return 0;
 }
 
-int FormState::running(){
+int FormState::handleInput(int ch){
 	// Get selection or action
-	Form->handleInput();
-	return 0;
+	return Form->handleInput(ch);
 }
 
 int FormState::tearDown(){
