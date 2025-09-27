@@ -122,7 +122,6 @@ struct ChatContext{
 	void redrawInputWin(int lines, int cols);
 	void redrawUserWin(int lines, int cols);
 	
-
 };
 
 struct MenuContext{
@@ -211,7 +210,6 @@ struct FileState : ContextState {
 
 };
 
-// MAKE A SEPERATE THREAD FOR REDRAW EPOLL HANDLING
 
 // Setup
 void interfaceStart();

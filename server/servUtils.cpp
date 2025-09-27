@@ -96,6 +96,7 @@ void dropClient(int fd){
 
 		// Create disconnect packet
 		ServerDisconnect responseAll = ServerDisconnect(cliPtr->username);
+
 		// Serialize to all
 		serializeToAllButSender(responseAll, *cliPtr);
 
@@ -193,6 +194,7 @@ void killClient(int fd){
 	clientConn* clientPtr = lockFindCli(fd);
 
 	if (!clientPtr){
+		epollModify(epollFd, fd, 0, EPOLL_CTL_DEL);
 		close(fd);
 		return;
 	}
@@ -201,10 +203,11 @@ void killClient(int fd){
 	killUser(clientPtr->username);
 
 	// Wipe the socket
+	epollModify(epollFd, fd, 0, EPOLL_CTL_DEL);
 	close(fd);
 
 	// Lock the map
-	lock_guard lock(clientMapMtx);
+	//lock_guard lock(clientMapMtx);
 
 	// Wipe from the map
 	clientMap.erase(fd);

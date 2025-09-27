@@ -4,7 +4,6 @@
 int prevState = SIZE_ERR; //G
 int state = SIZE_ERR; //G
 
-
 atomic<bool> redrawQueued = false;
 connInfo clientInfo;
 shared_mutex fileMtx;
@@ -14,14 +13,17 @@ shared_mutex fileMtx;
 int main() {
 	// Add sigwinch to epoll
 	
-	struct sigaction sa {}; // U
-	sa.sa_handler = sigwinchHandler;
-	sa.sa_flags = SA_RESTART;
-	sigaction(SIGWINCH, &sa, nullptr);
-
+//	struct sigaction sa {}; // U
+//	sa.sa_handler = sigwinchHandler;
+//	sa.sa_flags = SA_RESTART;
+//	sigaction(SIGWINCH, &sa, nullptr);
+//
 	cout << "Multichat v" << VERSION << endl; // U
 
-	interfaceStart(); // U
+	interfaceStart();
+
+
+
 
 	//if (redrawQueued.exchange(false)){
 	//	endwin();
@@ -36,10 +38,4 @@ int main() {
 	//	continue; // Remove this later
 	//}
 
-
 }
-
-void sigwinchHandler(int sig){
-	redrawQueued = true;
-}
-

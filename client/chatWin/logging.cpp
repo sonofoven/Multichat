@@ -54,6 +54,8 @@ void ChatContext::restoreHistory(){
 }
 
 void ChatContext::logLoop(){
+	// Block sigwinch as to not interfere w/ main thread
+
 	list<path> logFiles = detectLogFiles();
 	logFiles.sort(greater<path>());
 	weenLogFiles(logFiles);

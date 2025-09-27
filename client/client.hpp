@@ -65,6 +65,7 @@ struct ContextController{
 
 	// Sig -> fd
 	int winchFd = -1;
+	void handleWinch();
 
 	// servFd is grabbed after Chat makes it
 	int servFd = -1;
@@ -77,10 +78,6 @@ struct ContextController{
 
 extern shared_mutex fileMtx;
 extern connInfo clientInfo;
-extern atomic<bool> redrawQueued;
 
 // UI / Window IO
 void redrawUi();
-
-// Signal Handling
-void sigwinchHandler(int sig);
