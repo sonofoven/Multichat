@@ -21,6 +21,9 @@ int main() {
 	cout << "Multichat v" << VERSION << endl; // U
 
 	interfaceStart();
+	ContextController controller;
+
+	controller.setupEpoll();
 
 
 

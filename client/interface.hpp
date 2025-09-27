@@ -211,6 +211,35 @@ struct FileState : ContextState {
 };
 
 
+struct ContextController{
+	uiState prevState = FILE_DETECT;
+	uiState state = FILE_DETECT;
+
+	WinErrState winErrState;
+	ChatState chatState;
+	FormState formState;
+	ReconnectState reconState;
+	FileState fileState;
+
+	// Epoll starts at very beginning
+	int epollFd = -1;
+	epoll_event events[MAX_EVENTS];
+
+	// Sig -> fd
+	int winchFd = -1;
+	void handleWinch();
+
+	// servFd is grabbed after Chat makes it
+	int servFd = -1;
+
+	// Controllers setups the network connection
+	int setupEpoll();
+	void controlEpoll();
+	void addServFd();
+	void rmServFd();
+};
+
+
 // Setup
 void interfaceStart();
 

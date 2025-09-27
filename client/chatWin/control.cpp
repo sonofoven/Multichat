@@ -36,56 +36,6 @@ int ChatContext::startProcess(){
 
 
 
-//int ChatContext::runProcess(){
-//	while (1){
-//        int eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
-//
-//
-//        if (eventCount == -1) {
-//            if (errno == EINTR) {
-//				continue;
-//            } else {
-//				return -2;
-//            }
-//            continue;
-//        }
-//
-//
-//		for (int i = 0; i < eventCount; i++){
-//
-//			int fd = events[i].data.fd;
-//			uint32_t event = events[i].events;
-//
-//			if (fd == servFd){
-//				// If something happened w/ serverfd
-//				if (event & (EPOLLHUP | EPOLLERR)){
-//					// Server dying event
-//					return -2;
-//				}
-//
-//				if (event & EPOLLOUT){
-//					// Write event
-//					handleWrite();
-//				}
-//
-//				if (event & EPOLLIN){
-//					// Read event
-//					handleRead();
-//				}
-//
-//			} else {
-//				// If something happened w/ keyboard input
-//				int ch;
-//
-//				curs_set(2); // Make the cursor visible
-//				while ((ch = wgetch(inputWin->textWin)) != ERR){
-//					handleCh(ch);
-//				}
-//			}
-//		}
-//	}
-//}
-
 int ChatContext::termProcess(){
 	stopLog();
 	// These will eventually be handled in epoll loop
