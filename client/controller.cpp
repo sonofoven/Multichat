@@ -61,31 +61,19 @@ int ContextController::handleWinch(){
 }
 
 int ContextController::handleInput(int ch){
+	// Switch to current state being a unique ptr
 	int status;
-	switch(state){
-
-		case FILE_DETECT:
+	
 			status = fileState.handleInput(ch);
 			
-			break;
-
-		case FORM_FILL:
 			status = formState.handleInput(ch);
 			
-			break;
 
-		case RECONNECT:
 			status = reconState.handleInput(ch);
 			
-			break;
-
-		case MESSENGING:
 			status = chatState.handleInput(ch);
 			
-			break;
-
-		default:
-			winErrState.handleInput(ch);
+			status = winErrState.handleInput(ch);
 	}
 
 }
@@ -107,90 +95,22 @@ int ContextController::handleChar(){
 }
 
 int ContextController::stateChange(uiEnum oldState, uiEnum newState){
-	int status;
-	switch(oldState){
+	// MAKE THIS FUNCTION A FUNC THAT INTERPRETS THE OUTPUT OF HANDLE CH
+//		case MESSENGING:
+//			// Make sure to get/reassign servFd
+//
+//			chatState.Chat->servFdStart();
+//			servFd = chatState.Chat->servFd;
+//
+//			if (servFd < 0){
+//				status = -1;
+//				break;
+//			}
+//
+//			status = chatState.startUp();
+//			
+//			break;
 
-		case FILE_DETECT:
-			status = fileState.tearDown();
-			
-			break;
-
-		case FORM_FILL:
-			status = formState.tearDown();
-			
-			break;
-
-		case RECONNECT:
-			status = reconState.tearDown();
-			
-			break;
-
-		case MESSENGING:
-			status = chatState.tearDown();
-			
-			break;
-
-		default:
-			// WinErr
-			status = winErrState.tearDown();
-	}
-
-	if (status < 0){
-		// Default back to what we know is good
-		stateChange(-1, oldState);
-		return -1;
-	}
-
-	erase();
-	refresh();
-
-	switch(newState){
-
-		case FILE_DETECT:
-			status = fileState.startUp();
-			
-			break;
-
-		case FORM_FILL:
-			status = formState.startUp();
-			
-			break;
-
-		case RECONNECT:
-			status = reconState.startUp();
-			
-			break;
-
-		case MESSENGING:
-			// Make sure to get/reassign servFd
-
-			chatState.Chat->servFdStart();
-			servFd = chatState.Chat->servFd;
-
-			if (servFd < 0){
-				status = -1;
-				break;
-			}
-
-			status = chatState.startUp();
-			
-			break;
-
-		default:
-			// WinErr
-			winErrState.startUp();
-
-	}
-
-	if (status < 0){
-		// Default back to what we know is good
-		stateChange(-1, oldState);
-		return -1;
-	}
-
-	prevState = oldState;
-	state = newState;
-	return 0;
 }
 
 
@@ -247,7 +167,6 @@ void ContextController::controlEpoll(){
 				}
 			} else {
 				handleWinch();
-
 			}
 		}
 	}
