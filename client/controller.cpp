@@ -85,9 +85,9 @@ void ContextController::stateChange(int status){
 		case FILE_DETECT:
 			switch(status){
 				case 0:
-					endwin();
-					cout << clientInfo.addr << endl;
-					for(;;);
+					//endwin();
+					//cout << clientInfo.addr << endl;
+					//for(;;);
 					curState->tearDown();
 					switchIntoChat();
 					return;

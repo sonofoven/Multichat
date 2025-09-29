@@ -1,12 +1,16 @@
 #include "../interface.hpp"
 
 int FileState::startUp(){
-	if (!exists(getConfDir()) && !FormContext::fileVerify()){
+	if (!FormContext::fileVerify()){
 		// If conf file doesn't exist go
 		// or if its not valid
 		// straight to form
 		return 2;
 	}
+
+	//endwin();
+	//cout << clientInfo.addr << endl;
+	//for(;;);
 
 	string caption = "Existing config file detected";
 	vector<string> choices {"Use Existing", "Configure New"}; 

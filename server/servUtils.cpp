@@ -219,14 +219,16 @@ void killUser(string& username){
 
 void killServer(int code){
 	// Inform
-	cout << "Killing server over signal: " << code << endl;
+	//cout << "Killing server over signal: " << code << endl;
 
 	// Lock mutex
-	lock_guard lock(clientMapMtx);
+	//lock_guard lock(clientMapMtx);
+	close(epollFd);
 
 	// Kill every 
 	for (auto i = clientMap.begin(); i != clientMap.end(); i++){
-		killClient(i->first);
+		//killClient(i->first);
+		close(i->first);
 	}
 
 	exit(1);

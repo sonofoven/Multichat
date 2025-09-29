@@ -218,6 +218,11 @@ bool FormContext::fileCreate(){
 bool FormContext::fileVerify(){
 	path configFile = getConfDir();
 
+	if (!exists(configFile)){
+		clientInfo = {};
+		return false;
+	}
+
 	ifstream config(configFile);
 	if (!config){
 		return false;
