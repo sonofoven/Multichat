@@ -29,6 +29,7 @@ void ContextController::addServFd(int newServFd){
 
 	fcntl(newServFd, F_SETFL, O_NONBLOCK);
 	epollModify(epollFd, newServFd, EPOLLIN | EPOLLET | EPOLLHUP | EPOLLERR, EPOLL_CTL_ADD);
+	servFd = newServFd;
 }
 
 void ContextController::rmServFd(int oldServFd){
@@ -38,13 +39,14 @@ void ContextController::rmServFd(int oldServFd){
 
 	epollModify(epollFd, oldServFd, 0, EPOLL_CTL_DEL);
 	close(oldServFd);
+	servFd = -1;
 }
 
-int ContextController::handleWinch(){
+void ContextController::handleWinch(){
 	for (;;){
 		signalfd_siginfo si;
 
-		ssize_t readBytes = read(sigFd, &si, sizeof(si));
+		ssize_t readBytes = read(winchFd, &si, sizeof(si));
 
 		if (readBytes == -1){
 			if (errno == EAGAIN){
@@ -60,33 +62,15 @@ int ContextController::handleWinch(){
 	}
 }
 
-int ContextController::handleInput(int ch){
-	// Switch to current state being a unique ptr
-	int status;
-	
-			status = fileState.handleInput(ch);
-			
-			status = formState.handleInput(ch);
-			
-
-			status = reconState.handleInput(ch);
-			
-			status = chatState.handleInput(ch);
-			
-			status = winErrState.handleInput(ch);
-	}
-
-}
-
 int ContextController::handleChar(){
 	// If something happened w/ keyboard input
 	int ch;
 	curs_set(2); // Make the cursor visible
 	int stateDec = -1;
 
-	while ((ch = getch(stdscr)) != ERR){
+	while ((ch = getch()) != ERR){
 		// Adjust so gives input to right state
-		stateDec = handleInput(ch);
+		stateDec = curState->handleInput(ch);
 		if (stateDec != -1){
 			break;
 		}
@@ -94,48 +78,103 @@ int ContextController::handleChar(){
 	return stateDec;
 }
 
-int ContextController::stateChange(uiEnum oldState, uiEnum newState){
+void ContextController::stateChange(int status){
 	// MAKE THIS FUNCTION A FUNC THAT INTERPRETS THE OUTPUT OF HANDLE CH
-//		case MESSENGING:
-//			// Make sure to get/reassign servFd
-//
-//			chatState.Chat->servFdStart();
-//			servFd = chatState.Chat->servFd;
-//
-//			if (servFd < 0){
-//				status = -1;
-//				break;
-//			}
-//
-//			status = chatState.startUp();
-//			
-//			break;
+	// 0 means op 1
+	// 1 means op 2
 
+	switch (curState->state){
+		case FILE_DETECT:
+			switch(status){
+				case 0:
+					curState->tearDown();
+					switchIntoChat();
+					break;
+
+				default:
+					curState->tearDown();
+					curState = make_unique<FormState>();
+					break;
+			}
+			break;
+
+
+		case RECONNECT:
+			switch(status){
+				case 0:
+					curState->tearDown();
+					switchIntoChat();
+					break;
+
+				default:
+					curState->tearDown();
+					curState = make_unique<FormState>();
+					break;
+			}
+			break;
+
+		default:
+			// Form fill
+			switch(curState->tearDown()){
+				case 0:
+					switchIntoChat();
+					break;
+
+				default:
+					// Error filling out data
+					curState = make_unique<FormState>();
+					break;
+			}
+			break;
+
+		curState->startUp();
+	}
+}
+
+void ContextController::switchIntoChat(){
+	curState = make_unique<ChatState>();
+
+	ChatState* chatState = (ChatState*)(curState.get());
+	chatState->Chat->servFdStart();
+	int newServFd = chatState->Chat->servFd;
+	if (newServFd < 0){
+		curState = make_unique<ReconnectState>();
+	} else {
+		addServFd(newServFd);
+	}
 }
 
 
 int ContextController::handleServFd(uint32_t event){
+
+
+	// If we have connection we know this is ChatState
 	// If something happened w/ serverfd
 	if (event & (EPOLLHUP | EPOLLERR)){
 		// Server dying event
-		return;
+		// Change to reconnect state
+		curState->tearDown();
+
+		rmServFd(servFd);
+		curState = make_unique<ReconnectState>();
+		curState->startUp();
 	}
 
 	if (event & EPOLLOUT){
 		// Write event
-		handleWrite();
+		ChatState* chatState = (ChatState*)(curState.get());
+		chatState->Chat->handleWrite();
 	}
 
 	if (event & EPOLLIN){
 		// Read event
-		handleRead();
+		ChatState* chatState = (ChatState*)(curState.get());
+		chatState->Chat->handleRead();
 	}
+
+	return 0;
 }
 
-void ContextController::switchStates(int status){
-	// Switches states based on the return status of state
-
-}
 
 void ContextController::controlEpoll(){
 	while (1){
@@ -146,7 +185,7 @@ void ContextController::controlEpoll(){
             if (errno == EINTR) {
 				continue;
             } else {
-				return -2;
+				return;
             }
             continue;
         }
@@ -157,14 +196,15 @@ void ContextController::controlEpoll(){
 			int fd = events[i].data.fd;
 			uint32_t event = events[i].events;
 
-			if (fd == servFd && state == MESSENGING){
+			if (fd == servFd && curState->state == MESSENGING){
 				handleServFd(event);
 
 			} else if (fd == STDIN_FILENO){
 				int status = handleChar();
 				if (status != -1){
-					switchStates(status);
+					stateChange(status);
 				}
+
 			} else {
 				handleWinch();
 			}

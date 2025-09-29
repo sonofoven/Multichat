@@ -7,10 +7,6 @@ int MenuContext::menuSetup(vector<string> choices, string caption){
 	int minHeight = MENU_HEIGHT;
 	int minWidth = max(MENU_WIDTH, (int)caption.length() + 2*HALIGN);
 
-	if (LINES < minHeight || COLS < minWidth){
-		return -1;
-	}
-
 	myItems.reserve(choices.size());
 
 	int menuWidth = (int)choices.size();
@@ -69,8 +65,8 @@ int MenuContext::handleCh(int ch){
 				break;
 
 			wrefresh(confWin);
-			return -1;
 		}	
+		return -1;
 	} else {
 		int selection = item_index(current_item(confMenu));
 		return selection;

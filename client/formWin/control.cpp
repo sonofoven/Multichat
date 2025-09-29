@@ -8,10 +8,6 @@ int FormState::startUp(){
 	int minHeight = MENU_HEIGHT + MENU_HEIGHT/3 * (int)fieldNames.size();
 	int minWidth = MENU_WIDTH;
 
-	if (LINES < minHeight || COLS < minWidth){
-		return -1;
-	}
-
 	// Define ui context
 	string title = "| MultiChat |";
 	string caption = "Input connection information";
@@ -34,7 +30,7 @@ int FormState::startUp(){
 
 int FormState::handleInput(int ch){
 	// Get selection or action
-	return Form->handleInput(ch);
+	return Form->handleCh(ch);
 }
 
 int FormState::tearDown(){
@@ -49,7 +45,7 @@ int FormState::tearDown(){
 	if (goodInfo){
 		return 0;
 	} else {
-		return -2;
+		return -1;
 	}
 }
 

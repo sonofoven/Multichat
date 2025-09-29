@@ -121,6 +121,8 @@ struct ChatContext{
 	void redrawMsgWin(int lines, int cols);
 	void redrawInputWin(int lines, int cols);
 	void redrawUserWin(int lines, int cols);
+
+	void redrawUi();
 	
 };
 
@@ -166,15 +168,8 @@ struct FormContext{
 	void freeAll();
 };
 
-struct WinErrState : ContextState {
-
-	int startUp() override;
-	int handleInput(int ch) override;
-	int tearDown() override;
-
-};
-
 struct ChatState : ContextState {
+	ChatState() {state = MESSENGING;}
 	unique_ptr<ChatContext> Chat;
 
 	int startUp() override;
@@ -184,6 +179,7 @@ struct ChatState : ContextState {
 };
 
 struct FormState : ContextState {
+	FormState() {state = FORM_FILL;}
 	unique_ptr<FormContext> Form;
 
 	int startUp() override;
@@ -193,6 +189,7 @@ struct FormState : ContextState {
 };
 
 struct ReconnectState : ContextState {
+	ReconnectState() {state = RECONNECT;}
 	unique_ptr<MenuContext> Menu;
 
 	int startUp() override;
@@ -202,6 +199,7 @@ struct ReconnectState : ContextState {
 };
 
 struct FileState : ContextState {
+	FileState() {state = FILE_DETECT;}
 	unique_ptr<MenuContext> Menu;
 
 	int startUp() override;
@@ -212,31 +210,32 @@ struct FileState : ContextState {
 
 
 struct ContextController{
-	uiState prevState = FILE_DETECT;
-	uiState state = FILE_DETECT;
-
-	WinErrState winErrState;
-	ChatState chatState;
-	FormState formState;
-	ReconnectState reconState;
-	FileState fileState;
+	unique_ptr<ContextState> curState = make_unique<FileState>();
 
 	// Epoll starts at very beginning
-	int epollFd = -1;
+	//int epollFd = -1;
 	epoll_event events[MAX_EVENTS];
 
 	// Sig -> fd
 	int winchFd = -1;
-	void handleWinch();
+	void setupEpoll();
 
 	// servFd is grabbed after Chat makes it
 	int servFd = -1;
 
 	// Controllers setups the network connection
-	int setupEpoll();
 	void controlEpoll();
-	void addServFd();
-	void rmServFd();
+	void addServFd(int newServFd);
+	void rmServFd(int oldServFd);
+
+	// Input
+	int handleChar();
+	void handleWinch();
+	int handleServFd(uint32_t event);
+
+	// Transitions
+	void stateChange(int status);
+	void switchIntoChat();
 };
 
 

@@ -113,7 +113,7 @@ bool FormContext::validIpCh(int idx, int ch){
 	return idx == 0 && (ch == '.' || (ch > 47 && ch < 58));
 }
 
-void FormContext::handleInput(int ch){
+int FormContext::handleCh(int ch){
 	// Set special keys
 
 	if (ch  != '\n' && ch != KEY_ENTER && ch != '\r'){
@@ -152,7 +152,7 @@ void FormContext::handleInput(int ch){
 						}
 					}
 				}
-				return -1;
+			return -1;
 		}
 	} else {
 		form_driver(confForm, REQ_VALIDATION);

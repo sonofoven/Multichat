@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/signalfd.h>
 #include <unistd.h>
 
 #include <csignal>
@@ -35,7 +36,6 @@ using namespace std;
 using namespace std::filesystem;
 
 enum uiState {
-	SIZE_ERR,
 	FILE_DETECT,
 	FORM_FILL,
 	RECONNECT,
@@ -50,11 +50,14 @@ struct connInfo{ // This stays global
 };
 
 struct ContextState{
+	uiState state;
+
 	virtual int startUp() = 0;
 	virtual int handleInput(int ch) = 0;
 	virtual int tearDown() = 0;
 };
 
+extern int epollFd;
 extern shared_mutex fileMtx;
 extern connInfo clientInfo;
 

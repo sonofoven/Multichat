@@ -39,8 +39,6 @@ int ChatContext::startProcess(){
 int ChatContext::termProcess(){
 	stopLog();
 	// These will eventually be handled in epoll loop
-	close(epollFd);
-	close(servFd);
 	freeAll();
 	//endwin();
 	return 0;
