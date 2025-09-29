@@ -38,7 +38,6 @@ int MenuContext::menuSetup(vector<string> choices, string caption){
 
 	menu_opts_off(confMenu, O_SHOWDESC);
 	menu_opts_off(confMenu, O_NONCYCLIC);
-	keypad(confWin, TRUE);
 	 
 	set_menu_win(confMenu, confWin);
 	set_menu_sub(confMenu, subWin);
@@ -64,8 +63,8 @@ int MenuContext::handleCh(int ch){
 				menu_driver(confMenu, REQ_NEXT_ITEM);
 				break;
 
-			wrefresh(confWin);
 		}	
+		wrefresh(confWin);
 		return -1;
 	} else {
 		int selection = item_index(current_item(confMenu));

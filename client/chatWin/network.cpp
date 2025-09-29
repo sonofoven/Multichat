@@ -36,6 +36,7 @@ int ChatContext::networkStart(){
 	// Convert IPv4 and IPv6 addresses from text to binary
 	if (inet_pton(AF_INET, clientInfo.addr.c_str(), &serverAddr.sin_addr) <= 0) {
 		cerr << "Invalid address/ Address not supported" << endl;
+		cerr << clientInfo.addr.c_str() << endl;
 		return -1;
 	}
 

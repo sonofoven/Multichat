@@ -2,7 +2,6 @@
 
 
 int FormState::startUp(){
-
 	vector<string> fieldNames {"IP:", "Port:", "Name:"};
 	
 	int minHeight = MENU_HEIGHT + MENU_HEIGHT/3 * (int)fieldNames.size();

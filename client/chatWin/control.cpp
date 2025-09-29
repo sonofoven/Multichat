@@ -2,8 +2,6 @@
 
 int ChatState::startUp(){
 
-	Chat = make_unique<ChatContext>();
-
 	return Chat->startProcess();
 }
 

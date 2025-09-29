@@ -11,8 +11,6 @@ int FileState::startUp(){
 	string caption = "Existing config file detected";
 	vector<string> choices {"Use Existing", "Configure New"}; 
 
-	Menu = make_unique<MenuContext>();
-
 	return Menu->menuSetup(move(choices), move(caption));
 }
 

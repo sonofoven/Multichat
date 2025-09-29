@@ -146,6 +146,7 @@ struct FormContext{
 	vector<FIELD*> formFields;
 	vector<WINDOW*> fieldBoxes;
 
+	FormContext() = default;
 	FormContext(WINDOW* w, vector<string> f);
 
 	void setForm();
@@ -165,7 +166,8 @@ struct FormContext{
 };
 
 struct ChatState : ContextState {
-	ChatState() {state = MESSENGING;}
+	ChatState() {state = MESSENGING;
+				 Chat = make_unique<ChatContext>();}
 	unique_ptr<ChatContext> Chat;
 
 	int startUp() override;
@@ -174,8 +176,11 @@ struct ChatState : ContextState {
 
 };
 
+
 struct FormState : ContextState {
-	FormState() {state = FORM_FILL;}
+	FormState() {state = FORM_FILL;
+				 Form = make_unique<FormContext>();}
+
 	unique_ptr<FormContext> Form;
 
 	int startUp() override;
@@ -185,7 +190,8 @@ struct FormState : ContextState {
 };
 
 struct ReconnectState : ContextState {
-	ReconnectState() {state = RECONNECT;}
+	ReconnectState() {state = RECONNECT;
+				 	  Menu = make_unique<MenuContext>();}
 	unique_ptr<MenuContext> Menu;
 
 	int startUp() override;
@@ -195,7 +201,8 @@ struct ReconnectState : ContextState {
 };
 
 struct FileState : ContextState {
-	FileState() {state = FILE_DETECT;}
+	FileState() {state = FILE_DETECT;
+				 Menu = make_unique<MenuContext>();}
 	unique_ptr<MenuContext> Menu;
 
 	int startUp() override;
