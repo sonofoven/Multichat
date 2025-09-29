@@ -58,6 +58,7 @@ struct ContextState{
 };
 
 extern int epollFd;
+extern int servFd;
 extern shared_mutex fileMtx;
 extern connInfo clientInfo;
 

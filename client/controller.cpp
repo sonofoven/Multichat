@@ -1,8 +1,6 @@
 #include "client.hpp"
 #include "interface.hpp"
 
-
-
 void ContextController::setupEpoll(){
 
 	// Create our epoll instance
@@ -136,11 +134,11 @@ void ContextController::switchIntoChat(){
 
 	ChatState* chatState = (ChatState*)(curState.get());
 	chatState->Chat->servFdStart();
-	int newServFd = chatState->Chat->servFd;
-	if (newServFd < 0){
+	if (servFd < 0){
+		servFd = -1;
 		curState = make_unique<ReconnectState>();
 	} else {
-		addServFd(newServFd);
+		addServFd(servFd);
 	}
 }
 

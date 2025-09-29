@@ -69,8 +69,6 @@ struct ChatContext{
 	thread logT;
 	atomic<bool> termLog = false;
 
-	int servFd = -1;
-
 
 	// Control funcs //
 	int startProcess();
@@ -122,8 +120,6 @@ struct ChatContext{
 	void redrawInputWin(int lines, int cols);
 	void redrawUserWin(int lines, int cols);
 
-	void redrawUi();
-	
 };
 
 struct MenuContext{
@@ -219,9 +215,6 @@ struct ContextController{
 	// Sig -> fd
 	int winchFd = -1;
 	void setupEpoll();
-
-	// servFd is grabbed after Chat makes it
-	int servFd = -1;
 
 	// Controllers setups the network connection
 	void controlEpoll();

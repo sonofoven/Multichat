@@ -4,6 +4,7 @@
 connInfo clientInfo;
 shared_mutex fileMtx;
 int epollFd = -1;
+int servFd = -1;
 
 // Contexts
 
