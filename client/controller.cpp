@@ -21,10 +21,6 @@ void ContextController::setupEpoll(){
 }
 
 void ContextController::addServFd(int newServFd){
-	if (servFd != -1){
-		rmServFd(servFd);
-	}
-
 	fcntl(newServFd, F_SETFL, O_NONBLOCK);
 	epollModify(epollFd, newServFd, EPOLLIN | EPOLLET | EPOLLHUP | EPOLLERR, EPOLL_CTL_ADD);
 	servFd = newServFd;
@@ -216,3 +212,5 @@ void ContextController::controlEpoll(){
 		}
 	}
 }
+
+

@@ -7,7 +7,7 @@ int ChatState::startUp(){
 
 int ChatState::handleInput(int ch){
 	Chat->handleCh(ch);
-	return 0;
+	return -1;
 }
 
 int ChatState::tearDown(){
