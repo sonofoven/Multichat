@@ -133,10 +133,13 @@ void ContextController::stateChange(int status){
 
 void ContextController::switchIntoChat(){
 	curState = make_unique<ChatState>();
-	curState->startUp();
 
 	ChatState* chatState = (ChatState*)(curState.get());
 	chatState->Chat->servFdStart();
+
+	curState->startUp();
+
+
 	if (servFd < 0){
 		servFd = -1;
 		curState = make_unique<ReconnectState>();
