@@ -25,16 +25,16 @@ int FormState::startUp(){
 
 	// Post and update screen
 	post_form(Form->confForm);
-	Form->refreshForm();
 
+	Form->refreshForm();
 	return 0;
 }
 
 int FormState::handleInput(int ch){
 	// Get selection or action
 	int retCh = Form->handleCh(ch);
+	pos_form_cursor(Form->confForm);
 	Form->refreshForm();
-
 	return retCh;
 }
 
@@ -61,7 +61,6 @@ void FormContext::refreshForm(){
 	int begY = getpary(formWin);
 	int startY = 0;
 
-	wrefresh(formWin);
 
 	for (int i = 0; i < (int)fieldNames.size(); i++){
 		startY = begY + i * FIELD_OFFSET;
@@ -75,6 +74,8 @@ void FormContext::refreshForm(){
 		wrefresh(fieldBoxes[i]);
 	}
 	wrefresh(bordWin);
+	pos_form_cursor(confForm);
+	wrefresh(formWin);
 }
 
 void FormContext::freeAll(){
