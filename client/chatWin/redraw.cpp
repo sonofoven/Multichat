@@ -110,9 +110,12 @@ void ChatContext::redrawMsgWin(int lines, int cols){
 }
 
 
-void ChatContext::redrawChat(int lines, int cols){
+void ChatContext::redrawChat(){
 	erase();
 	refresh();
+
+	int lines, cols;
+	getmaxyx(stdscr, lines, cols);
 
 	redrawInputWin(lines, cols);
 	redrawUserWin(lines, cols);

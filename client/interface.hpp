@@ -104,7 +104,7 @@ struct ChatContext{
 
 	// Redraw //
 	void restoreHistory();
-	void redrawChat(int lines, int cols);
+	void redrawChat();
 	void redrawMsgWin(int lines, int cols);
 	void redrawInputWin(int lines, int cols);
 	void redrawUserWin(int lines, int cols);
@@ -161,6 +161,7 @@ struct ChatState : ContextState {
 	int startUp() override;
 	int handleInput(int ch) override;
 	int tearDown() override;
+	void redraw() override;
 
 };
 
@@ -173,28 +174,30 @@ struct FormState : ContextState {
 	int startUp() override;
 	int handleInput(int ch) override;
 	int tearDown() override;
-
+	void redraw() override;
 };
 
 struct ReconnectState : ContextState {
-	ReconnectState() {state = RECONNECT;
-				 	  Menu = make_unique<MenuContext>();}
+	ReconnectState() {state = RECONNECT;}
 	unique_ptr<MenuContext> Menu;
 
 	int startUp() override;
 	int handleInput(int ch) override;
 	int tearDown() override;
+	void redraw() override;
 
 };
 
 struct FileState : ContextState {
 	FileState() {state = FILE_DETECT;
 				 Menu = make_unique<MenuContext>();}
+
 	unique_ptr<MenuContext> Menu;
 
 	int startUp() override;
 	int handleInput(int ch) override;
 	int tearDown() override;
+	void redraw() override;
 
 };
 

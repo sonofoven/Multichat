@@ -55,6 +55,7 @@ struct ContextState{
 	virtual int startUp() = 0;
 	virtual int handleInput(int ch) = 0;
 	virtual int tearDown() = 0;
+	virtual void redraw() = 0;
 };
 
 extern int epollFd;
@@ -67,9 +68,6 @@ extern queue<unique_ptr<Packet>> logQueue;
 extern condition_variable queueCv;
 extern thread logT;
 extern atomic<bool> reaccLogTarget;
-
-// UI / Window IO
-void redrawUi();
 
 // Logging //
 void startLog(); 

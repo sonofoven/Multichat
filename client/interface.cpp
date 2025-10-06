@@ -447,6 +447,3 @@ path getConfDir(){
 	return configFile;
 }
 
-void redrawUi(){
-
-}

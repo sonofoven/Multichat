@@ -25,6 +25,7 @@ int FormState::startUp(){
 	Form->setForm();
 	keypad(stdscr, TRUE);
 
+	pos_form_cursor(Form->confForm);
 	// Post and update screen
 	post_form(Form->confForm);
 
@@ -54,6 +55,11 @@ int FormState::tearDown(){
 	} else {
 		return -1;
 	}
+}
+
+void FormState::redraw(){
+	tearDown();
+	startUp();
 }
 
 

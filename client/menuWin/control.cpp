@@ -3,6 +3,8 @@
 int FileState::startUp(){
 	erase();
 
+	Menu = make_unique<MenuContext>();
+
 	if (!FormContext::fileVerify()){
 		// If conf file doesn't exist go
 		// or if its not valid
@@ -36,6 +38,12 @@ int FileState::tearDown(){
 }
 
 
+void FileState::redraw(){
+	tearDown();
+	startUp();
+}
+
+
 int ReconnectState::startUp(){
 	erase();
 
@@ -63,6 +71,11 @@ int ReconnectState::tearDown(){
 	return 0;
 }
 
+void ReconnectState::redraw(){
+	tearDown();
+	startUp();
+
+}
 
 
 void MenuContext::freeAll(){

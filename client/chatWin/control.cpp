@@ -17,6 +17,10 @@ int ChatState::tearDown(){
 	return 0;
 }
 
+void ChatState::redraw(){
+	Chat->redrawChat();
+}
+
 int ChatContext::startProcess(){
 	// Store connection info on successful connection
 	FormContext::fileCreate();
@@ -38,6 +42,9 @@ int ChatContext::termProcess(){
 	//endwin();
 	return 0;
 }
+
+
+
 
 void ChatContext::freeAll(){
 	if (userWin){

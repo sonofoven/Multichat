@@ -51,9 +51,18 @@ void ContextController::handleWinch(){
 				break;
 			}
 		}
-		
-		redrawUi();
-	}
+				
+	endwin();
+	clearok(stdscr, TRUE);
+	refresh();}
+
+	interfaceStart();
+
+	int rows, cols;
+	getmaxyx(stdscr, rows, cols);
+	resizeterm(rows, cols);
+
+	curState->redraw();
 }
 
 int ContextController::handleChar(){
