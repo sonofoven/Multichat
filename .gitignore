@@ -1,5 +1,5 @@
 *.swp
-client
-server
+client/client
+client/server
 cli
 serv
