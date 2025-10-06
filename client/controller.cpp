@@ -211,5 +211,3 @@ void ContextController::controlEpoll(){
 		}
 	}
 }
-
-

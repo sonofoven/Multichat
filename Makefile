@@ -10,6 +10,7 @@ SERVER_DIR := server
 CLIENT_SRCS := \
   $(CLIENT_DIR)/client.cpp \
   $(CLIENT_DIR)/interface.cpp \
+  $(CLIENT_DIR)/logging.cpp \
   $(CLIENT_DIR)/controller.cpp \
   $(PROTO_SRC)
 
@@ -17,7 +18,6 @@ CLIENT_SRCS := \
 CLIENT_SRCS += \
   $(CLIENT_DIR)/chatWin/control.cpp \
   $(CLIENT_DIR)/chatWin/ui.cpp \
-  $(CLIENT_DIR)/chatWin/logging.cpp \
   $(CLIENT_DIR)/chatWin/network.cpp \
   $(CLIENT_DIR)/chatWin/packet.cpp \
   $(CLIENT_DIR)/chatWin/redraw.cpp

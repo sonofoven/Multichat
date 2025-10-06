@@ -1,6 +1,5 @@
 #include "../interface.hpp"
 
-
 void ChatContext::redrawInputWin(int lines, int cols){
 	Win* window = inputWin;
 	delwin(window->bordWin);

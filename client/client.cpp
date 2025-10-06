@@ -6,6 +6,12 @@ shared_mutex fileMtx;
 int epollFd = -1;
 int servFd = -1;
 
+mutex logMtx;
+queue<unique_ptr<Packet>> logQueue;
+condition_variable queueCv;
+thread logT;
+atomic<bool> reaccLogTarget;
+
 // Contexts
 
 int main() {

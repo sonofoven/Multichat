@@ -63,12 +63,6 @@ struct ChatContext{
 	string inputBuf;
 	string serverName; 
 	
-	mutex logMtx;
-	queue<unique_ptr<Packet>> logQueue;
-	condition_variable queueCv;
-	thread logT;
-	atomic<bool> termLog = false;
-
 
 	// Control funcs //
 	int startProcess();
@@ -82,7 +76,7 @@ struct ChatContext{
 	// Ui //
 	void setupWindows();
 	void appendMsgWin(unique_ptr<formMsg>& formStr, bool redraw);
-	void handleCh(int ch); //  
+	void handleCh(int ch); 
 	void scrollBottom();
 	void scrollUp();
 	void scrollDown();
@@ -91,12 +85,6 @@ struct ChatContext{
 	void shiftPad();
 	void updateUserWindow();
 
-	// Logging //
-	void startLog(); 
-	void stopLog(); 
-	void restoreHistory();
-	void logLoop(); 
-	void appendToLog(unique_ptr<Packet> pkt);
 
 	// Network Setup/Handling //
 	void servFdStart();
@@ -115,6 +103,7 @@ struct ChatContext{
 	void serverDisconnect(ServerDisconnect& pkt);
 
 	// Redraw //
+	void restoreHistory();
 	void redrawChat(int lines, int cols);
 	void redrawMsgWin(int lines, int cols);
 	void redrawInputWin(int lines, int cols);

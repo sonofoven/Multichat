@@ -2,6 +2,7 @@
 
 
 int FormState::startUp(){
+	erase();
 	vector<string> fieldNames {"IP:", "Port:", "Name:"};
 	
 	int minHeight = MENU_HEIGHT + MENU_HEIGHT/3 * (int)fieldNames.size();
@@ -18,6 +19,7 @@ int FormState::startUp(){
 	Form = make_unique<FormContext>(locFormWin, move(fieldNames));
 
 
+	refresh();
 
 	// Set up form
 	Form->setForm();

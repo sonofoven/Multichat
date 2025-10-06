@@ -62,5 +62,16 @@ extern int servFd;
 extern shared_mutex fileMtx;
 extern connInfo clientInfo;
 
+extern mutex logMtx;
+extern queue<unique_ptr<Packet>> logQueue;
+extern condition_variable queueCv;
+extern thread logT;
+extern atomic<bool> reaccLogTarget;
+
 // UI / Window IO
 void redrawUi();
+
+// Logging //
+void startLog(); 
+void logLoop(); 
+void appendToLog(unique_ptr<Packet> pkt);

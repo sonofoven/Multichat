@@ -33,7 +33,6 @@ int ChatContext::startProcess(){
 }
 
 int ChatContext::termProcess(){
-	stopLog();
 	// These will eventually be handled in epoll loop
 	freeAll();
 	//endwin();
@@ -43,19 +42,19 @@ int ChatContext::termProcess(){
 void ChatContext::freeAll(){
 	if (userWin){
 		userWin->freeWin();
+		delete userWin;
 	}
 
 	if (msgWin){
 		msgWin->freeWin();
+		delete msgWin;
 	}
 
 	if (inputWin){
 		inputWin->freeWin();
+		delete inputWin;
 	}
 
-	delete userWin;
-	delete msgWin;
-	delete inputWin;
 
 	erase();
 	refresh();

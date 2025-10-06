@@ -1,6 +1,8 @@
 #include "../interface.hpp"
 
 int FileState::startUp(){
+	erase();
+
 	if (!FormContext::fileVerify()){
 		// If conf file doesn't exist go
 		// or if its not valid
@@ -35,6 +37,7 @@ int FileState::tearDown(){
 
 
 int ReconnectState::startUp(){
+	erase();
 
 	string caption = "Connection failed";
 	vector<string> choices {"Reconnect", "Configure"}; 
