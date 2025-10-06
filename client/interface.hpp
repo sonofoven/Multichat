@@ -146,7 +146,6 @@ struct FormContext{
 	vector<FIELD*> formFields;
 	vector<WINDOW*> fieldBoxes;
 
-	FormContext() = default;
 	FormContext(WINDOW* w, vector<string> f);
 
 	void setForm();
@@ -178,8 +177,7 @@ struct ChatState : ContextState {
 
 
 struct FormState : ContextState {
-	FormState() {state = FORM_FILL;
-				 Form = make_unique<FormContext>();}
+	FormState() {state = FORM_FILL;}
 
 	unique_ptr<FormContext> Form;
 

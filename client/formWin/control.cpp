@@ -17,8 +17,11 @@ int FormState::startUp(){
 	
 	Form = make_unique<FormContext>(locFormWin, move(fieldNames));
 
+
+
 	// Set up form
 	Form->setForm();
+	keypad(stdscr, TRUE);
 
 	// Post and update screen
 	post_form(Form->confForm);
@@ -29,7 +32,10 @@ int FormState::startUp(){
 
 int FormState::handleInput(int ch){
 	// Get selection or action
-	return Form->handleCh(ch);
+	int retCh = Form->handleCh(ch);
+	Form->refreshForm();
+
+	return retCh;
 }
 
 int FormState::tearDown(){
@@ -51,7 +57,6 @@ int FormState::tearDown(){
 
 
 void FormContext::refreshForm(){
-	wrefresh(bordWin);
 
 	int begY = getpary(formWin);
 	int startY = 0;
@@ -69,6 +74,7 @@ void FormContext::refreshForm(){
 		box(fieldBoxes[i], 0, 0);
 		wrefresh(fieldBoxes[i]);
 	}
+	wrefresh(bordWin);
 }
 
 void FormContext::freeAll(){

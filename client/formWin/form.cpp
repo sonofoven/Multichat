@@ -1,9 +1,7 @@
 #include "../interface.hpp"
 
-FormContext::FormContext(WINDOW* w, 
-						 vector<string> f):
-						 bordWin(w), 
-						 fieldNames(move(f)){
+FormContext::FormContext(WINDOW* w, vector<string> f):
+						 bordWin(w), fieldNames(move(f)){
 
 	int fieldNum = (int)fieldNames.size();
 	formFields.reserve(fieldNum + 1);
@@ -91,8 +89,11 @@ FormContext::FormContext(WINDOW* w,
 
 void FormContext::setForm(){
 	// Set field options
+	int count = 0;
 	for (FIELD* f : formFields) {
+		
 		if (f){
+			count++;
 			field_opts_off(f, O_AUTOSKIP); 
 		}
 	}
@@ -105,7 +106,6 @@ void FormContext::setForm(){
 	// Set main window and sub window
 	set_form_win(confForm, bordWin);
 	set_form_sub(confForm, formWin);
-	keypad(bordWin, TRUE);
 }
 
 bool FormContext::validIpCh(int idx, int ch){
@@ -354,6 +354,5 @@ optional<vector<string>> FormContext::octetTokenize(string str){
 
 	return outBuf;
 }
-
 
 

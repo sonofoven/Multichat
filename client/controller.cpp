@@ -81,12 +81,8 @@ void ContextController::stateChange(int status){
 		case FILE_DETECT:
 			switch(status){
 				case 0:
-					//endwin();
-					//cout << clientInfo.addr << endl;
-					//for(;;);
 					curState->tearDown();
 					switchIntoChat();
-					return;
 					break;
 
 				default:
@@ -102,7 +98,6 @@ void ContextController::stateChange(int status){
 				case 0:
 					curState->tearDown();
 					switchIntoChat();
-					return;
 					break;
 
 				default:
@@ -117,7 +112,6 @@ void ContextController::stateChange(int status){
 			switch(curState->tearDown()){
 				case 0:
 					switchIntoChat();
-					return;
 					break;
 
 				default:
@@ -127,6 +121,8 @@ void ContextController::stateChange(int status){
 			}
 			break;
 
+	}
+	if (curState->state != MESSENGING){
 		curState->startUp();
 	}
 }
