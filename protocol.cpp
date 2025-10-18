@@ -297,7 +297,14 @@ Packet* instancePacketFromData(const uint8_t* data){
 		}
 	}
 
-	pkt->parse(data);
+	// HERE
+	try {
+		pkt->parse(data);
+	} catch (...){
+		delete pkt;
+		return nullptr;
+	}
+
 	return pkt;
 }
 

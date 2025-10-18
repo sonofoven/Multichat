@@ -37,10 +37,12 @@ void ChatContext::restoreHistory(){
 			uint8_t* data = (uint8_t*)line.c_str();
 			Packet* linePtr = instancePacketFromData(data);
 
-			ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
+			if (linePtr){
+				ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
 
-			unique_ptr<formMsg> formattedStr = formatMessage(servPacket.timestamp, servPacket.msg, servPacket.username);
-			appendMsgWin(formattedStr, false);
+				unique_ptr<formMsg> formattedStr = formatMessage(servPacket.timestamp, servPacket.msg, servPacket.username);
+				appendMsgWin(formattedStr, false);
+			}
 		}
 
 		log.close();
