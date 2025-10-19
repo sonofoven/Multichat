@@ -125,7 +125,7 @@ path logFilePath(){
 }
 
 path getLogDir(){
-	path logDir = "/var/log/multiChat";
+	path logDir = LOG_LOCATION;
 	create_directories(logDir);
 	return logDir;
 }

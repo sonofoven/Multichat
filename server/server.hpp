@@ -31,6 +31,7 @@
 #define LOG_DAY_MAX 4
 #define MAX_NAME_CHARS 25
 #define VERSION "1.0"
+#define LOG_LOCATION "servLogs"
 
 using namespace std;
 using namespace std::filesystem;
