@@ -3,7 +3,10 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include <signal.h>
+#include <sys/signalfd.h>
 
+
+#include <csignal>
 #include <unordered_map>
 #include <queue>
 #include <vector>
@@ -62,6 +65,7 @@ extern mutex logMtx; // To keep queue on track
 extern condition_variable queueCv;
 extern shared_mutex fileMtx; // To control the file access
 extern string serverName;
+extern atomic<bool> shutdownAll;
 
 
 int makeListenSocket(sockaddr_in address);
@@ -99,7 +103,7 @@ void killClient(int fd);
 
 void killUser(string& user);
 
-void killServer(int code);
+void killServer();
 
 //// Utils
 

@@ -11,6 +11,7 @@ condition_variable queueCv;
 
 shared_mutex fileMtx;
 string serverName;
+atomic<bool> shutdownAll = false;
 
 int main(int argc, char* argv[]){
 	cout << "Multichat v" << VERSION << endl;
@@ -18,11 +19,6 @@ int main(int argc, char* argv[]){
 	serverName = getServerName(argc, argv);
 	cout << "Server name is: " << serverName << endl;
 	
-
-	//signal(SIGINT, killServer); 
-
-	signal(SIGINT, killServer);
-
 	int listenFd;
 	sockaddr_in address;
 
@@ -41,31 +37,51 @@ int main(int argc, char* argv[]){
 		exit(1);
 	}
 
+	sigset_t mask;
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGINT);
+
+	pthread_sigmask(SIG_BLOCK, &mask, NULL);
+	int interFd = signalfd(-1, &mask, SFD_NONBLOCK);
+	epollModify(epollFd, interFd, EPOLLIN | EPOLLET, EPOLL_CTL_ADD);
+
+
 	// Create a thread to constantly accept new conns
 	thread listenT(acceptLoop, listenFd);
-	listenT.detach();
-
 	thread logT(logLoop);
-	logT.detach();
 
-	while (1){
+	while (!shutdownAll){
 		// Get # of events captured instantaneously
-        int eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
-        if (eventCount == -1) {
-            if (errno == EINTR) {
-                break;
-            } else if (errno != EINTR) {
+		int eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
+		if (eventCount == -1) {
+			if (errno == EINTR) {
+				continue;
+			} else if (errno != EINTR) {
 				cerr << "epoll wait" << endl;
-                break;
-            }
-            continue;
-        }
+				break;
+			}
+			continue;
+		}
 
 
 		for (int i = 0; i < eventCount; i++){
 
 			int fd = events[i].data.fd;
 			uint32_t event = events[i].events;
+
+
+			if (fd == interFd) {
+
+				// Drain sigfd
+				signalfd_siginfo fdsi;
+				read(fd, &fdsi, sizeof(signalfd_siginfo));
+
+				shutdownAll = true;
+				queueCv.notify_all();
+				close(listenFd);
+				cout << "Start kill process" << endl;
+				break;
+			}
 
 			// Client disconnected/connection drop
 			if (event & (EPOLLHUP | EPOLLERR)){
@@ -104,8 +120,11 @@ int main(int argc, char* argv[]){
 		}
 	}
 
-	close(listenFd);
-	killServer(0);
+	listenT.join();
+	logT.join();
+
+	cout << "All threads joined!" << endl;
+	killServer();
 	return 0;
 }
 
@@ -340,38 +359,54 @@ int protocolParser(Packet* pkt, clientConn& sender){
 	return exitCode;
 }
 
-
 void acceptLoop(int listenFd){
 	int clientFd;
 	sockaddr_in clientAddress;
 	socklen_t clientLen = sizeof(clientAddress);
-	
-	// Set thread to loop forever
-	while(1){
-		// While there are still connections to accept
-		while((clientFd = accept(listenFd, (sockaddr *)&clientAddress, (socklen_t *)& clientLen)) > 0){
 
-			// Lock client map from other threads to prevent race conds
-			lock_guard lock(clientMapMtx);
+    int flags = fcntl(listenFd, F_GETFL, 0);
+    fcntl(listenFd, F_SETFL, flags | O_NONBLOCK);
 
-			// Add client fd to list of connected clients
-			clientConn newClient = clientConn(clientFd);
+    int localEpollFd = epoll_create1(0);
 
-			clientMap.emplace(clientFd, newClient);
+    struct epoll_event event;
+    struct epoll_event events[1];
+    event.events = EPOLLIN | EPOLLET;
+    event.data.fd = listenFd;
 
+    epoll_ctl(localEpollFd, EPOLL_CTL_ADD, listenFd, &event);
 
-			// Add connection fd to epoll marking list
-			addFdToEpoll(clientFd);
+	while(!shutdownAll){
+		
+        int eventCount = epoll_wait(localEpollFd, events, 1, 200);
 
-			cout << "Connection accepted" << endl;
-			
-		}
+        if (eventCount <= 0) {
+            continue;
+        }
 
-		if (clientFd == -1 && errno != EAGAIN && errno != EWOULDBLOCK){
-			perror("Accept handling");
-			close(epollFd);
-			close(listenFd);
-			exit(1);
-		}
+        while (true) {
+            clientFd = accept(listenFd, (sockaddr *)&clientAddress, (socklen_t *)& clientLen);
+
+            if (clientFd > 0) {
+                lock_guard lock(clientMapMtx);
+                
+                if (shutdownAll) { 
+                    close(clientFd);
+                    break; // Stop accepting
+                }
+                
+                clientConn newClient = clientConn(clientFd);
+                clientMap.emplace(clientFd, newClient);
+                
+                addFdToEpoll(clientFd); 
+                cout << "Connection accepted" << endl;
+
+            } else {
+                break;
+            }
+        }
 	}
+
+    close(localEpollFd);
+	cout << "Accept loop shutting down" << endl;
 }

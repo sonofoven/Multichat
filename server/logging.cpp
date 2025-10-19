@@ -4,12 +4,13 @@ void logLoop(){
 	list<path> logFiles = detectLogFiles();
 	logFiles.sort(greater<path>());
 	weenLogFiles(logFiles);
-	while(1){
+	while(!shutdownAll){
 		unique_lock lock(logMtx);
 
-		// Locks up here and releases the mutex
-		while (logQueue.empty()){
-			queueCv.wait(lock);
+		queueCv.wait(lock, []{return !logQueue.empty() || shutdownAll;});
+
+		if (shutdownAll && logQueue.empty()){
+			break;
 		}
 
 		// Move the queue over and then release it to get more packets
@@ -51,6 +52,7 @@ void logLoop(){
 			localQueue.pop();
 		}
 	}
+	cout << "Logging loop shutting down" << endl;
 }
 
 list<path> detectLogFiles(){

@@ -81,31 +81,35 @@ void clientServerMessage(ClientServMsg& pkt, clientConn& sender){
 
 void dropClient(int fd){
 	cout << "Attempting drop" << endl;
-	// Find client conn from fd
-	clientConn* cliPtr = lockFindCli(fd);
-
-	if (!cliPtr){
-		killClient(fd);
-	}
 	
-	// If client registered w/ a non-null username, inform others
+	unique_lock lock(clientMapMtx);
+
+	auto it = clientMap.find(fd);
+	if (it == clientMap.end()){
+		epollModify(epollFd, fd, 0, EPOLL_CTL_DEL);
+		close(fd);
+		return;
+	}
+
+	clientConn* cliPtr = &it->second;
+	
 	if (cliPtr->username != "" && usernameExists(cliPtr->username) == ""){
 
-		// Inform log
 		cout << "Dropping user: " << cliPtr->username << endl;
 
-		// Create disconnect packet
 		ServerDisconnect responseAll = ServerDisconnect(cliPtr->username);
 
-		// Serialize to all
+		lock.unlock(); 
 		serializeToAllButSender(responseAll, *cliPtr);
-
-		//unique_ptr<ServerDisconnect> upkt = make_unique<ServerDisconnect>(responseAll);
-		//appendToLog(move(upkt));
+		lock.lock(); 	
 	}
 
-	// Kill client
-	killClient(fd);
+	killUser(cliPtr->username);
+
+	epollModify(epollFd, fd, 0, EPOLL_CTL_DEL);
+	close(fd);
+
+	clientMap.erase(it);
 }
 
 clientConn* lockFindCli(int fd){
@@ -189,49 +193,46 @@ void serializeToAllButSender(Packet& pkt, clientConn& sender){
 void killClient(int fd){
 
 	cout << "Killing client: " << fd << endl;
+	lock_guard<mutex> lock(clientMapMtx);
 
-	// Find client
-	clientConn* clientPtr = lockFindCli(fd);
-
-	if (!clientPtr){
+	auto it = clientMap.find(fd);
+	if (it == clientMap.end()){
 		epollModify(epollFd, fd, 0, EPOLL_CTL_DEL);
 		close(fd);
 		return;
 	}
 
-	// Deregister the username
-	killUser(clientPtr->username);
+	clientConn& client = it->second;
 
-	// Wipe the socket
+	killUser(client.username);
+
 	epollModify(epollFd, fd, 0, EPOLL_CTL_DEL);
 	close(fd);
 
-	// Lock the map
-	//lock_guard lock(clientMapMtx);
-
-	// Wipe from the map
-	clientMap.erase(fd);
+	clientMap.erase(it);
 }
 
 void killUser(string& username){
 	userMap.erase(username);
 }
 
-void killServer(int code){
+void killServer(){
 	// Inform
-	//cout << "Killing server over signal: " << code << endl;
+	cout << "Killing server" << endl;
 
 	// Lock mutex
-	//lock_guard lock(clientMapMtx);
-	close(epollFd);
-
-	// Kill every 
+	lock_guard lock(clientMapMtx);
 	for (auto i = clientMap.begin(); i != clientMap.end(); i++){
-		//killClient(i->first);
 		close(i->first);
 	}
 
-	exit(1);
+	clientMap.clear();
+	userMap.clear();
+
+	close(epollFd);
+
+	cout << "Server is dead" << endl;
+	exit(0);
 }
 
 string getServerName(int argc, char* argv[]){
