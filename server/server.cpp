@@ -364,49 +364,49 @@ void acceptLoop(int listenFd){
 	sockaddr_in clientAddress;
 	socklen_t clientLen = sizeof(clientAddress);
 
-    int flags = fcntl(listenFd, F_GETFL, 0);
-    fcntl(listenFd, F_SETFL, flags | O_NONBLOCK);
+	int flags = fcntl(listenFd, F_GETFL, 0);
+	fcntl(listenFd, F_SETFL, flags | O_NONBLOCK);
 
-    int localEpollFd = epoll_create1(0);
+	int localEpollFd = epoll_create1(0);
 
-    struct epoll_event event;
-    struct epoll_event events[1];
-    event.events = EPOLLIN | EPOLLET;
-    event.data.fd = listenFd;
+	struct epoll_event event;
+	struct epoll_event events[1];
+	event.events = EPOLLIN | EPOLLET;
+	event.data.fd = listenFd;
 
-    epoll_ctl(localEpollFd, EPOLL_CTL_ADD, listenFd, &event);
+	epoll_ctl(localEpollFd, EPOLL_CTL_ADD, listenFd, &event);
 
 	while(!shutdownAll){
 		
-        int eventCount = epoll_wait(localEpollFd, events, 1, 200);
+		int eventCount = epoll_wait(localEpollFd, events, 1, 200);
 
-        if (eventCount <= 0) {
-            continue;
-        }
+		if (eventCount <= 0) {
+			continue;
+		}
 
-        while (true) {
-            clientFd = accept(listenFd, (sockaddr *)&clientAddress, (socklen_t *)& clientLen);
+		while (true) {
+			clientFd = accept(listenFd, (sockaddr *)&clientAddress, (socklen_t *)& clientLen);
 
-            if (clientFd > 0) {
-                lock_guard lock(clientMapMtx);
-                
-                if (shutdownAll) { 
-                    close(clientFd);
-                    break; // Stop accepting
-                }
-                
-                clientConn newClient = clientConn(clientFd);
-                clientMap.emplace(clientFd, newClient);
-                
-                addFdToEpoll(clientFd); 
-                cout << "Connection accepted" << endl;
+			if (clientFd > 0) {
+				lock_guard lock(clientMapMtx);
+				
+				if (shutdownAll) { 
+					close(clientFd);
+					break; // Stop accepting
+				}
+				
+				clientConn newClient = clientConn(clientFd);
+				clientMap.emplace(clientFd, newClient);
+				
+				addFdToEpoll(clientFd); 
+				cout << "Connection accepted" << endl;
 
-            } else {
-                break;
-            }
-        }
+			} else {
+				break;
+			}
+		}
 	}
 
-    close(localEpollFd);
+	close(localEpollFd);
 	cout << "Accept loop shutting down" << endl;
 }

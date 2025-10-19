@@ -42,6 +42,7 @@ void ChatContext::restoreHistory(){
 
 				unique_ptr<formMsg> formattedStr = formatMessage(servPacket.timestamp, servPacket.msg, servPacket.username);
 				appendMsgWin(formattedStr, false);
+				delete linePtr;
 			}
 		}
 

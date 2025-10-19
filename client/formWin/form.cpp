@@ -7,7 +7,7 @@ FormContext::FormContext(WINDOW* w, vector<string> f):
 	formFields.reserve(fieldNum + 1);
 	fieldBoxes.reserve(fieldNum);
 
-	leaveok(bordWin, TRUE);    
+	leaveok(bordWin, TRUE);	
 	leaveok(formWin, FALSE);   
 
 	int rows, cols;

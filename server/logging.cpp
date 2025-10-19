@@ -168,6 +168,7 @@ void sendBackLogFiles(clientConn& client, time_t timestamp){
 				if (servPacket.timestamp > timestamp){
 					servPacket.serialize(client.writeBuf);
 				}
+				delete linePtr;
 			}
 		}
 

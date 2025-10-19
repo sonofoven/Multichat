@@ -44,12 +44,12 @@ SERVER_HDRS := protocol.hpp $(SERVER_DIR)/server.hpp
 CLIENT_BIN := $(CLIENT_DIR)/client
 SERVER_BIN := $(SERVER_DIR)/server
 
-LINK_CLIENT := cli
-LINK_SERVER := serv
+#LINK_CLIENT := cli
+#LINK_SERVER := serv
 
-.PHONY: all client server clean link rmCliLogs rmServLogs cleanAll
+.PHONY: all client server clean rmCliLogs rmServLogs cleanAll
 
-all: clean client server link
+all: clean client server
 
 client: $(CLIENT_BIN)
 
@@ -61,14 +61,14 @@ $(CLIENT_BIN): $(CLIENT_SRCS) $(CLIENT_HDRS)
 $(SERVER_BIN): $(SERVER_SRCS) $(SERVER_HDRS)
 	$(CC) $(CFLAGS) -o $@ $(SERVER_SRCS)
 
-link:
-	ln -sf $(abspath $(CLIENT_BIN)) $(LINK_CLIENT)
-	ln -sf $(abspath $(SERVER_BIN)) $(LINK_SERVER)
+#link:
+#	ln -sf $(abspath $(CLIENT_BIN)) $(LINK_CLIENT)
+#	ln -sf $(abspath $(SERVER_BIN)) $(LINK_SERVER)
 
 cleanAll: clean rmCliLogs rmServLogs
 
 clean: 
-	rm -f $(CLIENT_BIN) $(SERVER_BIN) $(LINK_CLIENT) $(LINK_SERVER)
+	rm -f $(CLIENT_BIN) $(SERVER_BIN) 
 
 rmCliLogs:
 	rm -rf $(HOME)/.multiChat/logs

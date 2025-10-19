@@ -14,7 +14,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define PORT    8080
+#define PORT	8080
 #define CHUNK   4096
 #define MAXMSG  512
 #define NAMELEN 16
@@ -42,14 +42,14 @@ enum opcode {
 class Packet {
 public:
 	// Header
-    uint16_t length;
-    uint16_t opcode;
+	uint16_t length;
+	uint16_t opcode;
 
 	static constexpr size_t headerLen = sizeof(length) + sizeof(opcode);
 
-    virtual void parse(const uint8_t* data) = 0;
-    virtual void serialize(vector<uint8_t>& buffer) = 0;
-    virtual ~Packet();
+	virtual void parse(const uint8_t* data) = 0;
+	virtual void serialize(vector<uint8_t>& buffer) = 0;
+	virtual ~Packet();
 };
 
 // Client -> Server
@@ -57,10 +57,10 @@ public:
 class ClientConnect : public Packet { ///
 public:
 	time_t timestamp;
-    string username;
+	string username;
 
-    void parse(const uint8_t* data) override;
-    void serialize(vector<uint8_t>& buffer) override;
+	void parse(const uint8_t* data) override;
+	void serialize(vector<uint8_t>& buffer) override;
 
 	ClientConnect();
 	ClientConnect(string& usr, time_t msgTime);
@@ -68,10 +68,10 @@ public:
 
 class ClientBroadMsg : public Packet { ///
 public:
-    string msg;
+	string msg;
 
-    void parse(const uint8_t* data) override;
-    void serialize(vector<uint8_t>& buffer) override;
+	void parse(const uint8_t* data) override;
+	void serialize(vector<uint8_t>& buffer) override;
 
 	ClientBroadMsg();
 	ClientBroadMsg(string& message);
@@ -79,10 +79,10 @@ public:
 
 class ClientServMsg : public Packet { ///
 public:
-    string msg;
+	string msg;
 
-    void parse(const uint8_t* data) override;
-    void serialize(vector<uint8_t>& buffer) override;
+	void parse(const uint8_t* data) override;
+	void serialize(vector<uint8_t>& buffer) override;
 
 	ClientServMsg();
 	ClientServMsg(string& message);
@@ -92,12 +92,12 @@ public:
 
 class ServerValidate : public Packet { ///
 public:
-    bool able;
+	bool able;
 	string servName;
 	list<string> userList;
 
-    void parse(const uint8_t* data) override;
-    void serialize(vector<uint8_t>& buffer) override;
+	void parse(const uint8_t* data) override;
+	void serialize(vector<uint8_t>& buffer) override;
 
 	ServerValidate();
 	ServerValidate(bool a, string servName, unordered_map<string,int>& userMap);
@@ -106,10 +106,10 @@ public:
 class ServerConnect : public Packet { ///
 public:
 	time_t timestamp;
-    string username;
+	string username;
 
-    void parse(const uint8_t* data) override;
-    void serialize(vector<uint8_t>& buffer) override;
+	void parse(const uint8_t* data) override;
+	void serialize(vector<uint8_t>& buffer) override;
 
 	ServerConnect();
 	ServerConnect(string& usr);
@@ -118,11 +118,11 @@ public:
 class ServerBroadMsg : public Packet { ///
 public:
 	time_t timestamp;
-    string username;
-    string msg;
+	string username;
+	string msg;
 
-    void parse(const uint8_t* data) override;
-    void serialize(vector<uint8_t>& buffer) override;
+	void parse(const uint8_t* data) override;
+	void serialize(vector<uint8_t>& buffer) override;
 
 	ServerBroadMsg();
 	ServerBroadMsg(string& usr, string& message);
@@ -131,10 +131,10 @@ public:
 class ServerDisconnect : public Packet {
 public:
 	time_t timestamp;
-    string username;
+	string username;
 
-    void parse(const uint8_t* data) override;
-    void serialize(vector<uint8_t>& buffer) override;
+	void parse(const uint8_t* data) override;
+	void serialize(vector<uint8_t>& buffer) override;
 
 	ServerDisconnect();
 	ServerDisconnect(string& usr);

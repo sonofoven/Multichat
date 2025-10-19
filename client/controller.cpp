@@ -7,9 +7,9 @@ void ContextController::setupEpoll(){
 	epollFd = epoll_create1(0);
 
 	// ADD SIGWINCH FD RIGHT HERE
-    sigset_t mask;
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGWINCH);
+	sigset_t mask;
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGWINCH);
 
 	pthread_sigmask(SIG_BLOCK, &mask, NULL);
 
@@ -187,17 +187,17 @@ int ContextController::handleServFd(uint32_t event){
 
 void ContextController::controlEpoll(){
 	while (1){
-        int eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
+		int eventCount = epoll_wait(epollFd, events, MAX_EVENTS, -1);
 
 
-        if (eventCount == -1) {
-            if (errno == EINTR) {
+		if (eventCount == -1) {
+			if (errno == EINTR) {
 				continue;
-            } else {
+			} else {
 				return;
-            }
-            continue;
-        }
+			}
+			continue;
+		}
 
 
 		for (int i = 0; i < eventCount; i++){

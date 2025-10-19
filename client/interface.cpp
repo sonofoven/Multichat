@@ -330,6 +330,7 @@ time_t getLatestLoggedMsgTime(){
 	Packet* linePtr = instancePacketFromData(data);
 
 	ServerBroadMsg servPacket = *(static_cast<ServerBroadMsg*>(linePtr));
+	delete linePtr;
 	return servPacket.timestamp;
 }
 
