@@ -1,0 +1,11 @@
+services:
+  multichat-server:
+    image: "novesen/multichat:latest"
+    ports:
+      - "2215:8080"
+
+    environment:
+      MULTICHAT_NAME: The Dude Zone
+
+    volumes:
+      - ./logs:/app/Multichat/server/servLogs:rw

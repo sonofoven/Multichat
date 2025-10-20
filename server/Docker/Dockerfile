@@ -16,4 +16,4 @@ WORKDIR /app/Multichat/server
 EXPOSE 8080
 
 # Start server with optional server name
-CMD ["sh", "-c", "./server ${SERVNAME}"]
+CMD ["sh", "-c", "./server \"$MULTICHAT_NAME\""]
