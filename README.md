@@ -82,6 +82,8 @@ On the first run, you will be prompted to enter the server's IP address (use `12
 
 ## Deficiencies and Known Issues
 
+*Perfect is the enemy of good*
+
 * **Platform Specificity**: The application is **not POSIX compliant** and will only build and run on **Linux**. It relies on Linux-specific APIs like `epoll` and `signalfd`. It will not work on macOS (which uses `kqueue`) or Windows.
 
 * **No Encryption**: All communication is sent in plaintext. There is no TLS/SSL, making it insecure for use over public networks.
@@ -96,6 +98,9 @@ before you send meaning mid-line modifications require deletion of half the line
 * **No Server Groups**: The protocol only supports broadcasting messages to all connected users.
 
 * **One client per system**: Logs all go to the same space in the computer so if you have two users connected, logged messages would duplicate. It's possible, it's just not pretty or intended.
+
+* **Domain names not accepted**: When prompted for a ip, you will not be able to enter in a domain name as it doesn't dereference anything.
+
 
 ## What I Learned
 These are concepts or systems that I did not have knowledge of before this project started
