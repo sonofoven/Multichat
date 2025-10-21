@@ -80,6 +80,37 @@ client/client
 
 On the first run, you will be prompted to enter the server's IP address (use `127.0.0.1` for local), the port (default is `8080`), and a username.
 
+## Docker Support
+
+MultiChat includes a Docker setup for easy server deployment and consistent behavior.
+The Docker Hub page is avaliable [here](https://hub.docker.com/r/novesen/multichat), it also contains instructions how to build the container yourself.
+
+### Example Docker Compose
+
+This example is avaliable in `server/Docker` as well as the original Dockerfile
+```bash
+services:
+  multichat-server:
+    image: "novesen/multichat:latest"
+    ports:
+      - "2215:8080"
+    environment:
+      MULTICHAT_NAME: "The Dude Zone"
+    volumes:
+      - ./logs:/app/Multichat/server/servLogs
+```
+
+This builds the server image, maps port 8080 to 2215, sets the server name, and persists logs to the host.
+
+### Running the Server
+
+From `server/Docker`, run:
+```bash
+docker compose up -d
+```  
+- Server logs appear in the host `logs` folder.
+
+
 ## Deficiencies and Known Issues
 
 *Perfect is the enemy of good*
