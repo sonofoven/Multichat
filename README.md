@@ -7,6 +7,7 @@ MultiChat is a C++ terminal-based chat application using the `ncurses` library. 
 * **Client-Server Model**: A central server handles connections, message broadcasting, and user management.
 * **Terminal UI**: A full-featured terminal interface built with `ncurses`, `menu`, and `form` libraries.
 * **Real-time Messaging**: Clients can send and receive broadcast messages from all other connected users.
+* **Dynamic Windows** Windows will resize based on terminal size and the messaging window is scrollable. 
 * **User Status**: See a list of currently connected users, with real-time updates when users join or leave the chat.
 * **Connection Management**: The client can attempt to reconnect if the connection fails.
 * **Persistent Configuration**: The client saves connection details (IP, Port, Username) to a config file (`~/.multiChat/config`) after the first successful connection.
