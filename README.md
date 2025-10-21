@@ -96,9 +96,10 @@ services:
     ports:
       - "2215:8080"
     environment:
-      MULTICHAT_NAME: "The Dude Zone"
+      MULTICHAT_NAME: The Dude Zone
     volumes:
-      - ./logs:/app/Multichat/server/servLogs
+      - ./logs:/app/Multichat/server/servLogs:rw
+
 ```
 
 This builds the server image, maps port 8080 to 2215, sets the server name, and persists logs to the host.
